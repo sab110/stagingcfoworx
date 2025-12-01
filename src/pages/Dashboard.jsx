@@ -4,6 +4,7 @@ export default function Dashboard() {
   const backendURL = import.meta.env.VITE_BACKEND_URL;
   const [user, setUser] = useState(null);
   const [licenses, setLicenses] = useState([]);
+  const [subscription, setSubscription] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const token = localStorage.getItem("access_token");
@@ -71,7 +72,26 @@ export default function Dashboard() {
       }
     };
 
+    const fetchSubscription = async () => {
+      try {
+        const response = await fetch(
+          `${backendURL}/api/subscriptions/company/${realmId}`
+        );
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.status !== "no_subscription") {
+            setSubscription(data);
+            console.log("✅ Subscription data:", data);
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching subscription:", err);
+      }
+    };
+
     fetchUserData();
+    fetchSubscription();
   }, [backendURL, token, realmId]);
 
   const handleLogout = () => {
@@ -82,6 +102,33 @@ export default function Dashboard() {
     
     // Redirect to login page
     window.location.href = "/";
+  };
+
+  const handleManageBilling = async () => {
+    if (!subscription || !subscription.stripe_customer_id) {
+      alert("No subscription found. Please subscribe first.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`${backendURL}/api/stripe/create-customer-portal`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customerId: subscription.stripe_customer_id
+        })
+      });
+
+      const data = await response.json();
+      if (response.ok && data.url) {
+        window.location.href = data.url;
+      } else {
+        alert("Failed to open billing portal");
+      }
+    } catch (err) {
+      console.error("Error opening billing portal:", err);
+      alert("Error opening billing portal");
+    }
   };
 
   if (loading) return <div>Loading your QuickBooks data...</div>;
@@ -156,14 +203,27 @@ export default function Dashboard() {
 
           <hr />
           <h4>💳 Subscription</h4>
-          {user.subscription ? (
+          {subscription && subscription.plan ? (
             <>
-              <p><strong>Plan:</strong> {user.subscription.plan}</p>
-              <p><strong>Status:</strong> {user.subscription.status}</p>
+              <p><strong>Plan:</strong> {subscription.plan.name} ({subscription.plan.billing_cycle})</p>
+              <p><strong>Price:</strong> {subscription.plan.price}</p>
+              <p>
+                <strong>Status:</strong>{" "}
+                <span style={{
+                  color: subscription.status === "active" ? "#10b981" : "#ef4444",
+                  fontWeight: "600"
+                }}>
+                  {subscription.status.toUpperCase()}
+                </span>
+              </p>
+              
+              {subscription.end_date && (
+                <p><strong>Next Billing:</strong> {new Date(subscription.end_date).toLocaleDateString()}</p>
+              )}
 
-              {user.subscription.status !== "active" && (
+              <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginTop: "15px" }}>
                 <button
-                  onClick={() => (window.location.href = "/subscribe")}
+                  onClick={handleManageBilling}
                   style={{
                     backgroundColor: "#2563eb",
                     color: "white",
@@ -171,12 +231,28 @@ export default function Dashboard() {
                     padding: "10px 20px",
                     borderRadius: "8px",
                     cursor: "pointer",
-                    marginTop: "10px",
+                    fontWeight: "600"
                   }}
                 >
-                  Reactivate / Upgrade
+                  Manage Billing
                 </button>
-              )}
+
+                {subscription.status !== "active" && (
+                  <button
+                    onClick={() => (window.location.href = "/subscribe")}
+                    style={{
+                      backgroundColor: "#10b981",
+                      color: "white",
+                      border: "none",
+                      padding: "10px 20px",
+                      borderRadius: "8px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Reactivate
+                  </button>
+                )}
+              </div>
             </>
           ) : (
             <>
