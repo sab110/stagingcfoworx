@@ -22,21 +22,52 @@ const plans = [
 export default function Subscribe() {
   const backendURL = import.meta.env.VITE_BACKEND_URL;
   const [userEmail, setUserEmail] = useState("");
+  const [realmId, setRealmId] = useState("");
 
   useEffect(() => {
     const email = localStorage.getItem("user_email");
+    const realm = localStorage.getItem("realm_id");
+    
+    if (!realm) {
+      console.error("No QuickBooks connection found");
+      alert("Please connect your QuickBooks account first.");
+      window.location.href = "/";
+      return;
+    }
+    
+    setRealmId(realm);
+    
+    // If no email in localStorage, fetch from backend
     if (email) {
       setUserEmail(email);
     } else {
-      console.error("No email found in localStorage");
-      alert("Please connect your QuickBooks account first.");
-      window.location.href = "/dashboard";
+      fetchUserEmail(realm);
     }
   }, []);
+  
+  const fetchUserEmail = async (realm) => {
+    try {
+      const token = localStorage.getItem("access_token");
+      const response = await fetch(`${backendURL}/api/quickbooks/qbo-user/${realm}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.email) {
+          setUserEmail(data.email);
+          localStorage.setItem("user_email", data.email);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching user email:", err);
+    }
+  };
 
   const handleCheckout = async (priceId) => {
-    if (!userEmail) {
-      alert("Please log in first.");
+    if (!userEmail || !realmId) {
+      alert("Please connect your QuickBooks account first.");
+      window.location.href = "/";
       return;
     }
 
@@ -47,6 +78,7 @@ export default function Subscribe() {
         body: JSON.stringify({
           priceId,
           email: userEmail,
+          realm_id: realmId, // Required for company-level subscriptions
         }),
       });
 
