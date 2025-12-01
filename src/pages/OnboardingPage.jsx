@@ -40,6 +40,7 @@ export default function OnboardingPage() {
         }
         
         setCompanyInfo(data);
+        setLoading(false); // Stop loading
         setCurrentStep(2); // Move to license selection
       } else if (response.status === 404) {
         // If company info doesn't exist, fetch it from QuickBooks
@@ -55,19 +56,23 @@ export default function OnboardingPage() {
           const data = await fetchResponse.json();
           console.log("✅ Company info fetched from QuickBooks:", data);
           setCompanyInfo(data.company_info);
+          setLoading(false); // Stop loading
           setCurrentStep(2);
         } else {
           const errorText = await fetchResponse.text();
           console.error("❌ Failed to fetch from QuickBooks:", errorText);
+          setLoading(false);
           throw new Error(`Failed to fetch company info: ${response.status}`);
         }
       } else {
         const errorText = await response.text();
         console.error("❌ API Error:", errorText);
+        setLoading(false);
         throw new Error(`API Error: ${response.status} - ${errorText}`);
       }
     } catch (err) {
       console.error("❌ Error fetching company info:", err);
+      setLoading(false);
       
       // Show user-friendly error with retry button
       const errorMessage = err.message.includes("Failed to fetch") 
@@ -75,14 +80,8 @@ export default function OnboardingPage() {
         : `Failed to load company information: ${err.message}`;
       
       if (window.confirm(`${errorMessage}\n\nWould you like to retry?`)) {
+        setLoading(true);
         fetchCompanyInfo(); // Retry
-      } else {
-        setLoading(false);
-      }
-    } finally {
-      // Only set loading to false if we're not retrying
-      if (currentStep !== 1) {
-        setLoading(false);
       }
     }
   };
