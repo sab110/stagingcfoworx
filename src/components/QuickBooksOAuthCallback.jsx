@@ -52,10 +52,27 @@ const QuickBooksOAuthCallback = () => {
           localStorage.setItem("realm_id", data.realm_id);
           localStorage.setItem("user_id", data.user_id || userId);
 
-          // ✅ Clean up URL so reloading doesn't reuse same code
-          window.history.replaceState({}, document.title, "/onboarding");
+          // ✅ Check if company has completed onboarding
+          const checkOnboardingResponse = await fetch(
+            `${import.meta.env.VITE_BACKEND_URL}/api/quickbooks/qbo-user/${data.realm_id}`,
+            { headers: { Authorization: `Bearer ${data.access_token}` } }
+          );
 
-          // Redirect to onboarding for license selection
+          if (checkOnboardingResponse.ok) {
+            const userData = await checkOnboardingResponse.json();
+            
+            // If company already completed onboarding, go to dashboard
+            if (userData.onboarding_completed) {
+              console.log("✅ Company onboarding already completed, redirecting to dashboard");
+              window.history.replaceState({}, document.title, "/dashboard");
+              navigate("/dashboard");
+              return;
+            }
+          }
+
+          // ✅ New company - redirect to onboarding
+          console.log("🆕 New company, redirecting to onboarding");
+          window.history.replaceState({}, document.title, "/onboarding");
           navigate("/onboarding");
         } else {
           console.error("Backend error:", data);

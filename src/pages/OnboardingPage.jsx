@@ -31,6 +31,14 @@ export default function OnboardingPage() {
       if (response.ok) {
         const data = await response.json();
         console.log("✅ Company info fetched:", data);
+        
+        // Check if onboarding is already completed for this company
+        if (data.onboarding_completed === "true") {
+          console.log("✅ Company onboarding already completed, redirecting to dashboard");
+          window.location.href = "/dashboard";
+          return;
+        }
+        
         setCompanyInfo(data);
         setCurrentStep(2); // Move to license selection
       } else if (response.status === 404) {
@@ -81,7 +89,13 @@ export default function OnboardingPage() {
 
   const handleLicenseSelectionComplete = (data) => {
     console.log("✅ License selection completed:", data);
-    // Move to final step or dashboard
+    
+    // Store onboarding completion flag
+    if (data.onboarding_completed) {
+      localStorage.setItem(`onboarding_completed_${realmId}`, "true");
+    }
+    
+    // Move to final step
     setCurrentStep(3);
   };
 
