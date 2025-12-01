@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 export default function Dashboard() {
   const backendURL = import.meta.env.VITE_BACKEND_URL;
   const [user, setUser] = useState(null);
+  const [licenses, setLicenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const token = localStorage.getItem("access_token");
@@ -44,11 +45,29 @@ export default function Dashboard() {
         if (data.email) localStorage.setItem("user_email", data.email);
 
         setUser(data);
+
+        // Fetch selected licenses
+        await fetchSelectedLicenses();
       } catch (err) {
         console.error("🚨 Error loading user data:", err);
         setError("Unable to load QuickBooks user data. Please try again.");
       } finally {
         setLoading(false);
+      }
+    };
+
+    const fetchSelectedLicenses = async () => {
+      try {
+        const response = await fetch(
+          `${backendURL}/api/licenses/company/${realmId}/selected`
+        );
+        
+        if (response.ok) {
+          const data = await response.json();
+          setLicenses(data.licenses || []);
+        }
+      } catch (err) {
+        console.error("Error fetching licenses:", err);
       }
     };
 
@@ -176,6 +195,71 @@ export default function Dashboard() {
               >
                 Subscribe Now
               </button>
+            </>
+          )}
+
+          {/* My Franchises Section */}
+          {licenses.length > 0 && (
+            <>
+              <hr />
+              <h4>🏢 My Franchises ({licenses.length})</h4>
+              <div style={{
+                maxWidth: "800px",
+                margin: "20px auto",
+                textAlign: "left"
+              }}>
+                {licenses.map((license) => (
+                  <div
+                    key={license.franchise_number}
+                    style={{
+                      backgroundColor: "#f9fafb",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "8px",
+                      padding: "15px",
+                      marginBottom: "10px",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <div>
+                      <strong>#{license.franchise_number}</strong> - {license.name}
+                      <br />
+                      <small style={{ color: "#6b7280" }}>
+                        {license.city}, {license.state}
+                        {license.quickbooks?.department_name && (
+                          <> • {license.quickbooks.department_name}</>
+                        )}
+                      </small>
+                    </div>
+                    <div style={{
+                      backgroundColor: "#10b981",
+                      color: "white",
+                      padding: "4px 12px",
+                      borderRadius: "4px",
+                      fontSize: "12px",
+                      fontWeight: "600"
+                    }}>
+                      Active
+                    </div>
+                  </div>
+                ))}
+                <button
+                  onClick={() => (window.location.href = "/onboarding")}
+                  style={{
+                    backgroundColor: "#6b7280",
+                    color: "white",
+                    border: "none",
+                    padding: "8px 16px",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    marginTop: "10px",
+                    fontSize: "14px",
+                  }}
+                >
+                  Manage Licenses
+                </button>
+              </div>
             </>
           )}
         </>

@@ -53,9 +53,10 @@ const QuickBooksOAuthCallback = () => {
           localStorage.setItem("user_id", data.user_id || userId);
 
           // ✅ Clean up URL so reloading doesn't reuse same code
-          window.history.replaceState({}, document.title, "/dashboard");
+          window.history.replaceState({}, document.title, "/onboarding");
 
-          navigate("/dashboard");
+          // Redirect to onboarding for license selection
+          navigate("/onboarding");
         } else {
           console.error("Backend error:", data);
           const msg =
