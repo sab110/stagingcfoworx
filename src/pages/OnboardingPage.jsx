@@ -19,34 +19,63 @@ export default function OnboardingPage() {
   const fetchCompanyInfo = async () => {
     try {
       setLoading(true);
+      console.log("🔍 Fetching company info for realm_id:", realmId);
+      console.log("📡 Backend URL:", backendURL);
+      
       const response = await fetch(
         `${backendURL}/api/quickbooks/company-info/${realmId}`
       );
 
+      console.log("📥 Response status:", response.status);
+
       if (response.ok) {
         const data = await response.json();
+        console.log("✅ Company info fetched:", data);
         setCompanyInfo(data);
         setCurrentStep(2); // Move to license selection
-      } else {
+      } else if (response.status === 404) {
         // If company info doesn't exist, fetch it from QuickBooks
+        console.log("⚠️ Company info not found, fetching from QuickBooks...");
         const fetchResponse = await fetch(
           `${backendURL}/api/quickbooks/fetch-company-info/${realmId}`,
           { method: "POST" }
         );
         
+        console.log("📥 Fetch response status:", fetchResponse.status);
+        
         if (fetchResponse.ok) {
           const data = await fetchResponse.json();
+          console.log("✅ Company info fetched from QuickBooks:", data);
           setCompanyInfo(data.company_info);
           setCurrentStep(2);
         } else {
-          throw new Error("Failed to fetch company info");
+          const errorText = await fetchResponse.text();
+          console.error("❌ Failed to fetch from QuickBooks:", errorText);
+          throw new Error(`Failed to fetch company info: ${response.status}`);
         }
+      } else {
+        const errorText = await response.text();
+        console.error("❌ API Error:", errorText);
+        throw new Error(`API Error: ${response.status} - ${errorText}`);
       }
     } catch (err) {
       console.error("❌ Error fetching company info:", err);
-      alert("Failed to load company information. Please try again.");
+      
+      // Show user-friendly error with retry button
+      const errorMessage = err.message.includes("Failed to fetch") 
+        ? "Cannot connect to the server. Please check your internet connection or try again later."
+        : `Failed to load company information: ${err.message}`;
+      
+      if (window.confirm(`${errorMessage}\n\nWould you like to retry?`)) {
+        fetchCompanyInfo(); // Retry
+      } else {
+        setLoading(false);
+      }
     } finally {
-      setLoading(false);
+      // Only set loading to false if we're not retrying
+      if (currentStep !== 1) {
+        setLoading(false);
+      }
     }
   };
 
