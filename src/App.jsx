@@ -7,19 +7,36 @@ import OnboardingPage from "./pages/OnboardingPage.jsx";
 import QuickBooksOAuthCallback from "./components/QuickBooksOAuthCallback.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import PrivateRoute from "./components/PrivateRoute.jsx";
+import SubscriptionProtectedRoute from "./components/SubscriptionProtectedRoute.jsx";
 import PrivacyPolicy from "./pages/PrivacyPolicy.jsx";
 import TermsOfService from "./pages/TermsOfService.jsx";
+import Pricing from "./pages/Pricing.jsx";
 
 export default function App() {
   return (
     <Router>
       <Routes>
+        {/* Public Routes */}
         <Route path="/" element={<LoginPage />} />
-        <Route path="/success" element={<Success />} />
-        <Route path="/cancel" element={<Cancel />} />
-        <Route path="/subscribe" element={<Subscribe />} />
+        <Route path="/pricing" element={<Pricing />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<TermsOfService />} />
+        
+        {/* Payment Result Routes */}
+        <Route path="/success" element={<Success />} />
+        <Route path="/cancel" element={<Cancel />} />
+        
+        {/* Subscribe - requires auth but not subscription */}
+        <Route
+          path="/subscribe"
+          element={
+            <PrivateRoute>
+              <Subscribe />
+            </PrivateRoute>
+          }
+        />
+        
+        {/* Onboarding - requires auth but not subscription */}
         <Route
           path="/onboarding"
           element={
@@ -28,14 +45,18 @@ export default function App() {
             </PrivateRoute>
           }
         />
+        
+        {/* Dashboard - requires both auth AND active subscription */}
         <Route
           path="/dashboard"
           element={
-            <PrivateRoute>
+            <SubscriptionProtectedRoute>
               <Dashboard />
-            </PrivateRoute>
+            </SubscriptionProtectedRoute>
           }
         />
+        
+        {/* OAuth Callback */}
         <Route path="/quickbooks-oauth-callback" element={<QuickBooksOAuthCallback />} />
       </Routes>
     </Router>

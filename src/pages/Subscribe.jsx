@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 
 const plans = [
   {
@@ -21,10 +22,22 @@ const plans = [
 
 export default function Subscribe() {
   const backendURL = import.meta.env.VITE_BACKEND_URL;
+  const location = useLocation();
   const [userEmail, setUserEmail] = useState("");
   const [realmId, setRealmId] = useState("");
   const [licenseCount, setLicenseCount] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [showRedirectMessage, setShowRedirectMessage] = useState(false);
+
+  // Check if redirected from dashboard due to no subscription
+  useEffect(() => {
+    if (location.state?.message) {
+      setShowRedirectMessage(true);
+      // Auto-hide after 5 seconds
+      const timer = setTimeout(() => setShowRedirectMessage(false), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     const email = localStorage.getItem("user_email");
@@ -169,6 +182,40 @@ export default function Subscribe() {
         padding: "20px",
       }}
     >
+      {showRedirectMessage && (
+        <div style={{
+          backgroundColor: "#fef3c7",
+          border: "1px solid #f59e0b",
+          borderRadius: "8px",
+          padding: "15px 20px",
+          maxWidth: "600px",
+          margin: "0 auto 20px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <span style={{ fontSize: "20px" }}>⚠️</span>
+            <span style={{ color: "#92400e", fontWeight: "500" }}>
+              {location.state?.message || "A subscription is required to access the dashboard."}
+            </span>
+          </div>
+          <button 
+            onClick={() => setShowRedirectMessage(false)}
+            style={{
+              background: "none",
+              border: "none",
+              color: "#92400e",
+              cursor: "pointer",
+              fontSize: "18px",
+              padding: "0 5px",
+            }}
+          >
+            ×
+          </button>
+        </div>
+      )}
+      
       <h1>Choose Your Subscription Plan</h1>
       <p style={{ color: "#555" }}>Welcome, {userEmail}</p>
       
@@ -285,20 +332,41 @@ export default function Subscribe() {
         </div>
       ))}
 
-      <button
-        onClick={() => (window.location.href = "/dashboard")}
-        style={{
-          marginTop: "30px",
-          backgroundColor: "#2563eb",
-          color: "white",
-          border: "none",
-          padding: "10px 20px",
-          borderRadius: "8px",
-          cursor: "pointer",
-        }}
-      >
-        Back to Dashboard
-      </button>
+      <div style={{ 
+        marginTop: "30px", 
+        display: "flex", 
+        gap: "15px", 
+        justifyContent: "center",
+        flexWrap: "wrap" 
+      }}>
+        <button
+          onClick={() => (window.location.href = "/pricing")}
+          style={{
+            backgroundColor: "white",
+            color: "#6b7280",
+            border: "2px solid #e5e7eb",
+            padding: "10px 20px",
+            borderRadius: "8px",
+            cursor: "pointer",
+            fontWeight: "500",
+          }}
+        >
+          View Full Pricing Details
+        </button>
+        <button
+          onClick={() => (window.location.href = "/dashboard")}
+          style={{
+            backgroundColor: "#2563eb",
+            color: "white",
+            border: "none",
+            padding: "10px 20px",
+            borderRadius: "8px",
+            cursor: "pointer",
+          }}
+        >
+          Back to Dashboard
+        </button>
+      </div>
     </div>
   );
 }

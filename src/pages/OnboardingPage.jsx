@@ -98,14 +98,27 @@ export default function OnboardingPage() {
     setCurrentStep(3);
   };
 
-  const handleCompletionRedirect = () => {
-    // Redirect to subscribe page or dashboard
-    const hasSubscription = localStorage.getItem("has_subscription") === "true";
-    if (hasSubscription) {
-      window.location.href = "/dashboard";
-    } else {
-      window.location.href = "/subscribe";
+  const handleCompletionRedirect = async () => {
+    // Check subscription status from backend
+    try {
+      const response = await fetch(
+        `${backendURL}/api/subscriptions/company/${realmId}`
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.status === "active" || data.status === "trialing") {
+          localStorage.setItem("has_subscription", "true");
+          window.location.href = "/dashboard";
+          return;
+        }
+      }
+    } catch (err) {
+      console.error("Error checking subscription:", err);
     }
+    
+    // No active subscription - must subscribe first
+    window.location.href = "/subscribe";
   };
 
   if (loading) {
@@ -162,11 +175,14 @@ export default function OnboardingPage() {
           <div style={styles.successIcon}>✅</div>
           <h2 style={styles.completionTitle}>Setup Complete!</h2>
           <p style={styles.completionText}>
-            Your account has been successfully set up. You're ready to start managing your franchise royalties.
+            Your account has been successfully set up. Now let's activate your subscription to start managing your franchise royalties.
           </p>
           <button onClick={handleCompletionRedirect} style={styles.continueButton}>
-            Continue to Dashboard
+            Continue to Subscription
           </button>
+          <p style={styles.subscriptionNote}>
+            A subscription is required to access the dashboard.
+          </p>
         </div>
       )}
     </div>
@@ -278,6 +294,12 @@ const styles = {
     cursor: "pointer",
     transition: "all 0.2s",
     boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+  },
+  subscriptionNote: {
+    marginTop: "16px",
+    fontSize: "14px",
+    color: "#9ca3af",
+    fontStyle: "italic",
   },
 };
 

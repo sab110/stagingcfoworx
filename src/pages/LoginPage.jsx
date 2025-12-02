@@ -56,6 +56,25 @@ function LoginPage() {
 
       {error && <p style={{ color: "red", marginTop: "10px" }}>{error}</p>}
 
+      <div style={{
+        marginTop: "20px",
+        marginBottom: "30px",
+      }}>
+        <a 
+          href="/pricing" 
+          style={{ 
+            color: "#0077C5", 
+            textDecoration: "none",
+            fontWeight: "600",
+            fontSize: "15px",
+          }}
+          onMouseOver={(e) => e.target.style.textDecoration = "underline"}
+          onMouseOut={(e) => e.target.style.textDecoration = "none"}
+        >
+          View Pricing Plans →
+        </a>
+      </div>
+
       <div style={{ 
         marginTop: "30px",
         fontSize: "13px",
