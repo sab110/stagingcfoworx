@@ -105,28 +105,40 @@ export default function Subscribe() {
     }
 
     try {
-      console.log(`🛒 Creating checkout: ${licenseCount} licenses x price ${priceId}`);
+      console.log(`🛒 Creating checkout session:`);
+      console.log(`   Price ID: ${priceId}`);
+      console.log(`   Email: ${userEmail}`);
+      console.log(`   Realm ID: ${realmId}`);
+      console.log(`   Quantity (licenses): ${licenseCount}`);
+      console.log(`   License count type: ${typeof licenseCount}`);
+      
+      const payload = {
+        priceId,
+        email: userEmail,
+        realm_id: realmId,
+        quantity: licenseCount
+      };
+      
+      console.log(`📦 Full payload:`, JSON.stringify(payload, null, 2));
       
       const response = await fetch(`${backendURL}/api/stripe/create-checkout-session`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          priceId,
-          email: userEmail,
-          realm_id: realmId, // Required for company-level subscriptions
-          quantity: licenseCount, // Number of licenses (seats)
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
+      console.log(`📥 Response from backend:`, data);
+      
       if (response.ok && data.url) {
+        console.log(`✅ Redirecting to Stripe checkout...`);
         window.location.href = data.url;
       } else {
         alert(data.detail || "Checkout failed");
-        console.error("Stripe Error:", data);
+        console.error("❌ Stripe Error:", data);
       }
     } catch (error) {
-      console.error("Error creating session:", error);
+      console.error("❌ Error creating session:", error);
       alert("Error creating checkout session.");
     }
   };
@@ -239,10 +251,18 @@ export default function Subscribe() {
                       <p style={{ fontSize: "22px", fontWeight: "bold", color: "#059669", margin: "8px 0" }}>
                         ${total.toFixed(2)}{period}
                       </p>
+                      <p style={{ fontSize: "10px", color: "#9ca3af", margin: "5px 0", fontStyle: "italic" }}>
+                        (${(total / licenseCount).toFixed(2)} per license)
+                      </p>
                     </div>
                   </div>
                   <button
-                    onClick={() => handleCheckout(variant.priceId)}
+                    onClick={() => {
+                      console.log(`🔘 Subscribe button clicked`);
+                      console.log(`   Current licenseCount state: ${licenseCount}`);
+                      console.log(`   Price ID: ${variant.priceId}`);
+                      handleCheckout(variant.priceId);
+                    }}
                     style={{
                       backgroundColor: "#10b981",
                       color: "white",
@@ -256,7 +276,7 @@ export default function Subscribe() {
                     onMouseOver={(e) => e.target.style.backgroundColor = "#059669"}
                     onMouseOut={(e) => e.target.style.backgroundColor = "#10b981"}
                   >
-                    Subscribe
+                    Subscribe ({licenseCount} {licenseCount === 1 ? 'license' : 'licenses'})
                   </button>
                 </div>
               );
