@@ -211,7 +211,10 @@ export default function Dashboard() {
                 <>
                   <p><strong>Licenses:</strong> {subscription.quantity}</p>
                   <p><strong>Total Cost:</strong> {(() => {
-                    const basePrice = parseFloat(subscription.plan.price.replace(/[^0-9.]/g, ''));
+                    // Extract only the dollar amount (before the slash)
+                    // e.g., "$222/6mo" -> "222", "$39/mo" -> "39"
+                    const match = subscription.plan.price.match(/\$(\d+(?:\.\d+)?)/);
+                    const basePrice = match ? parseFloat(match[1]) : 0;
                     const total = basePrice * subscription.quantity;
                     const period = subscription.plan.billing_cycle === "monthly" ? "/mo" : 
                                   subscription.plan.billing_cycle === "6-month" ? "/6mo" : "/yr";

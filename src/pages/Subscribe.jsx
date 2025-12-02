@@ -133,7 +133,10 @@ export default function Subscribe() {
 
   // Calculate total prices
   const calculateTotal = (basePrice) => {
-    const numericPrice = parseFloat(basePrice.replace(/[^0-9.]/g, ''));
+    // Extract only the dollar amount (before the slash)
+    // e.g., "$222/6mo" -> "222", "$39/mo" -> "39"
+    const match = basePrice.match(/\$(\d+(?:\.\d+)?)/);
+    const numericPrice = match ? parseFloat(match[1]) : 0;
     return numericPrice * licenseCount;
   };
 
