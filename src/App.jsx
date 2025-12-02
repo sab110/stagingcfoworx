@@ -11,6 +11,8 @@ import SubscriptionProtectedRoute from "./components/SubscriptionProtectedRoute.
 import PrivacyPolicy from "./pages/PrivacyPolicy.jsx";
 import TermsOfService from "./pages/TermsOfService.jsx";
 import Pricing from "./pages/Pricing.jsx";
+import AdminLogin from "./pages/admin/AdminLogin.jsx";
+import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
 
 export default function App() {
   return (
@@ -58,6 +60,10 @@ export default function App() {
         
         {/* OAuth Callback */}
         <Route path="/quickbooks-oauth-callback" element={<QuickBooksOAuthCallback />} />
+        
+        {/* Admin Routes */}
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
       </Routes>
     </Router>
   );
