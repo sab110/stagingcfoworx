@@ -206,7 +206,19 @@ export default function Dashboard() {
           {subscription && subscription.plan ? (
             <>
               <p><strong>Plan:</strong> {subscription.plan.name} ({subscription.plan.billing_cycle})</p>
-              <p><strong>Price:</strong> {subscription.plan.price}</p>
+              <p><strong>Per License:</strong> {subscription.plan.price}</p>
+              {subscription.quantity && subscription.quantity > 1 && (
+                <>
+                  <p><strong>Licenses:</strong> {subscription.quantity}</p>
+                  <p><strong>Total Cost:</strong> {(() => {
+                    const basePrice = parseFloat(subscription.plan.price.replace(/[^0-9.]/g, ''));
+                    const total = basePrice * subscription.quantity;
+                    const period = subscription.plan.billing_cycle === "monthly" ? "/mo" : 
+                                  subscription.plan.billing_cycle === "6-month" ? "/6mo" : "/yr";
+                    return `$${total.toFixed(2)}${period}`;
+                  })()}</p>
+                </>
+              )}
               <p>
                 <strong>Status:</strong>{" "}
                 <span style={{

@@ -23,6 +23,8 @@ export default function Subscribe() {
   const backendURL = import.meta.env.VITE_BACKEND_URL;
   const [userEmail, setUserEmail] = useState("");
   const [realmId, setRealmId] = useState("");
+  const [licenseCount, setLicenseCount] = useState(1);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const email = localStorage.getItem("user_email");
@@ -43,6 +45,10 @@ export default function Subscribe() {
     } else {
       fetchUserEmail(realm);
     }
+    
+    // Fetch selected license count
+    fetchLicenseCount(realm);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   
   const fetchUserEmail = async (realm) => {
@@ -64,6 +70,27 @@ export default function Subscribe() {
     }
   };
 
+  const fetchLicenseCount = async (realm) => {
+    try {
+      const response = await fetch(`${backendURL}/api/licenses/company/${realm}/selected`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        const count = data.licenses?.length || 1; // Default to 1 if no licenses
+        setLicenseCount(count);
+        console.log(`📊 Selected licenses: ${count}`);
+      } else {
+        console.warn("Could not fetch license count, defaulting to 1");
+        setLicenseCount(1);
+      }
+    } catch (err) {
+      console.error("Error fetching license count:", err);
+      setLicenseCount(1);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleCheckout = async (priceId) => {
     if (!userEmail || !realmId) {
       alert("Please connect your QuickBooks account first.");
@@ -71,7 +98,15 @@ export default function Subscribe() {
       return;
     }
 
+    if (licenseCount < 1) {
+      alert("Please select at least one license before subscribing.");
+      window.location.href = "/onboarding";
+      return;
+    }
+
     try {
+      console.log(`🛒 Creating checkout: ${licenseCount} licenses x price ${priceId}`);
+      
       const response = await fetch(`${backendURL}/api/stripe/create-checkout-session`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -79,6 +114,7 @@ export default function Subscribe() {
           priceId,
           email: userEmail,
           realm_id: realmId, // Required for company-level subscriptions
+          quantity: licenseCount, // Number of licenses (seats)
         }),
       });
 
@@ -95,6 +131,20 @@ export default function Subscribe() {
     }
   };
 
+  // Calculate total prices
+  const calculateTotal = (basePrice) => {
+    const numericPrice = parseFloat(basePrice.replace(/[^0-9.]/g, ''));
+    return numericPrice * licenseCount;
+  };
+
+  if (loading) {
+    return (
+      <div style={{ textAlign: "center", marginTop: "100px" }}>
+        <h2>Loading your subscription options...</h2>
+      </div>
+    );
+  }
+
   return (
     <div
       style={{
@@ -106,6 +156,31 @@ export default function Subscribe() {
     >
       <h1>Choose Your Subscription Plan</h1>
       <p style={{ color: "#555" }}>Welcome, {userEmail}</p>
+      
+      <div style={{
+        backgroundColor: "#eff6ff",
+        border: "2px solid #3b82f6",
+        borderRadius: "12px",
+        padding: "20px",
+        maxWidth: "600px",
+        margin: "20px auto 40px",
+      }}>
+        <h3 style={{ color: "#1e40af", margin: "0 0 10px 0" }}>
+          📊 Your Selected Licenses
+        </h3>
+        <p style={{ fontSize: "24px", fontWeight: "bold", color: "#1e3a8a", margin: "10px 0" }}>
+          {licenseCount} {licenseCount === 1 ? 'License' : 'Licenses'}
+        </p>
+        <p style={{ color: "#4b5563", fontSize: "14px", margin: "5px 0" }}>
+          Your subscription cost will be calculated as: <br />
+          <strong>Price per license × {licenseCount} {licenseCount === 1 ? 'license' : 'licenses'}</strong>
+        </p>
+        {licenseCount < 1 && (
+          <p style={{ color: "#dc2626", marginTop: "10px" }}>
+            ⚠️ Please select at least one license in the onboarding process
+          </p>
+        )}
+      </div>
 
       {plans.map((plan) => (
         <div
@@ -129,37 +204,60 @@ export default function Subscribe() {
               marginTop: "20px",
             }}
           >
-            {plan.variations.map((variant) => (
-              <div
-                key={variant.priceId}
-                style={{
-                  backgroundColor: "white",
-                  border: "1px solid #e5e7eb",
-                  borderRadius: "10px",
-                  padding: "20px",
-                  width: "180px",
-                  textAlign: "center",
-                }}
-              >
-                <h3>{variant.label}</h3>
-                <p style={{ fontSize: "18px", fontWeight: "bold", margin: "10px 0" }}>
-                  {variant.price}
-                </p>
-                <button
-                  onClick={() => handleCheckout(variant.priceId)}
+            {plan.variations.map((variant) => {
+              const total = calculateTotal(variant.price);
+              const period = variant.label === "Monthly" ? "/mo" : variant.label === "6-Month" ? "/6mo" : "/yr";
+              
+              return (
+                <div
+                  key={variant.priceId}
                   style={{
-                    backgroundColor: "#10b981",
-                    color: "white",
-                    border: "none",
-                    padding: "10px 20px",
-                    borderRadius: "8px",
-                    cursor: "pointer",
+                    backgroundColor: "white",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: "10px",
+                    padding: "20px",
+                    width: "200px",
+                    textAlign: "center",
                   }}
                 >
-                  Subscribe
-                </button>
-              </div>
-            ))}
+                  <h3>{variant.label}</h3>
+                  <div style={{ margin: "15px 0" }}>
+                    <p style={{ fontSize: "14px", color: "#6b7280", margin: "5px 0" }}>
+                      {variant.price} per license
+                    </p>
+                    <div style={{
+                      borderTop: "1px solid #e5e7eb",
+                      margin: "10px 0",
+                      paddingTop: "10px"
+                    }}>
+                      <p style={{ fontSize: "12px", color: "#9ca3af", margin: "0" }}>
+                        × {licenseCount} {licenseCount === 1 ? 'license' : 'licenses'}
+                      </p>
+                      <p style={{ fontSize: "22px", fontWeight: "bold", color: "#059669", margin: "8px 0" }}>
+                        ${total.toFixed(2)}{period}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleCheckout(variant.priceId)}
+                    style={{
+                      backgroundColor: "#10b981",
+                      color: "white",
+                      border: "none",
+                      padding: "12px 24px",
+                      borderRadius: "8px",
+                      cursor: "pointer",
+                      fontWeight: "600",
+                      width: "100%",
+                    }}
+                    onMouseOver={(e) => e.target.style.backgroundColor = "#059669"}
+                    onMouseOut={(e) => e.target.style.backgroundColor = "#10b981"}
+                  >
+                    Subscribe
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
       ))}
