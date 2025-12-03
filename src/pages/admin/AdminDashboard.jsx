@@ -27,6 +27,9 @@ export default function AdminDashboard() {
   const [adminLogs, setAdminLogs] = useState([]);
   const [webhookLogs, setWebhookLogs] = useState([]);
   const [systemLogs, setSystemLogs] = useState([]);
+  const [clientLicenses, setClientLicenses] = useState([]);
+  const [clientDetail, setClientDetail] = useState(null);
+  const [loadingClientDetail, setLoadingClientDetail] = useState(false);
   
   const adminUsername = localStorage.getItem("admin_username") || "Admin";
 
@@ -174,6 +177,22 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchClientDetail = async (realmId) => {
+    setLoadingClientDetail(true);
+    try {
+      const response = await fetch(`${backendURL}/api/admin/clients/${realmId}`, {
+        headers: getAuthHeaders()
+      });
+      const data = await response.json();
+      setClientDetail(data);
+      setClientLicenses(data.licenses || []);
+    } catch (err) {
+      console.error("Error fetching client detail:", err);
+    } finally {
+      setLoadingClientDetail(false);
+    }
+  };
+
   // Navigation handlers
   const handleSectionChange = (section) => {
     setActiveSection(section);
@@ -206,6 +225,9 @@ export default function AdminDashboard() {
   const handleViewClient = (client) => {
     setSelectedClient(client);
     setClientDetailTab("overview");
+    setClientDetail(null);
+    setClientLicenses([]);
+    fetchClientDetail(client.realm_id);
   };
 
   // Utility functions
@@ -406,9 +428,13 @@ export default function AdminDashboard() {
           {selectedClient && (
             <ClientDetailSection
               client={selectedClient}
+              clientDetail={clientDetail}
+              clientLicenses={clientLicenses}
+              loadingDetail={loadingClientDetail}
               activeTab={clientDetailTab}
               setActiveTab={setClientDetailTab}
               formatDate={formatDate}
+              formatDateTime={formatDateTime}
             />
           )}
 
@@ -637,14 +663,21 @@ function ClientsSection({ clients, onViewClient, formatDate }) {
 }
 
 // Client Detail Section
-function ClientDetailSection({ client, activeTab, setActiveTab, formatDate }) {
+function ClientDetailSection({ client, clientDetail, clientLicenses, loadingDetail, activeTab, setActiveTab, formatDate, formatDateTime }) {
+  const [selectedLicense, setSelectedLicense] = useState(null);
+  
   const tabs = [
     { id: "overview", label: "Overview" },
-    { id: "licenses", label: "Licenses" },
+    { id: "licenses", label: "Licenses", count: clientLicenses.length },
     { id: "quickbooks", label: "QuickBooks" },
     { id: "reports", label: "Reports" },
     { id: "runs", label: "Run History" },
   ];
+
+  const detail = clientDetail || {};
+  const company = detail.company || client;
+  const subscription = detail.subscription || client.subscription;
+  const user = detail.user;
 
   return (
     <div>
@@ -652,19 +685,19 @@ function ClientDetailSection({ client, activeTab, setActiveTab, formatDate }) {
       <div style={styles.clientHeader}>
         <div style={styles.clientHeaderLeft}>
           <div style={styles.clientLargeAvatar}>
-            {(client.company_name || "?").charAt(0).toUpperCase()}
+            {(company.company_name || "?").charAt(0).toUpperCase()}
           </div>
           <div>
-            <h2 style={styles.clientName}>{client.company_name || "Unknown Company"}</h2>
+            <h2 style={styles.clientName}>{company.company_name || "Unknown Company"}</h2>
             <div style={styles.clientMeta}>
-              <span>{client.email || "No email"}</span>
+              <span>{company.email || user?.email || "No email"}</span>
               <span style={styles.metaDot}>•</span>
-              <span>Realm: {client.realm_id}</span>
+              <span>Realm: {company.realm_id || client.realm_id}</span>
             </div>
           </div>
         </div>
         <div style={styles.clientHeaderRight}>
-          <StatusBadge status={client.subscription?.status || "none"} large />
+          <StatusBadge status={subscription?.status || "none"} large />
         </div>
       </div>
 
@@ -680,127 +713,438 @@ function ClientDetailSection({ client, activeTab, setActiveTab, formatDate }) {
             }}
           >
             {tab.label}
+            {tab.count !== undefined && (
+              <span style={{
+                marginLeft: '6px',
+                padding: '2px 8px',
+                background: activeTab === tab.id ? '#1B4DFF' : '#E2E8F0',
+                color: activeTab === tab.id ? '#fff' : '#64748B',
+                borderRadius: '10px',
+                fontSize: '11px',
+                fontWeight: '600',
+              }}>
+                {tab.count}
+              </span>
+            )}
           </button>
         ))}
       </div>
 
-      {/* Tab Content */}
-      <div style={styles.tabContent}>
-        {activeTab === "overview" && (
-          <div style={styles.overviewGrid}>
-            <div style={styles.infoCard}>
-              <h4 style={styles.infoCardTitle}>Company Information</h4>
-              <div style={styles.infoRow}>
-                <span style={styles.infoLabel}>Legal Name</span>
-                <span style={styles.infoValue}>{client.legal_name || "—"}</span>
-              </div>
-              <div style={styles.infoRow}>
-                <span style={styles.infoLabel}>Phone</span>
-                <span style={styles.infoValue}>{client.primary_phone || "—"}</span>
-              </div>
-              <div style={styles.infoRow}>
-                <span style={styles.infoLabel}>Country</span>
-                <span style={styles.infoValue}>{client.country || "—"}</span>
-              </div>
-              <div style={styles.infoRow}>
-                <span style={styles.infoLabel}>Onboarding</span>
-                <span style={styles.infoValue}>
-                  {client.onboarding_completed === "true" ? (
-                    <span style={{ color: '#10B981' }}>Completed</span>
-                  ) : (
-                    <span style={{ color: '#F59E0B' }}>In Progress</span>
-                  )}
-                </span>
-              </div>
-              <div style={styles.infoRow}>
-                <span style={styles.infoLabel}>Created</span>
-                <span style={styles.infoValue}>{formatDate(client.created_at)}</span>
-              </div>
-            </div>
+      {loadingDetail && (
+        <div style={{ textAlign: 'center', padding: '40px', color: '#64748B' }}>
+          <div style={{ width: '32px', height: '32px', border: '3px solid #E2E8F0', borderTopColor: '#1B4DFF', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }}></div>
+          Loading details...
+        </div>
+      )}
 
-            <div style={styles.infoCard}>
-              <h4 style={styles.infoCardTitle}>Subscription</h4>
-              {client.subscription ? (
-                <>
+      {/* Tab Content */}
+      {!loadingDetail && (
+        <div style={styles.tabContent}>
+          {activeTab === "overview" && (
+            <div style={styles.overviewGrid}>
+              <div style={styles.infoCard}>
+                <h4 style={styles.infoCardTitle}>Company Information</h4>
+                <div style={styles.infoRow}>
+                  <span style={styles.infoLabel}>Legal Name</span>
+                  <span style={styles.infoValue}>{company.legal_name || "—"}</span>
+                </div>
+                <div style={styles.infoRow}>
+                  <span style={styles.infoLabel}>Phone</span>
+                  <span style={styles.infoValue}>{company.primary_phone || "—"}</span>
+                </div>
+                <div style={styles.infoRow}>
+                  <span style={styles.infoLabel}>Country</span>
+                  <span style={styles.infoValue}>{company.country || "—"}</span>
+                </div>
+                <div style={styles.infoRow}>
+                  <span style={styles.infoLabel}>Onboarding</span>
+                  <span style={styles.infoValue}>
+                    {company.onboarding_completed === "true" ? (
+                      <span style={{ color: '#10B981', fontWeight: '600' }}>Completed</span>
+                    ) : (
+                      <span style={{ color: '#F59E0B', fontWeight: '600' }}>In Progress</span>
+                    )}
+                  </span>
+                </div>
+                <div style={styles.infoRow}>
+                  <span style={styles.infoLabel}>Created</span>
+                  <span style={styles.infoValue}>{formatDate(company.created_at)}</span>
+                </div>
+              </div>
+
+              <div style={styles.infoCard}>
+                <h4 style={styles.infoCardTitle}>Subscription</h4>
+                {subscription ? (
+                  <>
+                    <div style={styles.infoRow}>
+                      <span style={styles.infoLabel}>Plan</span>
+                      <span style={styles.infoValue}>
+                        {subscription.plan ? (
+                          <span style={{
+                            padding: '4px 12px',
+                            background: 'linear-gradient(135deg, #1B4DFF 0%, #3B6FFF 100%)',
+                            color: '#fff',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                          }}>
+                            {subscription.plan.name} - {subscription.plan.price}
+                          </span>
+                        ) : "—"}
+                      </span>
+                    </div>
+                    <div style={styles.infoRow}>
+                      <span style={styles.infoLabel}>Billing Cycle</span>
+                      <span style={styles.infoValue}>{subscription.plan?.billing_cycle || "—"}</span>
+                    </div>
+                    <div style={styles.infoRow}>
+                      <span style={styles.infoLabel}>Licenses</span>
+                      <span style={styles.infoValue}>
+                        <span style={{ fontWeight: '700', color: '#1B4DFF', fontSize: '16px' }}>{subscription.quantity || 1}</span>
+                      </span>
+                    </div>
+                    <div style={styles.infoRow}>
+                      <span style={styles.infoLabel}>Status</span>
+                      <StatusBadge status={subscription.status} />
+                    </div>
+                    <div style={styles.infoRow}>
+                      <span style={styles.infoLabel}>Next Billing</span>
+                      <span style={styles.infoValue}>{formatDate(subscription.end_date)}</span>
+                    </div>
+                    <div style={styles.infoRow}>
+                      <span style={styles.infoLabel}>Stripe ID</span>
+                      <span style={{ ...styles.infoValue, fontFamily: 'monospace', fontSize: '11px', color: '#64748B' }}>
+                        {subscription.stripe_subscription_id?.slice(0, 24)}...
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ padding: '20px', textAlign: 'center', color: '#94A3B8' }}>
+                    No subscription
+                  </div>
+                )}
+              </div>
+
+              <div style={styles.infoCard}>
+                <h4 style={styles.infoCardTitle}>QuickBooks Connection</h4>
+                <div style={styles.infoRow}>
+                  <span style={styles.infoLabel}>Status</span>
+                  <span style={styles.infoValue}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10B981' }}></span>
+                      <span style={{ color: '#10B981', fontWeight: '600' }}>Connected</span>
+                    </span>
+                  </span>
+                </div>
+                <div style={styles.infoRow}>
+                  <span style={styles.infoLabel}>Realm ID</span>
+                  <span style={{ ...styles.infoValue, fontFamily: 'monospace', fontSize: '12px' }}>
+                    {company.realm_id || client.realm_id}
+                  </span>
+                </div>
+                <div style={styles.infoRow}>
+                  <span style={styles.infoLabel}>Last Synced</span>
+                  <span style={styles.infoValue}>{formatDateTime(company.last_synced_at) || "—"}</span>
+                </div>
+              </div>
+
+              {user && (
+                <div style={styles.infoCard}>
+                  <h4 style={styles.infoCardTitle}>Account Owner</h4>
                   <div style={styles.infoRow}>
-                    <span style={styles.infoLabel}>Plan</span>
-                    <span style={styles.infoValue}>{client.subscription.plan_name || "—"}</span>
+                    <span style={styles.infoLabel}>Name</span>
+                    <span style={styles.infoValue}>{user.full_name || "—"}</span>
                   </div>
                   <div style={styles.infoRow}>
-                    <span style={styles.infoLabel}>Licenses</span>
-                    <span style={styles.infoValue}>{client.subscription.quantity || 1}</span>
+                    <span style={styles.infoLabel}>Email</span>
+                    <span style={styles.infoValue}>{user.email || "—"}</span>
                   </div>
                   <div style={styles.infoRow}>
-                    <span style={styles.infoLabel}>Status</span>
-                    <StatusBadge status={client.subscription.status} />
+                    <span style={styles.infoLabel}>Phone</span>
+                    <span style={styles.infoValue}>{user.phone || "—"}</span>
                   </div>
-                  <div style={styles.infoRow}>
-                    <span style={styles.infoLabel}>Next Billing</span>
-                    <span style={styles.infoValue}>{formatDate(client.subscription.end_date)}</span>
-                  </div>
-                </>
-              ) : (
-                <p style={styles.noData}>No subscription</p>
+                </div>
               )}
             </div>
+          )}
 
-            <div style={styles.infoCard}>
-              <h4 style={styles.infoCardTitle}>QuickBooks Connection</h4>
-              <div style={styles.infoRow}>
-                <span style={styles.infoLabel}>Status</span>
-                <span style={styles.infoValue}>
-                  <span style={{ ...styles.connectionDot, background: '#10B981' }}></span>
-                  Connected
-                </span>
+          {activeTab === "licenses" && (
+            <div>
+              <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#0F172A' }}>
+                  Licensed Franchises ({clientLicenses.length})
+                </h4>
               </div>
-              <div style={styles.infoRow}>
-                <span style={styles.infoLabel}>Realm ID</span>
-                <span style={{ ...styles.infoValue, fontFamily: 'monospace', fontSize: '12px' }}>
-                  {client.realm_id}
-                </span>
+              
+              {clientLicenses.length > 0 ? (
+                <div style={styles.tableContainer}>
+                  <table style={styles.table}>
+                    <thead>
+                      <tr>
+                        <th style={styles.th}>Franchise #</th>
+                        <th style={styles.th}>Name</th>
+                        <th style={styles.th}>Owner</th>
+                        <th style={styles.th}>Location</th>
+                        <th style={styles.th}>QB Department</th>
+                        <th style={styles.th}>Status</th>
+                        <th style={styles.th}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {clientLicenses.map((lic, idx) => (
+                        <tr key={idx} style={styles.tr}>
+                          <td style={styles.td}>
+                            <span style={styles.licenseCount}>#{lic.franchise_number}</span>
+                          </td>
+                          <td style={styles.td}>{lic.name || "—"}</td>
+                          <td style={styles.td}>{lic.owner || "—"}</td>
+                          <td style={styles.td}>
+                            {lic.city && lic.state ? `${lic.city}, ${lic.state}` : "—"}
+                          </td>
+                          <td style={styles.td}>
+                            <div style={{ fontSize: '13px' }}>{lic.qbo_department_name || "Not mapped"}</div>
+                            {lic.qbo_department_id && (
+                              <div style={{ fontSize: '10px', color: '#94A3B8', fontFamily: 'monospace' }}>
+                                ID: {lic.qbo_department_id}
+                              </div>
+                            )}
+                          </td>
+                          <td style={styles.td}>
+                            <StatusBadge status={lic.is_active === "true" ? "active" : "inactive"} />
+                          </td>
+                          <td style={styles.td}>
+                            <button 
+                              onClick={() => setSelectedLicense(lic)}
+                              style={styles.viewBtn}
+                            >
+                              View
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <EmptyState 
+                  icon={<FileIcon />}
+                  title="No franchises linked"
+                  description="This client has not linked any franchises yet"
+                />
+              )}
+            </div>
+          )}
+
+          {activeTab === "quickbooks" && (
+            <div style={styles.overviewGrid}>
+              <div style={styles.infoCard}>
+                <h4 style={styles.infoCardTitle}>Connection Status</h4>
+                <div style={styles.infoRow}>
+                  <span style={styles.infoLabel}>Status</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10B981' }}></span>
+                    <span style={{ color: '#10B981', fontWeight: '600' }}>Connected</span>
+                  </span>
+                </div>
+                <div style={styles.infoRow}>
+                  <span style={styles.infoLabel}>Realm ID</span>
+                  <span style={{ fontFamily: 'monospace', fontSize: '12px' }}>{company.realm_id}</span>
+                </div>
+                <div style={styles.infoRow}>
+                  <span style={styles.infoLabel}>QBO Company ID</span>
+                  <span style={{ fontFamily: 'monospace', fontSize: '12px' }}>{company.qbo_id || "—"}</span>
+                </div>
+                <div style={styles.infoRow}>
+                  <span style={styles.infoLabel}>Domain</span>
+                  <span>{company.domain || "QBO"}</span>
+                </div>
+              </div>
+              
+              <div style={styles.infoCard}>
+                <h4 style={styles.infoCardTitle}>Company Settings</h4>
+                <div style={styles.infoRow}>
+                  <span style={styles.infoLabel}>Fiscal Year Start</span>
+                  <span>{company.fiscal_year_start_month || "—"}</span>
+                </div>
+                <div style={styles.infoRow}>
+                  <span style={styles.infoLabel}>Timezone</span>
+                  <span>{company.default_timezone || "—"}</span>
+                </div>
+                <div style={styles.infoRow}>
+                  <span style={styles.infoLabel}>Languages</span>
+                  <span>{company.supported_languages || "—"}</span>
+                </div>
+              </div>
+
+              <div style={styles.infoCard}>
+                <h4 style={styles.infoCardTitle}>Sync Information</h4>
+                <div style={styles.infoRow}>
+                  <span style={styles.infoLabel}>Last Synced</span>
+                  <span>{formatDateTime(company.last_synced_at) || "Never"}</span>
+                </div>
+                <div style={styles.infoRow}>
+                  <span style={styles.infoLabel}>Sync Token</span>
+                  <span style={{ fontFamily: 'monospace', fontSize: '11px', color: '#64748B' }}>{company.sync_token || "—"}</span>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {activeTab === "licenses" && (
-          <div style={styles.infoCard}>
-            <h4 style={styles.infoCardTitle}>Licensed Franchises</h4>
-            <p style={styles.noData}>
-              {client.license_count || 0} active franchise(s) linked to this account.
-            </p>
-          </div>
-        )}
-
-        {activeTab === "quickbooks" && (
-          <div style={styles.infoCard}>
-            <h4 style={styles.infoCardTitle}>QuickBooks Integration</h4>
-            <p style={styles.noData}>QuickBooks connection details and token status.</p>
-          </div>
-        )}
-
-        {activeTab === "reports" && (
-          <div style={styles.infoCard}>
-            <h4 style={styles.infoCardTitle}>Generated Reports</h4>
+          {activeTab === "reports" && (
             <EmptyState 
               icon={<FileTextIcon />}
               title="No reports yet"
               description="Reports will appear here after the first royalty run"
             />
-          </div>
-        )}
+          )}
 
-        {activeTab === "runs" && (
-          <div style={styles.infoCard}>
-            <h4 style={styles.infoCardTitle}>Run History</h4>
-            <EmptyState 
-              icon={<PlayCircleIcon />}
-              title="No runs yet"
-              description="Run history will appear here after the first royalty run"
-            />
+          {activeTab === "runs" && (
+            <div>
+              {detail.recent_submissions && detail.recent_submissions.length > 0 ? (
+                <div style={styles.tableContainer}>
+                  <table style={styles.table}>
+                    <thead>
+                      <tr>
+                        <th style={styles.th}>ID</th>
+                        <th style={styles.th}>Type</th>
+                        <th style={styles.th}>Status</th>
+                        <th style={styles.th}>Submitted</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {detail.recent_submissions.map((sub) => (
+                        <tr key={sub.id} style={styles.tr}>
+                          <td style={styles.td}>#{sub.id}</td>
+                          <td style={styles.td}>{sub.type || "—"}</td>
+                          <td style={styles.td}><StatusBadge status={sub.status} /></td>
+                          <td style={styles.td}>{formatDateTime(sub.submitted_at)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <EmptyState 
+                  icon={<PlayCircleIcon />}
+                  title="No runs yet"
+                  description="Run history will appear here after the first royalty run"
+                />
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* License Detail Modal */}
+      {selectedLicense && (
+        <LicenseDetailModal 
+          license={selectedLicense} 
+          onClose={() => setSelectedLicense(null)} 
+        />
+      )}
+    </div>
+  );
+}
+
+// License Detail Modal
+function LicenseDetailModal({ license, onClose }) {
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(0,0,0,0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000,
+    }} onClick={onClose}>
+      <div style={{
+        background: '#fff',
+        borderRadius: '16px',
+        width: '90%',
+        maxWidth: '500px',
+        maxHeight: '80vh',
+        overflow: 'auto',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+      }} onClick={e => e.stopPropagation()}>
+        <div style={{
+          padding: '24px',
+          borderBottom: '1px solid #E2E8F0',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#0F172A' }}>
+              Franchise #{license.franchise_number}
+            </h3>
+            <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#64748B' }}>
+              {license.name || "Unnamed Franchise"}
+            </p>
           </div>
-        )}
+          <button onClick={onClose} style={{
+            width: '32px',
+            height: '32px',
+            borderRadius: '8px',
+            border: 'none',
+            background: '#F1F5F9',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <XCircleIcon />
+          </button>
+        </div>
+        
+        <div style={{ padding: '24px' }}>
+          <div style={{ marginBottom: '20px' }}>
+            <h4 style={{ margin: '0 0 12px', fontSize: '14px', fontWeight: '600', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Franchise Information
+            </h4>
+            <div style={{ background: '#F8FAFC', borderRadius: '10px', padding: '16px' }}>
+              <InfoRowCompact label="Franchise #" value={`#${license.franchise_number}`} highlight />
+              <InfoRowCompact label="Name" value={license.name || "—"} />
+              <InfoRowCompact label="Owner" value={license.owner || "—"} />
+              <InfoRowCompact label="Address" value={license.address || "—"} />
+              <InfoRowCompact label="City" value={license.city || "—"} />
+              <InfoRowCompact label="State" value={license.state || "—"} />
+              <InfoRowCompact label="ZIP Code" value={license.zip_code || "—"} />
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '20px' }}>
+            <h4 style={{ margin: '0 0 12px', fontSize: '14px', fontWeight: '600', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              QuickBooks Mapping
+            </h4>
+            <div style={{ background: '#F8FAFC', borderRadius: '10px', padding: '16px' }}>
+              <InfoRowCompact label="Department Name" value={license.qbo_department_name || "Not mapped"} />
+              <InfoRowCompact label="Department ID" value={license.qbo_department_id || "—"} mono />
+              <InfoRowCompact label="Status" value={license.is_active === "true" ? "Active" : "Inactive"} status={license.is_active === "true" ? "active" : "inactive"} />
+            </div>
+          </div>
+        </div>
       </div>
+    </div>
+  );
+}
+
+// Info Row Compact
+function InfoRowCompact({ label, value, highlight, mono, status }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #E2E8F0' }}>
+      <span style={{ color: '#64748B', fontSize: '13px' }}>{label}</span>
+      <span style={{ 
+        fontWeight: highlight ? '700' : '500', 
+        color: highlight ? '#1B4DFF' : '#0F172A',
+        fontFamily: mono ? 'monospace' : 'inherit',
+        fontSize: mono ? '12px' : '13px',
+      }}>
+        {status ? <StatusBadge status={status} /> : value}
+      </span>
     </div>
   );
 }
@@ -902,13 +1246,39 @@ function ReportsSection() {
 
 // Mapping Rules Section
 function MappingRulesSection({ licenseMappings, formatDate }) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterCompany, setFilterCompany] = useState("all");
+  const [selectedMapping, setSelectedMapping] = useState(null);
+  const [hoveredMapping, setHoveredMapping] = useState(null);
+
+  // Get unique companies for filter
+  const companies = [...new Set(licenseMappings.map(m => m.company_name).filter(Boolean))];
+  
+  // Apply filters
+  const filteredMappings = licenseMappings.filter(m => {
+    const matchesSearch = !searchTerm || 
+      m.franchise_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      m.license_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      m.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      m.license_city?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = filterStatus === "all" || 
+      (filterStatus === "active" && m.is_active === "true") ||
+      (filterStatus === "inactive" && m.is_active !== "true");
+    
+    const matchesCompany = filterCompany === "all" || m.company_name === filterCompany;
+    
+    return matchesSearch && matchesStatus && matchesCompany;
+  });
+
   const activeMappings = licenseMappings.filter(m => m.is_active === "true");
-  const inactiveMappings = licenseMappings.filter(m => m.is_active === "false");
+  const inactiveMappings = licenseMappings.filter(m => m.is_active !== "true");
 
   return (
     <div>
       {/* Stats Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '24px' }}>
         <div style={styles.statCard}>
           <div style={{ ...styles.statIcon, color: '#1B4DFF', background: '#EFF6FF' }}>
             <GitBranchIcon />
@@ -924,7 +1294,7 @@ function MappingRulesSection({ licenseMappings, formatDate }) {
           </div>
           <div style={styles.statContent}>
             <div style={{ ...styles.statValue, color: '#10B981' }}>{activeMappings.length}</div>
-            <div style={styles.statLabel}>Active Mappings</div>
+            <div style={styles.statLabel}>Active</div>
           </div>
         </div>
         <div style={styles.statCard}>
@@ -933,16 +1303,129 @@ function MappingRulesSection({ licenseMappings, formatDate }) {
           </div>
           <div style={styles.statContent}>
             <div style={{ ...styles.statValue, color: '#F59E0B' }}>{inactiveMappings.length}</div>
-            <div style={styles.statLabel}>Inactive Mappings</div>
+            <div style={styles.statLabel}>Inactive</div>
+          </div>
+        </div>
+        <div style={styles.statCard}>
+          <div style={{ ...styles.statIcon, color: '#8B5CF6', background: '#F3E8FF' }}>
+            <BuildingIcon />
+          </div>
+          <div style={styles.statContent}>
+            <div style={{ ...styles.statValue, color: '#8B5CF6' }}>{companies.length}</div>
+            <div style={styles.statLabel}>Companies</div>
           </div>
         </div>
       </div>
 
-      <div style={styles.sectionHeader}>
-        <h3 style={styles.sectionTitle}>License Mappings</h3>
-        <span style={styles.resultCount}>{licenseMappings.length} mappings</span>
+      {/* Filters Bar */}
+      <div style={{
+        display: 'flex',
+        gap: '12px',
+        marginBottom: '20px',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        padding: '16px 20px',
+        background: '#F8FAFC',
+        borderRadius: '12px',
+        border: '1px solid #E2E8F0',
+      }}>
+        {/* Search */}
+        <div style={{ position: 'relative', flex: '1', minWidth: '200px', maxWidth: '300px' }}>
+          <SearchIcon style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', width: '16px', height: '16px' }} />
+          <input
+            type="text"
+            placeholder="Search franchises..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '10px 12px 10px 38px',
+              border: '1px solid #E2E8F0',
+              borderRadius: '8px',
+              fontSize: '14px',
+              background: '#fff',
+              outline: 'none',
+            }}
+          />
+        </div>
+
+        {/* Status Filter */}
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          style={{
+            padding: '10px 32px 10px 12px',
+            border: '1px solid #E2E8F0',
+            borderRadius: '8px',
+            fontSize: '14px',
+            background: '#fff',
+            cursor: 'pointer',
+            outline: 'none',
+            appearance: 'none',
+            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'right 8px center',
+          }}
+        >
+          <option value="all">All Status</option>
+          <option value="active">Active Only</option>
+          <option value="inactive">Inactive Only</option>
+        </select>
+
+        {/* Company Filter */}
+        <select
+          value={filterCompany}
+          onChange={(e) => setFilterCompany(e.target.value)}
+          style={{
+            padding: '10px 32px 10px 12px',
+            border: '1px solid #E2E8F0',
+            borderRadius: '8px',
+            fontSize: '14px',
+            background: '#fff',
+            cursor: 'pointer',
+            outline: 'none',
+            minWidth: '180px',
+            appearance: 'none',
+            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'right 8px center',
+          }}
+        >
+          <option value="all">All Companies</option>
+          {companies.map(company => (
+            <option key={company} value={company}>{company}</option>
+          ))}
+        </select>
+
+        {/* Clear Filters */}
+        {(searchTerm || filterStatus !== "all" || filterCompany !== "all") && (
+          <button
+            onClick={() => {
+              setSearchTerm("");
+              setFilterStatus("all");
+              setFilterCompany("all");
+            }}
+            style={{
+              padding: '10px 16px',
+              background: '#FEF2F2',
+              border: '1px solid #FECACA',
+              borderRadius: '8px',
+              color: '#DC2626',
+              fontSize: '13px',
+              fontWeight: '500',
+              cursor: 'pointer',
+            }}
+          >
+            Clear Filters
+          </button>
+        )}
+
+        <span style={{ marginLeft: 'auto', color: '#64748B', fontSize: '13px' }}>
+          Showing {filteredMappings.length} of {licenseMappings.length}
+        </span>
       </div>
 
+      {/* Table */}
       <div style={styles.tableContainer}>
         <table style={styles.table}>
           <thead>
@@ -953,12 +1436,20 @@ function MappingRulesSection({ licenseMappings, formatDate }) {
               <th style={styles.th}>Location</th>
               <th style={styles.th}>QB Department</th>
               <th style={styles.th}>Status</th>
-              <th style={styles.th}>Last Synced</th>
+              <th style={styles.th}>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {licenseMappings.map((mapping) => (
-              <tr key={mapping.id} style={styles.tr}>
+            {filteredMappings.map((mapping) => (
+              <tr 
+                key={mapping.id} 
+                style={{
+                  ...styles.tr,
+                  background: hoveredMapping === mapping.id ? '#F8FAFC' : 'transparent',
+                }}
+                onMouseEnter={() => setHoveredMapping(mapping.id)}
+                onMouseLeave={() => setHoveredMapping(null)}
+              >
                 <td style={styles.td}>
                   <div style={styles.companyName}>{mapping.company_name || "Unknown"}</div>
                   <div style={styles.realmId}>{mapping.realm_id?.slice(0, 12)}...</div>
@@ -976,7 +1467,7 @@ function MappingRulesSection({ licenseMappings, formatDate }) {
                 <td style={styles.td}>
                   <div style={{ fontSize: '13px' }}>{mapping.qbo_department_name || "—"}</div>
                   {mapping.qbo_department_id && (
-                    <div style={{ fontSize: '11px', color: '#94A3B8', fontFamily: 'monospace' }}>
+                    <div style={{ fontSize: '10px', color: '#94A3B8', fontFamily: 'monospace' }}>
                       ID: {mapping.qbo_department_id}
                     </div>
                   )}
@@ -984,18 +1475,146 @@ function MappingRulesSection({ licenseMappings, formatDate }) {
                 <td style={styles.td}>
                   <StatusBadge status={mapping.is_active === "true" ? "active" : "inactive"} />
                 </td>
-                <td style={styles.td}>{formatDate(mapping.last_synced_at)}</td>
+                <td style={styles.td}>
+                  <button 
+                    onClick={() => setSelectedMapping(mapping)}
+                    style={styles.viewBtn}
+                  >
+                    View Details
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
-        {licenseMappings.length === 0 && (
+        {filteredMappings.length === 0 && (
           <EmptyState 
             icon={<GitBranchIcon />}
-            title="No license mappings"
-            description="License mappings will appear here when clients configure their franchises"
+            title={searchTerm || filterStatus !== "all" || filterCompany !== "all" ? "No matching results" : "No license mappings"}
+            description={searchTerm || filterStatus !== "all" || filterCompany !== "all" ? "Try adjusting your search or filters" : "License mappings will appear here when clients configure their franchises"}
           />
         )}
+      </div>
+
+      {/* Mapping Detail Modal */}
+      {selectedMapping && (
+        <MappingDetailModal 
+          mapping={selectedMapping} 
+          onClose={() => setSelectedMapping(null)} 
+          formatDate={formatDate}
+        />
+      )}
+    </div>
+  );
+}
+
+// Mapping Detail Modal
+function MappingDetailModal({ mapping, onClose, formatDate }) {
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(0,0,0,0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000,
+    }} onClick={onClose}>
+      <div style={{
+        background: '#fff',
+        borderRadius: '16px',
+        width: '90%',
+        maxWidth: '600px',
+        maxHeight: '80vh',
+        overflow: 'auto',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+      }} onClick={e => e.stopPropagation()}>
+        <div style={{
+          padding: '24px',
+          borderBottom: '1px solid #E2E8F0',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+        }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+              <span style={{
+                padding: '6px 14px',
+                background: '#EFF6FF',
+                color: '#1B4DFF',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '700',
+              }}>
+                #{mapping.franchise_number}
+              </span>
+              <StatusBadge status={mapping.is_active === "true" ? "active" : "inactive"} />
+            </div>
+            <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: '#0F172A' }}>
+              {mapping.license_name || "Unnamed License"}
+            </h3>
+            <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#64748B' }}>
+              {mapping.company_name}
+            </p>
+          </div>
+          <button onClick={onClose} style={{
+            width: '36px',
+            height: '36px',
+            borderRadius: '8px',
+            border: 'none',
+            background: '#F1F5F9',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#64748B',
+          }}>
+            <XCircleIcon />
+          </button>
+        </div>
+        
+        <div style={{ padding: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+            <div>
+              <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                License Information
+              </h4>
+              <div style={{ background: '#F8FAFC', borderRadius: '10px', padding: '16px' }}>
+                <InfoRowCompact label="Franchise #" value={`#${mapping.franchise_number}`} highlight />
+                <InfoRowCompact label="Name" value={mapping.license_name || "—"} />
+                <InfoRowCompact label="Owner" value={mapping.license_owner || "—"} />
+                <InfoRowCompact label="City" value={mapping.license_city || "—"} />
+                <InfoRowCompact label="State" value={mapping.license_state || "—"} />
+              </div>
+            </div>
+
+            <div>
+              <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                QuickBooks Mapping
+              </h4>
+              <div style={{ background: '#F8FAFC', borderRadius: '10px', padding: '16px' }}>
+                <InfoRowCompact label="Department" value={mapping.qbo_department_name || "Not mapped"} />
+                <InfoRowCompact label="Dept ID" value={mapping.qbo_department_id || "—"} mono />
+                <InfoRowCompact label="Status" value={mapping.is_active === "true" ? "Active" : "Inactive"} status={mapping.is_active === "true" ? "active" : "inactive"} />
+              </div>
+            </div>
+          </div>
+
+          <div style={{ marginTop: '20px' }}>
+            <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Company & Sync Info
+            </h4>
+            <div style={{ background: '#F8FAFC', borderRadius: '10px', padding: '16px' }}>
+              <InfoRowCompact label="Company" value={mapping.company_name || "—"} />
+              <InfoRowCompact label="Realm ID" value={mapping.realm_id || "—"} mono />
+              <InfoRowCompact label="Created" value={formatDate(mapping.created_at)} />
+              <InfoRowCompact label="Last Synced" value={formatDate(mapping.last_synced_at)} />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -1003,13 +1622,123 @@ function MappingRulesSection({ licenseMappings, formatDate }) {
 
 // Billing Section
 function BillingSection({ subscriptions, formatDate }) {
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
+  
+  const activeCount = subscriptions.filter(s => s.status === "active").length;
+  const canceledCount = subscriptions.filter(s => s.status === "canceled").length;
+  const totalLicenses = subscriptions.reduce((acc, s) => acc + (s.quantity || 0), 0);
+  
+  const filteredSubscriptions = subscriptions.filter(s => {
+    const matchesSearch = !searchTerm || 
+      s.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      s.company_email?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = filterStatus === "all" || s.status === filterStatus;
+    return matchesSearch && matchesStatus;
+  });
+
   return (
     <div>
-      <div style={styles.sectionHeader}>
-        <h3 style={styles.sectionTitle}>Subscriptions</h3>
-        <span style={styles.resultCount}>{subscriptions.length} subscriptions</span>
+      {/* Stats Row */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+        <div style={styles.statCard}>
+          <div style={{ ...styles.statIcon, color: '#1B4DFF', background: '#EFF6FF' }}>
+            <CreditCardIcon />
+          </div>
+          <div style={styles.statContent}>
+            <div style={{ ...styles.statValue, color: '#1B4DFF' }}>{subscriptions.length}</div>
+            <div style={styles.statLabel}>Total Subscriptions</div>
+          </div>
+        </div>
+        <div style={styles.statCard}>
+          <div style={{ ...styles.statIcon, color: '#10B981', background: '#ECFDF5' }}>
+            <CheckCircleIcon />
+          </div>
+          <div style={styles.statContent}>
+            <div style={{ ...styles.statValue, color: '#10B981' }}>{activeCount}</div>
+            <div style={styles.statLabel}>Active</div>
+          </div>
+        </div>
+        <div style={styles.statCard}>
+          <div style={{ ...styles.statIcon, color: '#EF4444', background: '#FEF2F2' }}>
+            <XCircleIcon />
+          </div>
+          <div style={styles.statContent}>
+            <div style={{ ...styles.statValue, color: '#EF4444' }}>{canceledCount}</div>
+            <div style={styles.statLabel}>Canceled</div>
+          </div>
+        </div>
+        <div style={styles.statCard}>
+          <div style={{ ...styles.statIcon, color: '#8B5CF6', background: '#F3E8FF' }}>
+            <FileIcon />
+          </div>
+          <div style={styles.statContent}>
+            <div style={{ ...styles.statValue, color: '#8B5CF6' }}>{totalLicenses}</div>
+            <div style={styles.statLabel}>Total Licenses</div>
+          </div>
+        </div>
       </div>
 
+      {/* Filters */}
+      <div style={{
+        display: 'flex',
+        gap: '12px',
+        marginBottom: '20px',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        padding: '16px 20px',
+        background: '#F8FAFC',
+        borderRadius: '12px',
+        border: '1px solid #E2E8F0',
+      }}>
+        <div style={{ position: 'relative', flex: '1', minWidth: '200px', maxWidth: '300px' }}>
+          <SearchIcon style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', width: '16px', height: '16px' }} />
+          <input
+            type="text"
+            placeholder="Search by company or email..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '10px 12px 10px 38px',
+              border: '1px solid #E2E8F0',
+              borderRadius: '8px',
+              fontSize: '14px',
+              background: '#fff',
+              outline: 'none',
+            }}
+          />
+        </div>
+
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          style={{
+            padding: '10px 32px 10px 12px',
+            border: '1px solid #E2E8F0',
+            borderRadius: '8px',
+            fontSize: '14px',
+            background: '#fff',
+            cursor: 'pointer',
+            outline: 'none',
+            appearance: 'none',
+            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'right 8px center',
+          }}
+        >
+          <option value="all">All Status</option>
+          <option value="active">Active</option>
+          <option value="canceled">Canceled</option>
+          <option value="past_due">Past Due</option>
+        </select>
+
+        <span style={{ marginLeft: 'auto', color: '#64748B', fontSize: '13px' }}>
+          Showing {filteredSubscriptions.length} of {subscriptions.length}
+        </span>
+      </div>
+
+      {/* Table */}
       <div style={styles.tableContainer}>
         <table style={styles.table}>
           <thead>
@@ -1023,7 +1752,7 @@ function BillingSection({ subscriptions, formatDate }) {
             </tr>
           </thead>
           <tbody>
-            {subscriptions.map((sub) => (
+            {filteredSubscriptions.map((sub) => (
               <tr key={sub.id} style={styles.tr}>
                 <td style={styles.td}>
                   <div style={styles.companyName}>{sub.company_name}</div>
@@ -1032,28 +1761,47 @@ function BillingSection({ subscriptions, formatDate }) {
                 <td style={styles.td}>
                   {sub.plan ? (
                     <div>
-                      <div style={styles.planName}>{sub.plan.name}</div>
+                      <span style={{
+                        display: 'inline-block',
+                        padding: '4px 12px',
+                        background: 'linear-gradient(135deg, #1B4DFF 0%, #3B6FFF 100%)',
+                        color: '#fff',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        marginBottom: '4px',
+                      }}>
+                        {sub.plan.name}
+                      </span>
                       <div style={styles.planPrice}>{sub.plan.billing_cycle} - {sub.plan.price}</div>
                     </div>
                   ) : "—"}
                 </td>
-                <td style={styles.td}>{sub.quantity}</td>
+                <td style={styles.td}>
+                  <span style={{
+                    fontWeight: '700',
+                    color: '#1B4DFF',
+                    fontSize: '16px',
+                  }}>
+                    {sub.quantity}
+                  </span>
+                </td>
                 <td style={styles.td}>
                   <StatusBadge status={sub.status} />
                 </td>
                 <td style={styles.td}>{formatDate(sub.end_date)}</td>
                 <td style={styles.td}>
-                  <span style={styles.stripeId}>{sub.stripe_subscription_id?.slice(0, 24)}...</span>
+                  <span style={styles.stripeId}>{sub.stripe_subscription_id?.slice(0, 20)}...</span>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-        {subscriptions.length === 0 && (
+        {filteredSubscriptions.length === 0 && (
           <EmptyState 
             icon={<CreditCardIcon />}
-            title="No subscriptions"
-            description="Subscriptions will appear here when clients subscribe"
+            title={searchTerm || filterStatus !== "all" ? "No matching subscriptions" : "No subscriptions"}
+            description={searchTerm || filterStatus !== "all" ? "Try adjusting your filters" : "Subscriptions will appear here when clients subscribe"}
           />
         )}
       </div>
@@ -1307,78 +2055,299 @@ function ErrorsSection({ failedPayments, webhookLogs, systemLogs, emailLogs, adm
 
       {/* Admin Activity Tab */}
       {activeTab === "admin" && (
-        <div style={styles.tableContainer}>
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th style={styles.th}>Admin</th>
-                <th style={styles.th}>Action</th>
-                <th style={styles.th}>Resource</th>
-                <th style={styles.th}>IP Address</th>
-                <th style={styles.th}>Details</th>
-                <th style={styles.th}>Time</th>
-              </tr>
-            </thead>
-            <tbody>
-              {adminLogs.map((log) => (
-                <tr key={log.id} style={styles.tr}>
-                  <td style={styles.td}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div style={{
-                        width: '28px',
-                        height: '28px',
-                        background: 'linear-gradient(135deg, #1B4DFF 0%, #3B6FFF 100%)',
-                        borderRadius: '6px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#fff',
-                        fontSize: '11px',
-                        fontWeight: '600',
-                      }}>
-                        {log.admin_username?.charAt(0).toUpperCase()}
-                      </div>
-                      <span style={{ fontWeight: '500' }}>{log.admin_username}</span>
-                    </div>
-                  </td>
-                  <td style={styles.td}>
-                    <span style={{ fontFamily: 'monospace', fontSize: '12px' }}>{log.action}</span>
-                  </td>
-                  <td style={styles.td}>
-                    {log.resource_type && (
-                      <span style={{ fontSize: '13px' }}>
-                        {log.resource_type}
-                        {log.resource_id && <span style={{ color: '#94A3B8' }}> / {log.resource_id.slice(0, 12)}...</span>}
-                      </span>
-                    )}
-                  </td>
-                  <td style={styles.td}>
-                    <span style={{ fontFamily: 'monospace', fontSize: '12px', color: '#64748B' }}>
-                      {log.ip_address || "—"}
-                    </span>
-                  </td>
-                  <td style={styles.td}>
-                    {log.details && (
-                      <span style={{ fontSize: '12px', color: '#64748B' }}>
-                        {JSON.stringify(log.details).slice(0, 50)}...
-                      </span>
-                    )}
-                  </td>
-                  <td style={styles.td}>{formatDateTime(log.created_at)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {adminLogs.length === 0 && (
-            <EmptyState 
-              icon={<UsersIcon />}
-              title="No admin activity"
-              description="Admin actions will be logged here"
-            />
-          )}
-        </div>
+        <AdminActivityTab 
+          adminLogs={adminLogs} 
+          formatDateTime={formatDateTime} 
+        />
       )}
     </div>
+  );
+}
+
+// Admin Activity Tab Component
+function AdminActivityTab({ adminLogs, formatDateTime }) {
+  const [selectedLog, setSelectedLog] = useState(null);
+  const [filterAction, setFilterAction] = useState("all");
+  
+  const actions = [...new Set(adminLogs.map(l => l.action).filter(Boolean))];
+  
+  const filteredLogs = filterAction === "all" 
+    ? adminLogs 
+    : adminLogs.filter(l => l.action === filterAction);
+
+  return (
+    <div>
+      {/* Filter */}
+      <div style={{ marginBottom: '16px', display: 'flex', gap: '12px', alignItems: 'center' }}>
+        <select
+          value={filterAction}
+          onChange={(e) => setFilterAction(e.target.value)}
+          style={{
+            padding: '8px 32px 8px 12px',
+            border: '1px solid #E2E8F0',
+            borderRadius: '8px',
+            fontSize: '13px',
+            background: '#fff',
+            cursor: 'pointer',
+            outline: 'none',
+            appearance: 'none',
+            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'right 8px center',
+          }}
+        >
+          <option value="all">All Actions</option>
+          {actions.map(action => (
+            <option key={action} value={action}>{action}</option>
+          ))}
+        </select>
+        <span style={{ color: '#64748B', fontSize: '13px' }}>
+          {filteredLogs.length} entries
+        </span>
+      </div>
+
+      <div style={styles.tableContainer}>
+        <table style={styles.table}>
+          <thead>
+            <tr>
+              <th style={styles.th}>Admin</th>
+              <th style={styles.th}>Action</th>
+              <th style={styles.th}>Resource</th>
+              <th style={styles.th}>IP Address</th>
+              <th style={styles.th}>Time</th>
+              <th style={styles.th}>Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredLogs.map((log) => (
+              <tr key={log.id} style={styles.tr}>
+                <td style={styles.td}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{
+                      width: '28px',
+                      height: '28px',
+                      background: 'linear-gradient(135deg, #1B4DFF 0%, #3B6FFF 100%)',
+                      borderRadius: '6px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#fff',
+                      fontSize: '11px',
+                      fontWeight: '600',
+                    }}>
+                      {log.admin_username?.charAt(0).toUpperCase()}
+                    </div>
+                    <span style={{ fontWeight: '500' }}>{log.admin_username}</span>
+                  </div>
+                </td>
+                <td style={styles.td}>
+                  <ActionBadge action={log.action} />
+                </td>
+                <td style={styles.td}>
+                  {log.resource_type ? (
+                    <span style={{ fontSize: '13px' }}>
+                      <span style={{ fontWeight: '500' }}>{log.resource_type}</span>
+                      {log.resource_id && (
+                        <span style={{ color: '#94A3B8', fontFamily: 'monospace', fontSize: '11px' }}>
+                          {' / '}{log.resource_id.slice(0, 12)}...
+                        </span>
+                      )}
+                    </span>
+                  ) : "—"}
+                </td>
+                <td style={styles.td}>
+                  <span style={{ fontFamily: 'monospace', fontSize: '12px', color: '#64748B' }}>
+                    {log.ip_address || "—"}
+                  </span>
+                </td>
+                <td style={styles.td}>{formatDateTime(log.created_at)}</td>
+                <td style={styles.td}>
+                  {log.details ? (
+                    <button 
+                      onClick={() => setSelectedLog(log)}
+                      style={{
+                        padding: '6px 12px',
+                        background: '#EFF6FF',
+                        border: '1px solid #BFDBFE',
+                        borderRadius: '6px',
+                        color: '#1B4DFF',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      View Details
+                    </button>
+                  ) : (
+                    <span style={{ color: '#94A3B8', fontSize: '12px' }}>No details</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {filteredLogs.length === 0 && (
+          <EmptyState 
+            icon={<UsersIcon />}
+            title="No admin activity"
+            description="Admin actions will be logged here"
+          />
+        )}
+      </div>
+
+      {/* Detail Modal */}
+      {selectedLog && (
+        <AdminLogDetailModal 
+          log={selectedLog} 
+          onClose={() => setSelectedLog(null)}
+          formatDateTime={formatDateTime}
+        />
+      )}
+    </div>
+  );
+}
+
+// Admin Log Detail Modal
+function AdminLogDetailModal({ log, onClose, formatDateTime }) {
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(0,0,0,0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000,
+    }} onClick={onClose}>
+      <div style={{
+        background: '#fff',
+        borderRadius: '16px',
+        width: '90%',
+        maxWidth: '600px',
+        maxHeight: '80vh',
+        overflow: 'auto',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+      }} onClick={e => e.stopPropagation()}>
+        <div style={{
+          padding: '24px',
+          borderBottom: '1px solid #E2E8F0',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+        }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+              <ActionBadge action={log.action} />
+              <span style={{ color: '#64748B', fontSize: '13px' }}>
+                {formatDateTime(log.created_at)}
+              </span>
+            </div>
+            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#0F172A' }}>
+              Admin Activity Details
+            </h3>
+          </div>
+          <button onClick={onClose} style={{
+            width: '36px',
+            height: '36px',
+            borderRadius: '8px',
+            border: 'none',
+            background: '#F1F5F9',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#64748B',
+          }}>
+            <XCircleIcon />
+          </button>
+        </div>
+        
+        <div style={{ padding: '24px' }}>
+          {/* Admin Info */}
+          <div style={{ marginBottom: '20px' }}>
+            <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Admin Information
+            </h4>
+            <div style={{ background: '#F8FAFC', borderRadius: '10px', padding: '16px' }}>
+              <InfoRowCompact label="Username" value={log.admin_username} />
+              <InfoRowCompact label="Action" value={log.action} mono />
+              <InfoRowCompact label="IP Address" value={log.ip_address || "—"} mono />
+            </div>
+          </div>
+
+          {/* Resource Info */}
+          {(log.resource_type || log.resource_id) && (
+            <div style={{ marginBottom: '20px' }}>
+              <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Resource
+              </h4>
+              <div style={{ background: '#F8FAFC', borderRadius: '10px', padding: '16px' }}>
+                <InfoRowCompact label="Type" value={log.resource_type || "—"} />
+                <InfoRowCompact label="ID" value={log.resource_id || "—"} mono />
+              </div>
+            </div>
+          )}
+
+          {/* Details JSON */}
+          {log.details && (
+            <div>
+              <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Details (JSON)
+              </h4>
+              <div style={{
+                background: '#0F172A',
+                borderRadius: '10px',
+                padding: '16px',
+                overflow: 'auto',
+                maxHeight: '200px',
+              }}>
+                <pre style={{
+                  margin: 0,
+                  fontFamily: 'monospace',
+                  fontSize: '12px',
+                  color: '#E2E8F0',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                }}>
+                  {JSON.stringify(log.details, null, 2)}
+                </pre>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Action Badge
+function ActionBadge({ action }) {
+  const getActionColor = (action) => {
+    if (action?.includes('view')) return { bg: '#EFF6FF', color: '#1B4DFF' };
+    if (action?.includes('login')) return { bg: '#ECFDF5', color: '#059669' };
+    if (action?.includes('create') || action?.includes('add')) return { bg: '#F0FDF4', color: '#16A34A' };
+    if (action?.includes('delete') || action?.includes('remove')) return { bg: '#FEF2F2', color: '#DC2626' };
+    if (action?.includes('update') || action?.includes('edit')) return { bg: '#FEF3C7', color: '#D97706' };
+    return { bg: '#F1F5F9', color: '#64748B' };
+  };
+  
+  const colors = getActionColor(action);
+  
+  return (
+    <span style={{
+      padding: '4px 10px',
+      borderRadius: '6px',
+      fontSize: '11px',
+      fontWeight: '600',
+      background: colors.bg,
+      color: colors.color,
+      fontFamily: 'monospace',
+    }}>
+      {action}
+    </span>
   );
 }
 
