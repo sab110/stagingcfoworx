@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import ProfileWidget from "../components/ProfileWidget";
 
 export default function Dashboard() {
   const backendURL = import.meta.env.VITE_BACKEND_URL;
@@ -135,227 +136,376 @@ export default function Dashboard() {
   if (error) return <div style={{ color: "red" }}>{error}</div>;
 
   return (
-    <div style={{ fontFamily: "sans-serif" }}>
-      {/* Top Navigation Bar with Logout */}
+    <div style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif", backgroundColor: "#f8fafc", minHeight: "100vh" }}>
+      {/* Top Navigation Bar */}
       <div style={{
-        backgroundColor: "#0077C5",
+        background: "linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%)",
         color: "white",
-        padding: "15px 30px",
+        padding: "12px 30px",
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
+        boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+        position: "sticky",
+        top: 0,
+        zIndex: 100,
       }}>
-        <h2 style={{ margin: 0, fontSize: "20px", fontWeight: "600" }}>
-          QuickBooks Dashboard
-        </h2>
-        <button
-          onClick={handleLogout}
-          style={{
-            backgroundColor: "white",
-            color: "#0077C5",
-            border: "2px solid white",
-            padding: "10px 28px",
-            borderRadius: "4px",
-            cursor: "pointer",
-            fontSize: "15px",
-            fontWeight: "700",
-            transition: "all 0.2s ease",
-            boxShadow: "0 2px 6px rgba(0,0,0,0.15)"
-          }}
-          onMouseOver={(e) => {
-            e.target.style.backgroundColor = "#f0f0f0";
-            e.target.style.transform = "translateY(-1px)";
-            e.target.style.boxShadow = "0 4px 8px rgba(0,0,0,0.2)";
-          }}
-          onMouseOut={(e) => {
-            e.target.style.backgroundColor = "white";
-            e.target.style.transform = "translateY(0)";
-            e.target.style.boxShadow = "0 2px 6px rgba(0,0,0,0.15)";
-          }}
-        >
-          Sign Out
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <div style={{
+            width: "40px",
+            height: "40px",
+            background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+            borderRadius: "10px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "20px",
+            fontWeight: "bold",
+          }}>
+            ⚡
+          </div>
+          <h2 style={{ margin: 0, fontSize: "20px", fontWeight: "700", letterSpacing: "-0.5px" }}>
+            CFO Worx
+          </h2>
+        </div>
+        
+        <ProfileWidget user={user} onLogout={handleLogout} />
       </div>
 
       {/* Main Content */}
-      <div style={{ textAlign: "center", marginTop: "50px" }}>
-        <h1>QuickBooks Connected Dashboard</h1>
+      <div style={{ padding: "40px 30px", maxWidth: "1200px", margin: "0 auto" }}>
+        {/* Welcome Header */}
+        <div style={{
+          background: "linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%)",
+          borderRadius: "20px",
+          padding: "32px",
+          marginBottom: "24px",
+          boxShadow: "0 4px 20px rgba(0,0,0,0.05)",
+          border: "1px solid #e2e8f0",
+        }}>
+          <h1 style={{ 
+            margin: "0 0 8px 0", 
+            fontSize: "28px", 
+            fontWeight: "700", 
+            color: "#1e293b",
+            letterSpacing: "-0.5px",
+          }}>
+            {user ? `👋 Welcome back, ${user.full_name?.split(' ')[0] || 'User'}!` : 'Dashboard'}
+          </h1>
+          {user && (
+            <p style={{ margin: 0, color: "#64748b", fontSize: "15px" }}>
+              Manage your franchises, subscriptions, and reports all in one place.
+            </p>
+          )}
+        </div>
 
       {user ? (
-        <>
-          <h3>👋 Welcome, {user.full_name || "QuickBooks User"}!</h3>
-          <p><strong>Email:</strong> {user.email}</p>
-
-          {user.quickbooks && (
-            <>
-              <hr />
-              <h4>📊 QuickBooks Connection</h4>
-              <p><strong>Realm ID:</strong> {user.quickbooks.realm_id}</p>
-              <p>
-                <strong>Access Token:</strong>{" "}
-                {user.quickbooks.access_token
-                  ? user.quickbooks.access_token.slice(0, 25) + "..."
-                  : "Not available"}
-              </p>
-            </>
-          )}
-
-          <hr />
-          <h4>💳 Subscription</h4>
-          {subscription && subscription.plan ? (
-            <>
-              <p><strong>Plan:</strong> {subscription.plan.name} ({subscription.plan.billing_cycle})</p>
-              <p><strong>Per License:</strong> {subscription.plan.price}</p>
-              {subscription.quantity && subscription.quantity > 1 && (
-                <>
-                  <p><strong>Licenses:</strong> {subscription.quantity}</p>
-                  <p><strong>Total Cost:</strong> {(() => {
-                    // Extract only the dollar amount (before the slash)
-                    // e.g., "$222/6mo" -> "222", "$39/mo" -> "39"
-                    const match = subscription.plan.price.match(/\$(\d+(?:\.\d+)?)/);
-                    const basePrice = match ? parseFloat(match[1]) : 0;
-                    const total = basePrice * subscription.quantity;
-                    const period = subscription.plan.billing_cycle === "monthly" ? "/mo" : 
-                                  subscription.plan.billing_cycle === "6-month" ? "/6mo" : "/yr";
-                    return `$${total.toFixed(2)}${period}`;
-                  })()}</p>
-                </>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(350px, 1fr))", gap: "24px" }}>
+          
+          {/* Account Info Card */}
+          <div style={{
+            backgroundColor: "white",
+            borderRadius: "16px",
+            padding: "24px",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.05)",
+            border: "1px solid #e2e8f0",
+          }}>
+            <h3 style={{ margin: "0 0 20px 0", fontSize: "18px", fontWeight: "600", color: "#1e293b", display: "flex", alignItems: "center", gap: "10px" }}>
+              <span style={{ fontSize: "20px" }}>👤</span> Account Info
+            </h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #f1f5f9" }}>
+                <span style={{ color: "#64748b", fontSize: "14px" }}>Email</span>
+                <span style={{ color: "#1e293b", fontSize: "14px", fontWeight: "500" }}>{user.email}</span>
+              </div>
+              {user.quickbooks && (
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #f1f5f9" }}>
+                  <span style={{ color: "#64748b", fontSize: "14px" }}>Realm ID</span>
+                  <span style={{ color: "#1e293b", fontSize: "14px", fontWeight: "500", fontFamily: "monospace" }}>{user.quickbooks.realm_id}</span>
+                </div>
               )}
-              <p>
-                <strong>Status:</strong>{" "}
-                <span style={{
-                  color: subscription.status === "active" ? "#10b981" : "#ef4444",
-                  fontWeight: "600"
-                }}>
-                  {subscription.status.toUpperCase()}
-                </span>
-              </p>
-              
-              {subscription.end_date && (
-                <p><strong>Next Billing:</strong> {new Date(subscription.end_date).toLocaleDateString()}</p>
-              )}
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0" }}>
+                <span style={{ color: "#64748b", fontSize: "14px" }}>QuickBooks</span>
+                <span style={{ 
+                  backgroundColor: "#dcfce7", 
+                  color: "#16a34a", 
+                  padding: "4px 12px", 
+                  borderRadius: "6px", 
+                  fontSize: "12px", 
+                  fontWeight: "600" 
+                }}>Connected</span>
+              </div>
+            </div>
+          </div>
 
-              <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginTop: "15px" }}>
-                <button
-                  onClick={handleManageBilling}
-                  style={{
-                    backgroundColor: "#2563eb",
-                    color: "white",
-                    border: "none",
-                    padding: "10px 20px",
-                    borderRadius: "8px",
-                    cursor: "pointer",
-                    fontWeight: "600"
-                  }}
-                >
-                  Manage Billing
-                </button>
-
-                {subscription.status !== "active" && (
+          {/* Subscription Card */}
+          <div style={{
+            backgroundColor: "white",
+            borderRadius: "16px",
+            padding: "24px",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.05)",
+            border: "1px solid #e2e8f0",
+          }}>
+            <h3 style={{ margin: "0 0 20px 0", fontSize: "18px", fontWeight: "600", color: "#1e293b", display: "flex", alignItems: "center", gap: "10px" }}>
+              <span style={{ fontSize: "20px" }}>💳</span> Subscription
+            </h3>
+            
+            {subscription && subscription.plan ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #f1f5f9" }}>
+                  <span style={{ color: "#64748b", fontSize: "14px" }}>Plan</span>
+                  <span style={{ color: "#1e293b", fontSize: "14px", fontWeight: "600" }}>
+                    {subscription.plan.name} ({subscription.plan.billing_cycle})
+                  </span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #f1f5f9" }}>
+                  <span style={{ color: "#64748b", fontSize: "14px" }}>Per License</span>
+                  <span style={{ color: "#1e293b", fontSize: "14px", fontWeight: "500" }}>{subscription.plan.price}</span>
+                </div>
+                {subscription.quantity && (
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #f1f5f9" }}>
+                    <span style={{ color: "#64748b", fontSize: "14px" }}>Licenses</span>
+                    <span style={{ color: "#1e293b", fontSize: "14px", fontWeight: "500" }}>{subscription.quantity}</span>
+                  </div>
+                )}
+                {subscription.quantity && subscription.quantity > 1 && (
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #f1f5f9" }}>
+                    <span style={{ color: "#64748b", fontSize: "14px" }}>Total Cost</span>
+                    <span style={{ color: "#1e293b", fontSize: "14px", fontWeight: "600" }}>
+                      {(() => {
+                        const match = subscription.plan.price.match(/\$(\d+(?:\.\d+)?)/);
+                        const basePrice = match ? parseFloat(match[1]) : 0;
+                        const total = basePrice * subscription.quantity;
+                        const period = subscription.plan.billing_cycle === "monthly" ? "/mo" : 
+                                      subscription.plan.billing_cycle === "6-month" ? "/6mo" : "/yr";
+                        return `$${total.toFixed(2)}${period}`;
+                      })()}
+                    </span>
+                  </div>
+                )}
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #f1f5f9" }}>
+                  <span style={{ color: "#64748b", fontSize: "14px" }}>Status</span>
+                  <span style={{ 
+                    backgroundColor: subscription.status === "active" ? "#dcfce7" : "#fef2f2", 
+                    color: subscription.status === "active" ? "#16a34a" : "#dc2626", 
+                    padding: "4px 12px", 
+                    borderRadius: "6px", 
+                    fontSize: "12px", 
+                    fontWeight: "600" 
+                  }}>
+                    {subscription.status.toUpperCase()}
+                  </span>
+                </div>
+                {subscription.end_date && (
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0" }}>
+                    <span style={{ color: "#64748b", fontSize: "14px" }}>Next Billing</span>
+                    <span style={{ color: "#1e293b", fontSize: "14px", fontWeight: "500" }}>
+                      {new Date(subscription.end_date).toLocaleDateString()}
+                    </span>
+                  </div>
+                )}
+                <div style={{ display: "flex", gap: "10px", marginTop: "12px" }}>
                   <button
-                    onClick={() => (window.location.href = "/subscribe")}
+                    onClick={handleManageBilling}
                     style={{
-                      backgroundColor: "#10b981",
+                      flex: 1,
+                      background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
                       color: "white",
                       border: "none",
-                      padding: "10px 20px",
-                      borderRadius: "8px",
+                      padding: "12px 20px",
+                      borderRadius: "10px",
                       cursor: "pointer",
+                      fontWeight: "600",
+                      fontSize: "14px",
+                      transition: "transform 0.15s, box-shadow 0.15s",
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.transform = "translateY(-2px)";
+                      e.currentTarget.style.boxShadow = "0 4px 12px rgba(37, 99, 235, 0.3)";
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.boxShadow = "none";
                     }}
                   >
-                    Reactivate
+                    Manage Billing
                   </button>
-                )}
+                  {subscription.status !== "active" && (
+                    <button
+                      onClick={() => (window.location.href = "/subscribe")}
+                      style={{
+                        flex: 1,
+                        background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                        color: "white",
+                        border: "none",
+                        padding: "12px 20px",
+                        borderRadius: "10px",
+                        cursor: "pointer",
+                        fontWeight: "600",
+                        fontSize: "14px",
+                      }}
+                    >
+                      Reactivate
+                    </button>
+                  )}
+                </div>
               </div>
-            </>
-          ) : (
-            <>
-              <p>No active subscription found.</p>
-              <button
-                onClick={() => (window.location.href = "/subscribe")}
-                style={{
-                  backgroundColor: "#10b981",
-                  color: "white",
-                  border: "none",
-                  padding: "10px 20px",
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                  marginTop: "10px",
-                }}
-              >
-                Subscribe Now
-              </button>
-            </>
-          )}
+            ) : (
+              <div style={{ textAlign: "center", padding: "20px 0" }}>
+                <p style={{ color: "#64748b", marginBottom: "16px" }}>No active subscription found.</p>
+                <button
+                  onClick={() => (window.location.href = "/subscribe")}
+                  style={{
+                    background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                    color: "white",
+                    border: "none",
+                    padding: "14px 32px",
+                    borderRadius: "10px",
+                    cursor: "pointer",
+                    fontWeight: "600",
+                    fontSize: "15px",
+                  }}
+                >
+                  Subscribe Now
+                </button>
+              </div>
+            )}
+          </div>
 
-          {/* My Franchises Section */}
+          {/* My Franchises Section - Full Width */}
           {licenses.length > 0 && (
-            <>
-              <hr />
-              <h4>🏢 My Franchises ({licenses.length})</h4>
-              <div style={{
-                maxWidth: "800px",
-                margin: "20px auto",
-                textAlign: "left"
-              }}>
-                {licenses.map((license) => (
-                  <div
-                    key={license.franchise_number}
-                    style={{
-                      backgroundColor: "#f9fafb",
-                      border: "1px solid #e5e7eb",
-                      borderRadius: "8px",
-                      padding: "15px",
-                      marginBottom: "10px",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <div>
-                      <strong>#{license.franchise_number}</strong> - {license.name}
-                      <br />
-                      <small style={{ color: "#6b7280" }}>
-                        {license.city}, {license.state}
-                        {license.quickbooks?.department_name && (
-                          <> • {license.quickbooks.department_name}</>
-                        )}
-                      </small>
-                    </div>
-                    <div style={{
-                      backgroundColor: "#10b981",
-                      color: "white",
-                      padding: "4px 12px",
-                      borderRadius: "4px",
-                      fontSize: "12px",
-                      fontWeight: "600"
-                    }}>
-                      Active
-                    </div>
-                  </div>
-                ))}
+            <div style={{
+              gridColumn: "1 / -1",
+              backgroundColor: "white",
+              borderRadius: "16px",
+              padding: "24px",
+              boxShadow: "0 4px 20px rgba(0,0,0,0.05)",
+              border: "1px solid #e2e8f0",
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "600", color: "#1e293b", display: "flex", alignItems: "center", gap: "10px" }}>
+                  <span style={{ fontSize: "20px" }}>🏢</span> My Franchises 
+                  <span style={{ 
+                    backgroundColor: "#eff6ff", 
+                    color: "#2563eb", 
+                    padding: "4px 10px", 
+                    borderRadius: "6px", 
+                    fontSize: "13px", 
+                    fontWeight: "600" 
+                  }}>
+                    {licenses.length}
+                  </span>
+                </h3>
                 <button
                   onClick={() => (window.location.href = "/onboarding")}
                   style={{
-                    backgroundColor: "#6b7280",
-                    color: "white",
-                    border: "none",
-                    padding: "8px 16px",
-                    borderRadius: "6px",
+                    backgroundColor: "#f1f5f9",
+                    color: "#475569",
+                    border: "1px solid #e2e8f0",
+                    padding: "10px 20px",
+                    borderRadius: "8px",
                     cursor: "pointer",
-                    marginTop: "10px",
                     fontSize: "14px",
+                    fontWeight: "600",
+                    transition: "all 0.15s",
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.backgroundColor = "#e2e8f0";
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.backgroundColor = "#f1f5f9";
                   }}
                 >
                   Manage Licenses
                 </button>
               </div>
-            </>
+              
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "12px" }}>
+                {licenses.map((license) => (
+                  <div
+                    key={license.franchise_number}
+                    style={{
+                      backgroundColor: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: "12px",
+                      padding: "16px",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      transition: "all 0.15s",
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.borderColor = "#10b981";
+                      e.currentTarget.style.backgroundColor = "#f0fdf4";
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.borderColor = "#e2e8f0";
+                      e.currentTarget.style.backgroundColor = "#f8fafc";
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontWeight: "600", color: "#1e293b", fontSize: "15px", marginBottom: "4px" }}>
+                        #{license.franchise_number} - {license.name}
+                      </div>
+                      <div style={{ color: "#64748b", fontSize: "13px" }}>
+                        📍 {license.city}, {license.state}
+                        {license.quickbooks?.department_name && (
+                          <span style={{ marginLeft: "8px" }}>
+                            • {license.quickbooks.department_name}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{
+                      background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                      color: "white",
+                      padding: "6px 14px",
+                      borderRadius: "6px",
+                      fontSize: "11px",
+                      fontWeight: "700",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.5px",
+                    }}>
+                      Active
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
-        </>
+        </div>
       ) : (
-        <p>No user data found. Please reconnect your QuickBooks account.</p>
+        <div style={{
+          backgroundColor: "white",
+          borderRadius: "16px",
+          padding: "60px 40px",
+          textAlign: "center",
+          boxShadow: "0 4px 20px rgba(0,0,0,0.05)",
+          border: "1px solid #e2e8f0",
+        }}>
+          <div style={{ fontSize: "64px", marginBottom: "16px" }}>🔗</div>
+          <h3 style={{ margin: "0 0 8px 0", color: "#1e293b", fontSize: "20px" }}>
+            No Account Connected
+          </h3>
+          <p style={{ color: "#64748b", marginBottom: "24px" }}>
+            Please reconnect your QuickBooks account to continue.
+          </p>
+          <button
+            onClick={() => (window.location.href = "/")}
+            style={{
+              background: "linear-gradient(135deg, #0077C5 0%, #005a9e 100%)",
+              color: "white",
+              border: "none",
+              padding: "14px 32px",
+              borderRadius: "10px",
+              cursor: "pointer",
+              fontWeight: "600",
+              fontSize: "15px",
+            }}
+          >
+            Connect QuickBooks
+          </button>
+        </div>
       )}
       </div>
     </div>
