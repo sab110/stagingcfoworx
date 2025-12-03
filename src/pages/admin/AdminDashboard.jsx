@@ -22,6 +22,11 @@ export default function AdminDashboard() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
   const [clientDetailTab, setClientDetailTab] = useState("overview");
+  const [licenseMappings, setLicenseMappings] = useState([]);
+  const [emailLogs, setEmailLogs] = useState([]);
+  const [adminLogs, setAdminLogs] = useState([]);
+  const [webhookLogs, setWebhookLogs] = useState([]);
+  const [systemLogs, setSystemLogs] = useState([]);
   
   const adminUsername = localStorage.getItem("admin_username") || "Admin";
 
@@ -109,6 +114,66 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchLicenseMappings = async () => {
+    try {
+      const response = await fetch(`${backendURL}/api/admin/license-mappings`, {
+        headers: getAuthHeaders()
+      });
+      const data = await response.json();
+      setLicenseMappings(data.license_mappings || []);
+    } catch (err) {
+      console.error("Error fetching license mappings:", err);
+    }
+  };
+
+  const fetchEmailLogs = async () => {
+    try {
+      const response = await fetch(`${backendURL}/api/admin/email-logs`, {
+        headers: getAuthHeaders()
+      });
+      const data = await response.json();
+      setEmailLogs(data.email_logs || []);
+    } catch (err) {
+      console.error("Error fetching email logs:", err);
+    }
+  };
+
+  const fetchAdminLogs = async () => {
+    try {
+      const response = await fetch(`${backendURL}/api/admin/activity-logs`, {
+        headers: getAuthHeaders()
+      });
+      const data = await response.json();
+      setAdminLogs(data.activity_logs || []);
+    } catch (err) {
+      console.error("Error fetching admin logs:", err);
+    }
+  };
+
+  const fetchWebhookLogs = async () => {
+    try {
+      const response = await fetch(`${backendURL}/api/admin/webhook-logs`, {
+        headers: getAuthHeaders()
+      });
+      const data = await response.json();
+      setWebhookLogs(data.webhook_logs || []);
+    } catch (err) {
+      console.error("Error fetching webhook logs:", err);
+    }
+  };
+
+  const fetchSystemLogs = async () => {
+    try {
+      const response = await fetch(`${backendURL}/api/admin/system-logs`, {
+        headers: getAuthHeaders()
+      });
+      const data = await response.json();
+      setSystemLogs(data.system_logs || []);
+    } catch (err) {
+      console.error("Error fetching system logs:", err);
+    }
+  };
+
   // Navigation handlers
   const handleSectionChange = (section) => {
     setActiveSection(section);
@@ -116,8 +181,15 @@ export default function AdminDashboard() {
     
     if (section === "clients" && clients.length === 0) fetchClients();
     if (section === "billing" && subscriptions.length === 0) fetchSubscriptions();
-    if (section === "errors" && failedPayments.length === 0) fetchFailedPayments();
+    if (section === "errors") {
+      if (failedPayments.length === 0) fetchFailedPayments();
+      if (webhookLogs.length === 0) fetchWebhookLogs();
+      if (systemLogs.length === 0) fetchSystemLogs();
+      if (emailLogs.length === 0) fetchEmailLogs();
+      if (adminLogs.length === 0) fetchAdminLogs();
+    }
     if (section === "runs" && submissions.length === 0) fetchSubmissions();
+    if (section === "mapping" && licenseMappings.length === 0) fetchLicenseMappings();
   };
 
   const handleLogout = () => {
@@ -337,7 +409,6 @@ export default function AdminDashboard() {
               activeTab={clientDetailTab}
               setActiveTab={setClientDetailTab}
               formatDate={formatDate}
-              formatCurrency={formatCurrency}
             />
           )}
 
@@ -357,7 +428,10 @@ export default function AdminDashboard() {
 
           {/* Mapping Rules Section */}
           {activeSection === "mapping" && !selectedClient && (
-            <MappingRulesSection />
+            <MappingRulesSection 
+              licenseMappings={licenseMappings}
+              formatDate={formatDate}
+            />
           )}
 
           {/* Billing Section */}
@@ -373,7 +447,12 @@ export default function AdminDashboard() {
           {activeSection === "errors" && !selectedClient && (
             <ErrorsSection 
               failedPayments={failedPayments}
+              webhookLogs={webhookLogs}
+              systemLogs={systemLogs}
+              emailLogs={emailLogs}
+              adminLogs={adminLogs}
               formatDate={formatDate}
+              formatDateTime={formatDateTime}
               formatCurrency={formatCurrency}
             />
           )}
@@ -558,7 +637,7 @@ function ClientsSection({ clients, onViewClient, formatDate }) {
 }
 
 // Client Detail Section
-function ClientDetailSection({ client, activeTab, setActiveTab, formatDate, formatCurrency }) {
+function ClientDetailSection({ client, activeTab, setActiveTab, formatDate }) {
   const tabs = [
     { id: "overview", label: "Overview" },
     { id: "licenses", label: "Licenses" },
@@ -822,41 +901,108 @@ function ReportsSection() {
 }
 
 // Mapping Rules Section
-function MappingRulesSection() {
-  const ruleCategories = [
-    { id: "subcontract", name: "Subcontract Rules", count: 0 },
-    { id: "referral", name: "Referral Rules", count: 0 },
-    { id: "estimating", name: "Estimating Rules", count: 0 },
-    { id: "interest", name: "Interest/Damage Rules", count: 0 },
-  ];
+function MappingRulesSection({ licenseMappings, formatDate }) {
+  const activeMappings = licenseMappings.filter(m => m.is_active === "true");
+  const inactiveMappings = licenseMappings.filter(m => m.is_active === "false");
 
   return (
     <div>
-      <div style={styles.sectionHeader}>
-        <h3 style={styles.sectionTitle}>Mapping Rules</h3>
-        <button style={styles.primaryBtn}>
-          <PlusIcon /> Add Rule
-        </button>
+      {/* Stats Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+        <div style={styles.statCard}>
+          <div style={{ ...styles.statIcon, color: '#1B4DFF', background: '#EFF6FF' }}>
+            <GitBranchIcon />
+          </div>
+          <div style={styles.statContent}>
+            <div style={{ ...styles.statValue, color: '#1B4DFF' }}>{licenseMappings.length}</div>
+            <div style={styles.statLabel}>Total Mappings</div>
+          </div>
+        </div>
+        <div style={styles.statCard}>
+          <div style={{ ...styles.statIcon, color: '#10B981', background: '#ECFDF5' }}>
+            <CheckCircleIcon />
+          </div>
+          <div style={styles.statContent}>
+            <div style={{ ...styles.statValue, color: '#10B981' }}>{activeMappings.length}</div>
+            <div style={styles.statLabel}>Active Mappings</div>
+          </div>
+        </div>
+        <div style={styles.statCard}>
+          <div style={{ ...styles.statIcon, color: '#F59E0B', background: '#FEF3C7' }}>
+            <XCircleIcon />
+          </div>
+          <div style={styles.statContent}>
+            <div style={{ ...styles.statValue, color: '#F59E0B' }}>{inactiveMappings.length}</div>
+            <div style={styles.statLabel}>Inactive Mappings</div>
+          </div>
+        </div>
       </div>
 
-      <div style={styles.rulesGrid}>
-        {ruleCategories.map((cat) => (
-          <div key={cat.id} style={styles.ruleCard}>
-            <div style={styles.ruleHeader}>
-              <GitBranchIcon />
-              <h4 style={styles.ruleName}>{cat.name}</h4>
-            </div>
-            <p style={styles.ruleCount}>{cat.count} rules configured</p>
-            <button style={styles.ruleBtn}>Manage Rules</button>
-          </div>
-        ))}
+      <div style={styles.sectionHeader}>
+        <h3 style={styles.sectionTitle}>License Mappings</h3>
+        <span style={styles.resultCount}>{licenseMappings.length} mappings</span>
+      </div>
+
+      <div style={styles.tableContainer}>
+        <table style={styles.table}>
+          <thead>
+            <tr>
+              <th style={styles.th}>Company</th>
+              <th style={styles.th}>Franchise #</th>
+              <th style={styles.th}>License Name</th>
+              <th style={styles.th}>Location</th>
+              <th style={styles.th}>QB Department</th>
+              <th style={styles.th}>Status</th>
+              <th style={styles.th}>Last Synced</th>
+            </tr>
+          </thead>
+          <tbody>
+            {licenseMappings.map((mapping) => (
+              <tr key={mapping.id} style={styles.tr}>
+                <td style={styles.td}>
+                  <div style={styles.companyName}>{mapping.company_name || "Unknown"}</div>
+                  <div style={styles.realmId}>{mapping.realm_id?.slice(0, 12)}...</div>
+                </td>
+                <td style={styles.td}>
+                  <span style={styles.licenseCount}>#{mapping.franchise_number}</span>
+                </td>
+                <td style={styles.td}>{mapping.license_name || "—"}</td>
+                <td style={styles.td}>
+                  {mapping.license_city && mapping.license_state 
+                    ? `${mapping.license_city}, ${mapping.license_state}`
+                    : "—"
+                  }
+                </td>
+                <td style={styles.td}>
+                  <div style={{ fontSize: '13px' }}>{mapping.qbo_department_name || "—"}</div>
+                  {mapping.qbo_department_id && (
+                    <div style={{ fontSize: '11px', color: '#94A3B8', fontFamily: 'monospace' }}>
+                      ID: {mapping.qbo_department_id}
+                    </div>
+                  )}
+                </td>
+                <td style={styles.td}>
+                  <StatusBadge status={mapping.is_active === "true" ? "active" : "inactive"} />
+                </td>
+                <td style={styles.td}>{formatDate(mapping.last_synced_at)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {licenseMappings.length === 0 && (
+          <EmptyState 
+            icon={<GitBranchIcon />}
+            title="No license mappings"
+            description="License mappings will appear here when clients configure their franchises"
+          />
+        )}
       </div>
     </div>
   );
 }
 
 // Billing Section
-function BillingSection({ subscriptions, formatDate, formatCurrency }) {
+function BillingSection({ subscriptions, formatDate }) {
   return (
     <div>
       <div style={styles.sectionHeader}>
@@ -916,50 +1062,46 @@ function BillingSection({ subscriptions, formatDate, formatCurrency }) {
 }
 
 // Errors Section
-function ErrorsSection({ failedPayments, formatDate, formatCurrency }) {
+function ErrorsSection({ failedPayments, webhookLogs, systemLogs, emailLogs, adminLogs, formatDate, formatDateTime, formatCurrency }) {
   const [activeTab, setActiveTab] = useState("payments");
+  
+  const tabs = [
+    { id: "payments", label: "Failed Payments", count: failedPayments.length },
+    { id: "webhooks", label: "Webhook Logs", count: webhookLogs.length },
+    { id: "system", label: "System Logs", count: systemLogs.length },
+    { id: "emails", label: "Email Logs", count: emailLogs.length },
+    { id: "admin", label: "Admin Activity", count: adminLogs.length },
+  ];
   
   return (
     <div>
-      <div style={styles.tabsContainer}>
-        <button
-          onClick={() => setActiveTab("payments")}
-          style={{
-            ...styles.tab,
-            ...(activeTab === "payments" ? styles.tabActive : {}),
-          }}
-        >
-          Failed Payments
-        </button>
-        <button
-          onClick={() => setActiveTab("webhooks")}
-          style={{
-            ...styles.tab,
-            ...(activeTab === "webhooks" ? styles.tabActive : {}),
-          }}
-        >
-          Webhook Logs
-        </button>
-        <button
-          onClick={() => setActiveTab("qbo")}
-          style={{
-            ...styles.tab,
-            ...(activeTab === "qbo" ? styles.tabActive : {}),
-          }}
-        >
-          QBO Errors
-        </button>
-        <button
-          onClick={() => setActiveTab("sftp")}
-          style={{
-            ...styles.tab,
-            ...(activeTab === "sftp" ? styles.tabActive : {}),
-          }}
-        >
-          SFTP Errors
-        </button>
+      <div style={{ ...styles.tabsContainer, flexWrap: 'wrap' }}>
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            style={{
+              ...styles.tab,
+              ...(activeTab === tab.id ? styles.tabActive : {}),
+            }}
+          >
+            {tab.label}
+            <span style={{
+              marginLeft: '6px',
+              padding: '2px 8px',
+              background: activeTab === tab.id ? '#1B4DFF' : '#E2E8F0',
+              color: activeTab === tab.id ? '#fff' : '#64748B',
+              borderRadius: '10px',
+              fontSize: '11px',
+              fontWeight: '600',
+            }}>
+              {tab.count}
+            </span>
+          </button>
+        ))}
       </div>
 
+      {/* Failed Payments Tab */}
       {activeTab === "payments" && (
         <div style={styles.tableContainer}>
           <table style={styles.table}>
@@ -1003,30 +1145,267 @@ function ErrorsSection({ failedPayments, formatDate, formatCurrency }) {
         </div>
       )}
 
+      {/* Webhook Logs Tab */}
       {activeTab === "webhooks" && (
-        <EmptyState 
-          icon={<WebhookIcon />}
-          title="No webhook errors"
-          description="All webhooks are being processed correctly"
-        />
+        <div style={styles.tableContainer}>
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th style={styles.th}>Source</th>
+                <th style={styles.th}>Event Type</th>
+                <th style={styles.th}>Event ID</th>
+                <th style={styles.th}>Company</th>
+                <th style={styles.th}>Status</th>
+                <th style={styles.th}>Time (ms)</th>
+                <th style={styles.th}>Received</th>
+              </tr>
+            </thead>
+            <tbody>
+              {webhookLogs.map((log) => (
+                <tr key={log.id} style={styles.tr}>
+                  <td style={styles.td}>
+                    <span style={{
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      fontSize: '11px',
+                      fontWeight: '600',
+                      textTransform: 'uppercase',
+                      background: log.source === 'stripe' ? '#EFF6FF' : '#F0FDF4',
+                      color: log.source === 'stripe' ? '#1B4DFF' : '#059669',
+                    }}>
+                      {log.source}
+                    </span>
+                  </td>
+                  <td style={styles.td}>
+                    <span style={{ fontFamily: 'monospace', fontSize: '12px' }}>{log.event_type}</span>
+                  </td>
+                  <td style={styles.td}>
+                    <span style={{ fontFamily: 'monospace', fontSize: '11px', color: '#64748B' }}>
+                      {log.event_id?.slice(0, 20)}...
+                    </span>
+                  </td>
+                  <td style={styles.td}>{log.company_name || "—"}</td>
+                  <td style={styles.td}>
+                    <StatusBadge status={log.status === 'processed' ? 'active' : log.status === 'failed' ? 'rejected' : 'pending_review'} />
+                  </td>
+                  <td style={styles.td}>{log.processing_time_ms || "—"}</td>
+                  <td style={styles.td}>{formatDateTime(log.created_at)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {webhookLogs.length === 0 && (
+            <EmptyState 
+              icon={<WebhookIcon />}
+              title="No webhook logs"
+              description="Webhook activity will appear here"
+            />
+          )}
+        </div>
       )}
 
-      {activeTab === "qbo" && (
-        <EmptyState 
-          icon={<RefreshCwIcon />}
-          title="No QuickBooks errors"
-          description="All QuickBooks integrations are healthy"
-        />
+      {/* System Logs Tab */}
+      {activeTab === "system" && (
+        <div style={styles.tableContainer}>
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th style={styles.th}>Level</th>
+                <th style={styles.th}>Source</th>
+                <th style={styles.th}>Action</th>
+                <th style={styles.th}>Message</th>
+                <th style={styles.th}>Company</th>
+                <th style={styles.th}>Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              {systemLogs.map((log) => (
+                <tr key={log.id} style={styles.tr}>
+                  <td style={styles.td}>
+                    <LogLevelBadge level={log.level} />
+                  </td>
+                  <td style={styles.td}>
+                    <span style={{ fontFamily: 'monospace', fontSize: '12px' }}>{log.source}</span>
+                  </td>
+                  <td style={styles.td}>
+                    <span style={{ fontFamily: 'monospace', fontSize: '12px' }}>{log.action}</span>
+                  </td>
+                  <td style={styles.td}>
+                    <div style={{ maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {log.message}
+                    </div>
+                  </td>
+                  <td style={styles.td}>{log.company_name || "—"}</td>
+                  <td style={styles.td}>{formatDateTime(log.created_at)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {systemLogs.length === 0 && (
+            <EmptyState 
+              icon={<FileTextIcon />}
+              title="No system logs"
+              description="System activity will appear here"
+            />
+          )}
+        </div>
       )}
 
-      {activeTab === "sftp" && (
-        <EmptyState 
-          icon={<UploadIcon />}
-          title="No SFTP errors"
-          description="All SFTP uploads are successful"
-        />
+      {/* Email Logs Tab */}
+      {activeTab === "emails" && (
+        <div style={styles.tableContainer}>
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th style={styles.th}>Recipient</th>
+                <th style={styles.th}>Subject</th>
+                <th style={styles.th}>Type</th>
+                <th style={styles.th}>Company</th>
+                <th style={styles.th}>Status</th>
+                <th style={styles.th}>Sent</th>
+              </tr>
+            </thead>
+            <tbody>
+              {emailLogs.map((log) => (
+                <tr key={log.id} style={styles.tr}>
+                  <td style={styles.td}>{log.recipient_email}</td>
+                  <td style={styles.td}>
+                    <div style={{ maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {log.subject}
+                    </div>
+                  </td>
+                  <td style={styles.td}>
+                    <span style={{
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      fontSize: '11px',
+                      fontWeight: '600',
+                      background: '#F1F5F9',
+                      color: '#64748B',
+                    }}>
+                      {log.email_type}
+                    </span>
+                  </td>
+                  <td style={styles.td}>{log.company_name || "—"}</td>
+                  <td style={styles.td}>
+                    <StatusBadge status={log.status === 'sent' ? 'active' : log.status === 'failed' ? 'rejected' : 'pending_review'} />
+                  </td>
+                  <td style={styles.td}>{formatDateTime(log.sent_at)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {emailLogs.length === 0 && (
+            <EmptyState 
+              icon={<MailIcon />}
+              title="No email logs"
+              description="Sent emails will appear here"
+            />
+          )}
+        </div>
+      )}
+
+      {/* Admin Activity Tab */}
+      {activeTab === "admin" && (
+        <div style={styles.tableContainer}>
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th style={styles.th}>Admin</th>
+                <th style={styles.th}>Action</th>
+                <th style={styles.th}>Resource</th>
+                <th style={styles.th}>IP Address</th>
+                <th style={styles.th}>Details</th>
+                <th style={styles.th}>Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              {adminLogs.map((log) => (
+                <tr key={log.id} style={styles.tr}>
+                  <td style={styles.td}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{
+                        width: '28px',
+                        height: '28px',
+                        background: 'linear-gradient(135deg, #1B4DFF 0%, #3B6FFF 100%)',
+                        borderRadius: '6px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#fff',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                      }}>
+                        {log.admin_username?.charAt(0).toUpperCase()}
+                      </div>
+                      <span style={{ fontWeight: '500' }}>{log.admin_username}</span>
+                    </div>
+                  </td>
+                  <td style={styles.td}>
+                    <span style={{ fontFamily: 'monospace', fontSize: '12px' }}>{log.action}</span>
+                  </td>
+                  <td style={styles.td}>
+                    {log.resource_type && (
+                      <span style={{ fontSize: '13px' }}>
+                        {log.resource_type}
+                        {log.resource_id && <span style={{ color: '#94A3B8' }}> / {log.resource_id.slice(0, 12)}...</span>}
+                      </span>
+                    )}
+                  </td>
+                  <td style={styles.td}>
+                    <span style={{ fontFamily: 'monospace', fontSize: '12px', color: '#64748B' }}>
+                      {log.ip_address || "—"}
+                    </span>
+                  </td>
+                  <td style={styles.td}>
+                    {log.details && (
+                      <span style={{ fontSize: '12px', color: '#64748B' }}>
+                        {JSON.stringify(log.details).slice(0, 50)}...
+                      </span>
+                    )}
+                  </td>
+                  <td style={styles.td}>{formatDateTime(log.created_at)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {adminLogs.length === 0 && (
+            <EmptyState 
+              icon={<UsersIcon />}
+              title="No admin activity"
+              description="Admin actions will be logged here"
+            />
+          )}
+        </div>
       )}
     </div>
+  );
+}
+
+// Log Level Badge
+function LogLevelBadge({ level }) {
+  const config = {
+    INFO: { bg: '#EFF6FF', color: '#1B4DFF' },
+    WARNING: { bg: '#FEF3C7', color: '#D97706' },
+    ERROR: { bg: '#FEF2F2', color: '#DC2626' },
+    DEBUG: { bg: '#F1F5F9', color: '#64748B' },
+  };
+  
+  const style = config[level] || config.INFO;
+  
+  return (
+    <span style={{
+      padding: '4px 10px',
+      borderRadius: '6px',
+      fontSize: '10px',
+      fontWeight: '700',
+      textTransform: 'uppercase',
+      letterSpacing: '0.5px',
+      background: style.bg,
+      color: style.color,
+    }}>
+      {level}
+    </span>
   );
 }
 
@@ -1272,6 +1651,10 @@ function WebhookIcon() {
 
 function UploadIcon() {
   return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>;
+}
+
+function MailIcon() {
+  return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>;
 }
 
 // ============================================================
