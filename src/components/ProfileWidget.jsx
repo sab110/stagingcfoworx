@@ -308,7 +308,7 @@ export default function ProfileWidget({ user, onLogout }) {
 
             <button
               onClick={() => {
-                window.location.href = "/onboarding";
+                window.location.href = "/onboarding?manage=true";
               }}
               style={{
                 width: "100%",

@@ -5,6 +5,7 @@ export default function OnboardingPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [companyInfo, setCompanyInfo] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isManageMode, setIsManageMode] = useState(false);  // For managing existing licenses
   const realmId = localStorage.getItem("realm_id");
   const backendURL = import.meta.env.VITE_BACKEND_URL;
 
@@ -13,6 +14,13 @@ export default function OnboardingPage() {
       window.location.href = "/";
       return;
     }
+    
+    // Check if user is in "manage" mode (coming from dashboard to manage licenses)
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get("manage") === "true") {
+      setIsManageMode(true);
+    }
+    
     fetchCompanyInfo();
   }, []);
 
@@ -33,7 +41,8 @@ export default function OnboardingPage() {
         console.log("✅ Company info fetched:", data);
         
         // Check if onboarding is already completed for this company
-        if (data.onboarding_completed === "true") {
+        // But allow re-managing licenses if in manage mode
+        if (data.onboarding_completed === "true" && !isManageMode) {
           console.log("✅ Company onboarding already completed, redirecting to dashboard");
           window.location.href = "/dashboard";
           return;
@@ -94,7 +103,13 @@ export default function OnboardingPage() {
       localStorage.setItem(`onboarding_completed_${realmId}`, "true");
     }
     
-    // Move to final step
+    // If in manage mode, go directly back to dashboard
+    if (isManageMode) {
+      window.location.href = "/dashboard";
+      return;
+    }
+    
+    // Move to final step for new onboarding
     setCurrentStep(3);
   };
 
@@ -167,6 +182,7 @@ export default function OnboardingPage() {
         <LicenseSelection
           realmId={realmId}
           onComplete={handleLicenseSelectionComplete}
+          isManageMode={isManageMode}
         />
       )}
 

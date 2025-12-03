@@ -397,7 +397,7 @@ export default function Dashboard() {
                   </span>
                 </h3>
                 <button
-                  onClick={() => (window.location.href = "/onboarding")}
+                  onClick={() => (window.location.href = "/onboarding?manage=true")}
                   style={{
                     backgroundColor: "#f1f5f9",
                     color: "#475569",

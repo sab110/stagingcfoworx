@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 
-export default function LicenseSelection({ realmId, onComplete }) {
+export default function LicenseSelection({ realmId, onComplete, isManageMode = false }) {
   const backendURL = import.meta.env.VITE_BACKEND_URL;
   const [licenses, setLicenses] = useState([]);
   const [selectedLicenses, setSelectedLicenses] = useState(new Set());
@@ -28,11 +28,22 @@ export default function LicenseSelection({ realmId, onComplete }) {
       setLicenses(data.licenses || []);
       setCompanyName(data.company_name || "");
 
-      // Default: Select all licenses
-      const allFranchiseNumbers = new Set(
-        (data.licenses || []).map((lic) => lic.franchise_number)
-      );
-      setSelectedLicenses(allFranchiseNumbers);
+      // In manage mode: only select currently active licenses
+      // In onboarding mode: select all licenses by default
+      if (isManageMode) {
+        const activeFranchiseNumbers = new Set(
+          (data.licenses || [])
+            .filter((lic) => lic.quickbooks?.is_active === "true")
+            .map((lic) => lic.franchise_number)
+        );
+        setSelectedLicenses(activeFranchiseNumbers);
+        console.log("📋 Manage mode - Active licenses:", activeFranchiseNumbers);
+      } else {
+        const allFranchiseNumbers = new Set(
+          (data.licenses || []).map((lic) => lic.franchise_number)
+        );
+        setSelectedLicenses(allFranchiseNumbers);
+      }
     } catch (err) {
       console.error("❌ Error fetching licenses:", err);
       setError("Failed to load licenses. Please try again.");
@@ -133,10 +144,37 @@ export default function LicenseSelection({ realmId, onComplete }) {
     <div style={styles.container}>
       <div style={styles.card}>
         <div style={styles.header}>
-          <h2 style={styles.title}>Select Your Franchises</h2>
+          {isManageMode && (
+            <button
+              onClick={() => window.location.href = "/dashboard"}
+              style={{
+                position: "absolute",
+                top: "20px",
+                left: "20px",
+                backgroundColor: "#f1f5f9",
+                color: "#64748b",
+                border: "none",
+                padding: "8px 16px",
+                borderRadius: "6px",
+                cursor: "pointer",
+                fontSize: "14px",
+                fontWeight: "500",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+              }}
+            >
+              ← Back to Dashboard
+            </button>
+          )}
+          <h2 style={styles.title}>
+            {isManageMode ? "Manage Your Franchises" : "Select Your Franchises"}
+          </h2>
           <p style={styles.subtitle}>
             {companyName && <><strong>{companyName}</strong> - </>}
-            Choose the franchises you want to manage (default: all selected)
+            {isManageMode 
+              ? "Update which franchises are active for your account"
+              : "Choose the franchises you want to manage (default: all selected)"}
           </p>
         </div>
 
@@ -230,7 +268,11 @@ export default function LicenseSelection({ realmId, onComplete }) {
                   cursor: saving || selectedLicenses.size === 0 ? "not-allowed" : "pointer",
                 }}
               >
-                {saving ? "Saving..." : `Continue with ${selectedLicenses.size} License${selectedLicenses.size !== 1 ? "s" : ""}`}
+                {saving 
+                  ? "Saving..." 
+                  : isManageMode 
+                    ? `Save ${selectedLicenses.size} License${selectedLicenses.size !== 1 ? "s" : ""}`
+                    : `Continue with ${selectedLicenses.size} License${selectedLicenses.size !== 1 ? "s" : ""}`}
               </button>
             </div>
           </>
@@ -254,6 +296,7 @@ const styles = {
     borderRadius: "12px",
     boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
     padding: "40px",
+    position: "relative",
   },
   header: {
     textAlign: "center",
