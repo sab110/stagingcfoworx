@@ -24,19 +24,16 @@ export default function ProfileWidget({ user, onLogout }) {
   
   const dropdownRef = useRef(null);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsOpen(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Fetch email preferences when modal opens
   useEffect(() => {
     if (showEmailModal && realmId) {
       fetchEmailPreferences();
@@ -51,9 +48,6 @@ export default function ProfileWidget({ user, onLogout }) {
       if (res.ok) {
         const data = await res.json();
         setEmailPreferences(data.preferences || []);
-      } else {
-        const errorData = await res.json();
-        setError(errorData.detail || "Failed to load email preferences");
       }
     } catch (err) {
       console.error("Error fetching email preferences:", err);
@@ -91,14 +85,13 @@ export default function ProfileWidget({ user, onLogout }) {
           receive_billing: true,
           receive_notifications: true,
         });
-        setSuccess("Email added successfully!");
+        setSuccess("Email added successfully");
         setTimeout(() => setSuccess(""), 3000);
       } else {
         const errorData = await res.json();
         setError(errorData.detail || "Failed to add email");
       }
     } catch (err) {
-      console.error("Error adding email:", err);
       setError("Failed to add email");
     } finally {
       setSavingEmail(false);
@@ -126,19 +119,16 @@ export default function ProfileWidget({ user, onLogout }) {
       if (res.ok) {
         const data = await res.json();
         setEmailPreferences(
-          emailPreferences.map((p) =>
-            p.id === editingEmail.id ? data.preference : p
-          )
+          emailPreferences.map((p) => (p.id === editingEmail.id ? data.preference : p))
         );
         setEditingEmail(null);
-        setSuccess("Email updated successfully!");
+        setSuccess("Email updated successfully");
         setTimeout(() => setSuccess(""), 3000);
       } else {
         const errorData = await res.json();
         setError(errorData.detail || "Failed to update email");
       }
     } catch (err) {
-      console.error("Error updating email:", err);
       setError("Failed to update email");
     } finally {
       setSavingEmail(false);
@@ -146,12 +136,7 @@ export default function ProfileWidget({ user, onLogout }) {
   };
 
   const handleDeleteEmail = async (preferenceId) => {
-    if (!confirm("Are you sure you want to delete this email preference?")) {
-      return;
-    }
-
-    setError("");
-    setSuccess("");
+    if (!confirm("Are you sure you want to delete this email preference?")) return;
 
     try {
       const res = await fetch(
@@ -161,14 +146,10 @@ export default function ProfileWidget({ user, onLogout }) {
 
       if (res.ok) {
         setEmailPreferences(emailPreferences.filter((p) => p.id !== preferenceId));
-        setSuccess("Email removed successfully!");
+        setSuccess("Email removed");
         setTimeout(() => setSuccess(""), 3000);
-      } else {
-        const errorData = await res.json();
-        setError(errorData.detail || "Failed to delete email");
       }
     } catch (err) {
-      console.error("Error deleting email:", err);
       setError("Failed to delete email");
     }
   };
@@ -184,9 +165,7 @@ export default function ProfileWidget({ user, onLogout }) {
       );
 
       if (res.ok) {
-        // Clear all local storage
         localStorage.clear();
-        // Redirect to login page
         window.location.href = "/";
       } else {
         const errorData = await res.json();
@@ -194,7 +173,6 @@ export default function ProfileWidget({ user, onLogout }) {
         setDeletingAccount(false);
       }
     } catch (err) {
-      console.error("Error deleting account:", err);
       setError("Failed to delete account");
       setDeletingAccount(false);
     }
@@ -202,734 +180,714 @@ export default function ProfileWidget({ user, onLogout }) {
 
   const getInitials = (name) => {
     if (!name) return "U";
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
+    return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
   };
 
   return (
-    <div ref={dropdownRef} style={{ position: "relative" }}>
-      {/* Profile Avatar Button */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        style={{
-          width: "44px",
-          height: "44px",
-          borderRadius: "50%",
-          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-          border: "2px solid rgba(255,255,255,0.3)",
-          color: "white",
-          fontWeight: "700",
-          fontSize: "14px",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          transition: "all 0.2s ease",
-          boxShadow: isOpen ? "0 0 0 3px rgba(102, 126, 234, 0.4)" : "none",
-        }}
-        onMouseOver={(e) => {
-          e.currentTarget.style.transform = "scale(1.05)";
-        }}
-        onMouseOut={(e) => {
-          e.currentTarget.style.transform = "scale(1)";
-        }}
-      >
-        {getInitials(user?.full_name)}
-      </button>
+    <>
+      <style>{widgetStyles}</style>
+      <div ref={dropdownRef} className="profile-widget">
+        {/* Avatar Button */}
+        <button onClick={() => setIsOpen(!isOpen)} className={`avatar-btn ${isOpen ? 'active' : ''}`}>
+          {getInitials(user?.full_name)}
+        </button>
 
-      {/* Dropdown Menu */}
-      {isOpen && (
-        <div
-          style={{
-            position: "absolute",
-            top: "calc(100% + 8px)",
-            right: "0",
-            backgroundColor: "white",
-            borderRadius: "12px",
-            boxShadow: "0 10px 40px rgba(0,0,0,0.15)",
-            minWidth: "280px",
-            zIndex: 1000,
-            overflow: "hidden",
-            animation: "slideDown 0.2s ease",
-          }}
-        >
-          {/* User Info Header */}
-          <div
-            style={{
-              padding: "20px",
-              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-              color: "white",
-            }}
-          >
-            <div style={{ fontSize: "16px", fontWeight: "600", marginBottom: "4px" }}>
-              {user?.full_name || "User"}
+        {/* Dropdown */}
+        {isOpen && (
+          <div className="dropdown">
+            <div className="dropdown-header">
+              <div className="user-name">{user?.full_name || "User"}</div>
+              <div className="user-email">{user?.email || "No email"}</div>
+              {user?.company_name && (
+                <div className="user-company">{user.company_name}</div>
+              )}
             </div>
-            <div style={{ fontSize: "13px", opacity: 0.9 }}>
-              {user?.email || "No email"}
-            </div>
-            {user?.company_name && (
-              <div style={{ fontSize: "12px", opacity: 0.8, marginTop: "4px" }}>
-                🏢 {user.company_name}
-              </div>
-            )}
-          </div>
 
-          {/* Menu Items */}
-          <div style={{ padding: "8px 0" }}>
-            <button
-              onClick={() => {
-                setIsOpen(false);
-                setShowEmailModal(true);
-              }}
-              style={{
-                width: "100%",
-                padding: "12px 20px",
-                border: "none",
-                background: "none",
-                textAlign: "left",
-                cursor: "pointer",
-                fontSize: "14px",
-                color: "#334155",
-                display: "flex",
-                alignItems: "center",
-                gap: "12px",
-                transition: "background 0.15s",
-              }}
-              onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "#f1f5f9")}
-              onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-            >
-              <span style={{ fontSize: "18px" }}>📧</span>
-              Email Preferences
-            </button>
+            <div className="dropdown-menu">
+              <button onClick={() => { setIsOpen(false); setShowEmailModal(true); }} className="menu-item">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                  <polyline points="22,6 12,13 2,6"/>
+                </svg>
+                Email Preferences
+              </button>
 
-            <button
-              onClick={() => {
-                window.location.href = "/franchises";
-              }}
-              style={{
-                width: "100%",
-                padding: "12px 20px",
-                border: "none",
-                background: "none",
-                textAlign: "left",
-                cursor: "pointer",
-                fontSize: "14px",
-                color: "#334155",
-                display: "flex",
-                alignItems: "center",
-                gap: "12px",
-                transition: "background 0.15s",
-              }}
-              onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "#f1f5f9")}
-              onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-            >
-              <span style={{ fontSize: "18px" }}>🏢</span>
-              Manage Franchises
-            </button>
+              <button onClick={() => window.location.href = "/franchises"} className="menu-item">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M3 21h18M9 8h1M9 12h1M9 16h1M14 8h1M14 12h1M14 16h1M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16"/>
+                </svg>
+                Manage Franchises
+              </button>
 
-            <div style={{ height: "1px", backgroundColor: "#e2e8f0", margin: "8px 0" }} />
+              <div className="menu-divider"></div>
 
-            <button
-              onClick={onLogout}
-              style={{
-                width: "100%",
-                padding: "12px 20px",
-                border: "none",
-                background: "none",
-                textAlign: "left",
-                cursor: "pointer",
-                fontSize: "14px",
-                color: "#334155",
-                display: "flex",
-                alignItems: "center",
-                gap: "12px",
-                transition: "background 0.15s",
-              }}
-              onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "#f1f5f9")}
-              onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-            >
-              <span style={{ fontSize: "18px" }}>🚪</span>
-              Sign Out
-            </button>
+              <button onClick={onLogout} className="menu-item">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
+                </svg>
+                Sign Out
+              </button>
 
-            <div style={{ height: "1px", backgroundColor: "#e2e8f0", margin: "8px 0" }} />
+              <div className="menu-divider"></div>
 
-            <button
-              onClick={() => {
-                setIsOpen(false);
-                setShowDeleteConfirm(true);
-              }}
-              style={{
-                width: "100%",
-                padding: "12px 20px",
-                border: "none",
-                background: "none",
-                textAlign: "left",
-                cursor: "pointer",
-                fontSize: "14px",
-                color: "#dc2626",
-                display: "flex",
-                alignItems: "center",
-                gap: "12px",
-                transition: "background 0.15s",
-              }}
-              onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "#fef2f2")}
-              onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-            >
-              <span style={{ fontSize: "18px" }}>⚠️</span>
-              Delete Account
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Email Preferences Modal */}
-      {showEmailModal && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0,0,0,0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 2000,
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowEmailModal(false);
-              setEditingEmail(null);
-              setError("");
-              setSuccess("");
-            }
-          }}
-        >
-          <div
-            style={{
-              backgroundColor: "white",
-              borderRadius: "16px",
-              width: "90%",
-              maxWidth: "600px",
-              maxHeight: "85vh",
-              overflow: "hidden",
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
-            {/* Modal Header */}
-            <div
-              style={{
-                padding: "24px",
-                borderBottom: "1px solid #e2e8f0",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                color: "white",
-              }}
-            >
-              <h2 style={{ margin: 0, fontSize: "20px", fontWeight: "600" }}>
-                📧 Email Preferences
-              </h2>
-              <button
-                onClick={() => {
-                  setShowEmailModal(false);
-                  setEditingEmail(null);
-                  setError("");
-                  setSuccess("");
-                }}
-                style={{
-                  background: "rgba(255,255,255,0.2)",
-                  border: "none",
-                  width: "32px",
-                  height: "32px",
-                  borderRadius: "50%",
-                  cursor: "pointer",
-                  fontSize: "18px",
-                  color: "white",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                ✕
+              <button onClick={() => { setIsOpen(false); setShowDeleteConfirm(true); }} className="menu-item danger">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                </svg>
+                Delete Account
               </button>
             </div>
+          </div>
+        )}
 
-            {/* Modal Content */}
-            <div style={{ padding: "24px", overflow: "auto", flex: 1 }}>
-              {/* Messages */}
-              {error && (
-                <div
-                  style={{
-                    backgroundColor: "#fef2f2",
-                    color: "#dc2626",
-                    padding: "12px 16px",
-                    borderRadius: "8px",
-                    marginBottom: "16px",
-                    fontSize: "14px",
-                  }}
-                >
-                  {error}
-                </div>
-              )}
-              {success && (
-                <div
-                  style={{
-                    backgroundColor: "#f0fdf4",
-                    color: "#16a34a",
-                    padding: "12px 16px",
-                    borderRadius: "8px",
-                    marginBottom: "16px",
-                    fontSize: "14px",
-                  }}
-                >
-                  {success}
-                </div>
-              )}
+        {/* Email Preferences Modal */}
+        {showEmailModal && (
+          <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setShowEmailModal(false)}>
+            <div className="modal">
+              <div className="modal-header">
+                <h2>Email Preferences</h2>
+                <button onClick={() => { setShowEmailModal(false); setEditingEmail(null); setError(""); setSuccess(""); }} className="close-btn">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
 
-              {/* Add New Email Form */}
-              {!editingEmail && (
-                <form onSubmit={handleAddEmail} style={{ marginBottom: "24px" }}>
-                  <h3 style={{ margin: "0 0 16px 0", fontSize: "16px", color: "#334155" }}>
-                    Add New Email
-                  </h3>
-                  <div style={{ display: "flex", gap: "12px", marginBottom: "12px" }}>
+              <div className="modal-content">
+                {error && <div className="alert alert-error">{error}</div>}
+                {success && <div className="alert alert-success">{success}</div>}
+
+                {/* Add/Edit Form */}
+                <form onSubmit={editingEmail ? handleUpdateEmail : handleAddEmail} className="email-form">
+                  <h3>{editingEmail ? "Edit Email" : "Add New Email"}</h3>
+                  <div className="form-row">
                     <input
                       type="email"
                       placeholder="Email address"
-                      value={newEmail.email}
-                      onChange={(e) => setNewEmail({ ...newEmail, email: e.target.value })}
-                      style={{
-                        flex: 1,
-                        padding: "12px 16px",
-                        border: "1px solid #d1d5db",
-                        borderRadius: "8px",
-                        fontSize: "14px",
-                        outline: "none",
-                      }}
+                      value={editingEmail ? editingEmail.email : newEmail.email}
+                      onChange={(e) => editingEmail 
+                        ? setEditingEmail({ ...editingEmail, email: e.target.value })
+                        : setNewEmail({ ...newEmail, email: e.target.value })}
+                      className="form-input"
                     />
                     <input
                       type="text"
                       placeholder="Label (optional)"
-                      value={newEmail.label}
-                      onChange={(e) => setNewEmail({ ...newEmail, label: e.target.value })}
-                      style={{
-                        width: "140px",
-                        padding: "12px 16px",
-                        border: "1px solid #d1d5db",
-                        borderRadius: "8px",
-                        fontSize: "14px",
-                        outline: "none",
-                      }}
+                      value={editingEmail ? editingEmail.label || "" : newEmail.label}
+                      onChange={(e) => editingEmail
+                        ? setEditingEmail({ ...editingEmail, label: e.target.value })
+                        : setNewEmail({ ...newEmail, label: e.target.value })}
+                      className="form-input small"
                     />
                   </div>
-                  <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", marginBottom: "12px" }}>
-                    <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", color: "#64748b", cursor: "pointer" }}>
+                  <div className="form-checkboxes">
+                    <label className="checkbox-label">
                       <input
                         type="checkbox"
-                        checked={newEmail.receive_reports}
-                        onChange={(e) => setNewEmail({ ...newEmail, receive_reports: e.target.checked })}
-                        style={{ width: "16px", height: "16px", accentColor: "#667eea" }}
+                        checked={editingEmail ? editingEmail.receive_reports : newEmail.receive_reports}
+                        onChange={(e) => editingEmail
+                          ? setEditingEmail({ ...editingEmail, receive_reports: e.target.checked })
+                          : setNewEmail({ ...newEmail, receive_reports: e.target.checked })}
                       />
                       Reports
                     </label>
-                    <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", color: "#64748b", cursor: "pointer" }}>
+                    <label className="checkbox-label">
                       <input
                         type="checkbox"
-                        checked={newEmail.receive_billing}
-                        onChange={(e) => setNewEmail({ ...newEmail, receive_billing: e.target.checked })}
-                        style={{ width: "16px", height: "16px", accentColor: "#667eea" }}
+                        checked={editingEmail ? editingEmail.receive_billing : newEmail.receive_billing}
+                        onChange={(e) => editingEmail
+                          ? setEditingEmail({ ...editingEmail, receive_billing: e.target.checked })
+                          : setNewEmail({ ...newEmail, receive_billing: e.target.checked })}
                       />
                       Billing
                     </label>
-                    <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", color: "#64748b", cursor: "pointer" }}>
+                    <label className="checkbox-label">
                       <input
                         type="checkbox"
-                        checked={newEmail.receive_notifications}
-                        onChange={(e) => setNewEmail({ ...newEmail, receive_notifications: e.target.checked })}
-                        style={{ width: "16px", height: "16px", accentColor: "#667eea" }}
+                        checked={editingEmail ? editingEmail.receive_notifications : newEmail.receive_notifications}
+                        onChange={(e) => editingEmail
+                          ? setEditingEmail({ ...editingEmail, receive_notifications: e.target.checked })
+                          : setNewEmail({ ...newEmail, receive_notifications: e.target.checked })}
                       />
                       Notifications
                     </label>
                   </div>
-                  <button
-                    type="submit"
-                    disabled={savingEmail}
-                    style={{
-                      background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                      color: "white",
-                      border: "none",
-                      padding: "12px 24px",
-                      borderRadius: "8px",
-                      cursor: savingEmail ? "not-allowed" : "pointer",
-                      fontSize: "14px",
-                      fontWeight: "600",
-                      opacity: savingEmail ? 0.7 : 1,
-                    }}
-                  >
-                    {savingEmail ? "Adding..." : "Add Email"}
-                  </button>
-                </form>
-              )}
-
-              {/* Edit Email Form */}
-              {editingEmail && (
-                <form onSubmit={handleUpdateEmail} style={{ marginBottom: "24px" }}>
-                  <h3 style={{ margin: "0 0 16px 0", fontSize: "16px", color: "#334155" }}>
-                    Edit Email
-                  </h3>
-                  <div style={{ display: "flex", gap: "12px", marginBottom: "12px" }}>
-                    <input
-                      type="email"
-                      placeholder="Email address"
-                      value={editingEmail.email}
-                      onChange={(e) => setEditingEmail({ ...editingEmail, email: e.target.value })}
-                      style={{
-                        flex: 1,
-                        padding: "12px 16px",
-                        border: "1px solid #d1d5db",
-                        borderRadius: "8px",
-                        fontSize: "14px",
-                        outline: "none",
-                      }}
-                    />
-                    <input
-                      type="text"
-                      placeholder="Label (optional)"
-                      value={editingEmail.label || ""}
-                      onChange={(e) => setEditingEmail({ ...editingEmail, label: e.target.value })}
-                      style={{
-                        width: "140px",
-                        padding: "12px 16px",
-                        border: "1px solid #d1d5db",
-                        borderRadius: "8px",
-                        fontSize: "14px",
-                        outline: "none",
-                      }}
-                    />
-                  </div>
-                  <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", marginBottom: "12px" }}>
-                    <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", color: "#64748b", cursor: "pointer" }}>
-                      <input
-                        type="checkbox"
-                        checked={editingEmail.receive_reports}
-                        onChange={(e) => setEditingEmail({ ...editingEmail, receive_reports: e.target.checked })}
-                        style={{ width: "16px", height: "16px", accentColor: "#667eea" }}
-                      />
-                      Reports
-                    </label>
-                    <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", color: "#64748b", cursor: "pointer" }}>
-                      <input
-                        type="checkbox"
-                        checked={editingEmail.receive_billing}
-                        onChange={(e) => setEditingEmail({ ...editingEmail, receive_billing: e.target.checked })}
-                        style={{ width: "16px", height: "16px", accentColor: "#667eea" }}
-                      />
-                      Billing
-                    </label>
-                    <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", color: "#64748b", cursor: "pointer" }}>
-                      <input
-                        type="checkbox"
-                        checked={editingEmail.receive_notifications}
-                        onChange={(e) => setEditingEmail({ ...editingEmail, receive_notifications: e.target.checked })}
-                        style={{ width: "16px", height: "16px", accentColor: "#667eea" }}
-                      />
-                      Notifications
-                    </label>
-                  </div>
-                  <div style={{ display: "flex", gap: "12px" }}>
-                    <button
-                      type="submit"
-                      disabled={savingEmail}
-                      style={{
-                        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                        color: "white",
-                        border: "none",
-                        padding: "12px 24px",
-                        borderRadius: "8px",
-                        cursor: savingEmail ? "not-allowed" : "pointer",
-                        fontSize: "14px",
-                        fontWeight: "600",
-                        opacity: savingEmail ? 0.7 : 1,
-                      }}
-                    >
-                      {savingEmail ? "Saving..." : "Save Changes"}
+                  <div className="form-actions">
+                    <button type="submit" disabled={savingEmail} className="btn btn-primary">
+                      {savingEmail ? "Saving..." : editingEmail ? "Save Changes" : "Add Email"}
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => setEditingEmail(null)}
-                      style={{
-                        backgroundColor: "#f1f5f9",
-                        color: "#64748b",
-                        border: "none",
-                        padding: "12px 24px",
-                        borderRadius: "8px",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                        fontWeight: "600",
-                      }}
-                    >
-                      Cancel
-                    </button>
+                    {editingEmail && (
+                      <button type="button" onClick={() => setEditingEmail(null)} className="btn btn-secondary">
+                        Cancel
+                      </button>
+                    )}
                   </div>
                 </form>
-              )}
 
-              {/* Email List */}
-              <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: "24px" }}>
-                <h3 style={{ margin: "0 0 16px 0", fontSize: "16px", color: "#334155" }}>
-                  Saved Email Addresses
-                </h3>
-                
-                {loadingEmails ? (
-                  <div style={{ textAlign: "center", color: "#64748b", padding: "20px" }}>
-                    Loading emails...
-                  </div>
-                ) : emailPreferences.length === 0 ? (
-                  <div style={{ textAlign: "center", color: "#64748b", padding: "20px" }}>
-                    No email preferences saved yet. Add your first email above.
-                  </div>
-                ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                    {emailPreferences.map((pref) => (
-                      <div
-                        key={pref.id}
-                        style={{
-                          backgroundColor: "#f8fafc",
-                          border: "1px solid #e2e8f0",
-                          borderRadius: "10px",
-                          padding: "16px",
-                        }}
-                      >
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
-                          <div>
-                            <div style={{ fontWeight: "600", color: "#1e293b", fontSize: "15px" }}>
-                              {pref.email}
-                              {pref.is_primary && (
-                                <span
-                                  style={{
-                                    marginLeft: "8px",
-                                    backgroundColor: "#dbeafe",
-                                    color: "#2563eb",
-                                    padding: "2px 8px",
-                                    borderRadius: "4px",
-                                    fontSize: "11px",
-                                    fontWeight: "600",
-                                  }}
-                                >
-                                  PRIMARY
-                                </span>
-                              )}
-                            </div>
-                            {pref.label && (
-                              <div style={{ color: "#64748b", fontSize: "13px", marginTop: "2px" }}>
-                                {pref.label}
-                              </div>
-                            )}
+                {/* Email List */}
+                <div className="email-list">
+                  <h3>Saved Emails</h3>
+                  {loadingEmails ? (
+                    <p className="loading-text">Loading...</p>
+                  ) : emailPreferences.length === 0 ? (
+                    <p className="empty-text">No email preferences saved yet</p>
+                  ) : (
+                    emailPreferences.map((pref) => (
+                      <div key={pref.id} className="email-item">
+                        <div className="email-info">
+                          <div className="email-address">
+                            {pref.email}
+                            {pref.is_primary && <span className="primary-badge">Primary</span>}
                           </div>
-                          <div style={{ display: "flex", gap: "8px" }}>
-                            <button
-                              onClick={() => setEditingEmail(pref)}
-                              style={{
-                                backgroundColor: "#eff6ff",
-                                color: "#2563eb",
-                                border: "none",
-                                padding: "6px 12px",
-                                borderRadius: "6px",
-                                cursor: "pointer",
-                                fontSize: "12px",
-                                fontWeight: "600",
-                              }}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => handleDeleteEmail(pref.id)}
-                              style={{
-                                backgroundColor: "#fef2f2",
-                                color: "#dc2626",
-                                border: "none",
-                                padding: "6px 12px",
-                                borderRadius: "6px",
-                                cursor: "pointer",
-                                fontSize: "12px",
-                                fontWeight: "600",
-                              }}
-                            >
-                              Remove
-                            </button>
+                          {pref.label && <div className="email-label">{pref.label}</div>}
+                          <div className="email-tags">
+                            {pref.receive_reports && <span className="tag">Reports</span>}
+                            {pref.receive_billing && <span className="tag">Billing</span>}
+                            {pref.receive_notifications && <span className="tag">Notifications</span>}
                           </div>
                         </div>
-                        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                          {pref.receive_reports && (
-                            <span style={{ backgroundColor: "#dcfce7", color: "#16a34a", padding: "4px 10px", borderRadius: "4px", fontSize: "11px", fontWeight: "500" }}>
-                              📊 Reports
-                            </span>
-                          )}
-                          {pref.receive_billing && (
-                            <span style={{ backgroundColor: "#fef3c7", color: "#d97706", padding: "4px 10px", borderRadius: "4px", fontSize: "11px", fontWeight: "500" }}>
-                              💳 Billing
-                            </span>
-                          )}
-                          {pref.receive_notifications && (
-                            <span style={{ backgroundColor: "#dbeafe", color: "#2563eb", padding: "4px 10px", borderRadius: "4px", fontSize: "11px", fontWeight: "500" }}>
-                              🔔 Notifications
-                            </span>
-                          )}
+                        <div className="email-actions">
+                          <button onClick={() => setEditingEmail(pref)} className="btn-icon">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                          </button>
+                          <button onClick={() => handleDeleteEmail(pref.id)} className="btn-icon danger">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                            </svg>
+                          </button>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Account Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0,0,0,0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 2000,
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget && !deletingAccount) {
-              setShowDeleteConfirm(false);
-              setError("");
-            }
-          }}
-        >
-          <div
-            style={{
-              backgroundColor: "white",
-              borderRadius: "16px",
-              width: "90%",
-              maxWidth: "450px",
-              overflow: "hidden",
-            }}
-          >
-            {/* Warning Header */}
-            <div
-              style={{
-                padding: "24px",
-                backgroundColor: "#fef2f2",
-                borderBottom: "1px solid #fecaca",
-                textAlign: "center",
-              }}
-            >
-              <div style={{ fontSize: "48px", marginBottom: "12px" }}>⚠️</div>
-              <h2 style={{ margin: 0, fontSize: "22px", color: "#dc2626", fontWeight: "700" }}>
-                Delete Your Account?
-              </h2>
-            </div>
-
-            {/* Content */}
-            <div style={{ padding: "24px" }}>
-              {error && (
-                <div
-                  style={{
-                    backgroundColor: "#fef2f2",
-                    color: "#dc2626",
-                    padding: "12px 16px",
-                    borderRadius: "8px",
-                    marginBottom: "16px",
-                    fontSize: "14px",
-                  }}
-                >
-                  {error}
+                    ))
+                  )}
                 </div>
-              )}
-
-              <p style={{ color: "#64748b", fontSize: "15px", lineHeight: "1.6", margin: "0 0 16px 0" }}>
-                This action is <strong style={{ color: "#dc2626" }}>permanent and cannot be undone</strong>. 
-                Deleting your account will:
-              </p>
-
-              <ul style={{ color: "#334155", fontSize: "14px", lineHeight: "1.8", margin: "0 0 24px 0", paddingLeft: "20px" }}>
-                <li>Cancel your active subscription</li>
-                <li>Remove all your company data</li>
-                <li>Delete all email preferences</li>
-                <li>Remove franchise mappings</li>
-                <li>Disconnect your QuickBooks account</li>
-              </ul>
-
-              <div style={{ display: "flex", gap: "12px" }}>
-                <button
-                  onClick={() => {
-                    setShowDeleteConfirm(false);
-                    setError("");
-                  }}
-                  disabled={deletingAccount}
-                  style={{
-                    flex: 1,
-                    padding: "14px 24px",
-                    backgroundColor: "#f1f5f9",
-                    color: "#64748b",
-                    border: "none",
-                    borderRadius: "8px",
-                    cursor: deletingAccount ? "not-allowed" : "pointer",
-                    fontSize: "15px",
-                    fontWeight: "600",
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDeleteAccount}
-                  disabled={deletingAccount}
-                  style={{
-                    flex: 1,
-                    padding: "14px 24px",
-                    backgroundColor: "#dc2626",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "8px",
-                    cursor: deletingAccount ? "not-allowed" : "pointer",
-                    fontSize: "15px",
-                    fontWeight: "600",
-                    opacity: deletingAccount ? 0.7 : 1,
-                  }}
-                >
-                  {deletingAccount ? "Deleting..." : "Yes, Delete Account"}
-                </button>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* CSS Animation */}
-      <style>{`
-        @keyframes slideDown {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
-    </div>
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirm && (
+          <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && !deletingAccount && setShowDeleteConfirm(false)}>
+            <div className="modal modal-sm">
+              <div className="modal-header danger">
+                <h2>Delete Account?</h2>
+              </div>
+              <div className="modal-content">
+                {error && <div className="alert alert-error">{error}</div>}
+                
+                <p className="delete-warning">
+                  This action is <strong>permanent</strong> and cannot be undone.
+                </p>
+                <ul className="delete-list">
+                  <li>Cancel your active subscription</li>
+                  <li>Remove all your company data</li>
+                  <li>Delete all email preferences</li>
+                  <li>Remove franchise mappings</li>
+                  <li>Disconnect your QuickBooks account</li>
+                </ul>
+
+                <div className="modal-actions">
+                  <button onClick={() => { setShowDeleteConfirm(false); setError(""); }} disabled={deletingAccount} className="btn btn-secondary">
+                    Cancel
+                  </button>
+                  <button onClick={handleDeleteAccount} disabled={deletingAccount} className="btn btn-danger">
+                    {deletingAccount ? "Deleting..." : "Delete Account"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 
+const widgetStyles = `
+  .profile-widget {
+    position: relative;
+  }
+
+  .avatar-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    border: none;
+    color: white;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .avatar-btn:hover, .avatar-btn.active {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+  }
+
+  .dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    background: #16181c;
+    border: 1px solid #2f3336;
+    border-radius: 12px;
+    min-width: 280px;
+    z-index: 1000;
+    overflow: hidden;
+    animation: fadeIn 0.15s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .dropdown-header {
+    padding: 20px;
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+    border-bottom: 1px solid #2f3336;
+  }
+
+  .user-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: #e7e9ea;
+    margin-bottom: 4px;
+  }
+
+  .user-email {
+    font-size: 13px;
+    color: #a5b4fc;
+  }
+
+  .user-company {
+    font-size: 12px;
+    color: #818cf8;
+    margin-top: 8px;
+  }
+
+  .dropdown-menu {
+    padding: 8px;
+  }
+
+  .menu-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border: none;
+    background: none;
+    color: #e7e9ea;
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.15s;
+    text-align: left;
+  }
+
+  .menu-item:hover {
+    background: #2f3336;
+  }
+
+  .menu-item.danger {
+    color: #ef4444;
+  }
+
+  .menu-item.danger:hover {
+    background: rgba(239, 68, 68, 0.1);
+  }
+
+  .menu-item svg {
+    color: #71767b;
+  }
+
+  .menu-item.danger svg {
+    color: #ef4444;
+  }
+
+  .menu-divider {
+    height: 1px;
+    background: #2f3336;
+    margin: 8px 0;
+  }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 20px;
+  }
+
+  .modal {
+    background: #16181c;
+    border: 1px solid #2f3336;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 600px;
+    max-height: 85vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .modal.modal-sm {
+    max-width: 450px;
+  }
+
+  .modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #2f3336;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+  }
+
+  .modal-header.danger {
+    background: linear-gradient(135deg, #450a0a 0%, #7f1d1d 100%);
+  }
+
+  .modal-header h2 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #e7e9ea;
+    margin: 0;
+  }
+
+  .close-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    cursor: pointer;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+
+  .close-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .modal-content {
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  /* Alerts */
+  .alert {
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-size: 14px;
+  }
+
+  .alert-error {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+  }
+
+  .alert-success {
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: #10b981;
+  }
+
+  /* Form */
+  .email-form {
+    margin-bottom: 24px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid #2f3336;
+  }
+
+  .email-form h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #71767b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 16px;
+  }
+
+  .form-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .form-input {
+    flex: 1;
+    padding: 12px 16px;
+    background: #0f1419;
+    border: 1px solid #2f3336;
+    border-radius: 8px;
+    color: #e7e9ea;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .form-input:focus {
+    border-color: #6366f1;
+  }
+
+  .form-input.small {
+    max-width: 160px;
+  }
+
+  .form-input::placeholder {
+    color: #71767b;
+  }
+
+  .form-checkboxes {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #e7e9ea;
+    cursor: pointer;
+  }
+
+  .checkbox-label input {
+    width: 16px;
+    height: 16px;
+    accent-color: #6366f1;
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 12px;
+  }
+
+  /* Buttons */
+  .btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: none;
+  }
+
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    color: white;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+  }
+
+  .btn-secondary {
+    background: #2f3336;
+    color: #e7e9ea;
+  }
+
+  .btn-secondary:hover:not(:disabled) {
+    background: #3a3d41;
+  }
+
+  .btn-danger {
+    background: #ef4444;
+    color: white;
+  }
+
+  .btn-danger:hover:not(:disabled) {
+    background: #dc2626;
+  }
+
+  .btn-icon {
+    background: none;
+    border: none;
+    color: #71767b;
+    padding: 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-icon:hover {
+    background: #2f3336;
+    color: #e7e9ea;
+  }
+
+  .btn-icon.danger:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+  }
+
+  /* Email List */
+  .email-list h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #71767b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 16px;
+  }
+
+  .loading-text, .empty-text {
+    color: #71767b;
+    font-size: 14px;
+    text-align: center;
+    padding: 20px;
+  }
+
+  .email-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 16px;
+    background: #0f1419;
+    border: 1px solid #2f3336;
+    border-radius: 10px;
+    margin-bottom: 12px;
+  }
+
+  .email-info {
+    flex: 1;
+  }
+
+  .email-address {
+    font-size: 15px;
+    font-weight: 600;
+    color: #e7e9ea;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .primary-badge {
+    background: rgba(99, 102, 241, 0.15);
+    color: #818cf8;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .email-label {
+    font-size: 13px;
+    color: #71767b;
+    margin-bottom: 8px;
+  }
+
+  .email-tags {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .tag {
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    background: rgba(99, 102, 241, 0.15);
+    color: #818cf8;
+  }
+
+  .email-actions {
+    display: flex;
+    gap: 4px;
+  }
+
+  /* Delete Modal */
+  .delete-warning {
+    font-size: 15px;
+    color: #e7e9ea;
+    margin-bottom: 16px;
+  }
+
+  .delete-warning strong {
+    color: #ef4444;
+  }
+
+  .delete-list {
+    list-style: none;
+    margin: 0 0 24px 0;
+    padding: 0;
+  }
+
+  .delete-list li {
+    font-size: 14px;
+    color: #71767b;
+    padding: 8px 0;
+    border-bottom: 1px solid #2f3336;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .delete-list li:before {
+    content: "•";
+    color: #ef4444;
+  }
+
+  .delete-list li:last-child {
+    border-bottom: none;
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+  }
+
+  @media (max-width: 480px) {
+    .dropdown {
+      min-width: 260px;
+    }
+
+    .form-row {
+      flex-direction: column;
+    }
+
+    .form-input.small {
+      max-width: 100%;
+    }
+
+    .modal-actions {
+      flex-direction: column;
+    }
+
+    .modal-actions .btn {
+      width: 100%;
+    }
+  }
+`;

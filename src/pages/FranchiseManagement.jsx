@@ -14,6 +14,7 @@ export default function FranchiseManagement() {
   const [success, setSuccess] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [user, setUser] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (!realmId) {
@@ -47,13 +48,11 @@ export default function FranchiseManagement() {
       }
 
       const data = await response.json();
-      console.log("📋 Licenses data:", data);
-
       setLicenses(data.licenses || []);
       setCompanyName(data.company_name || "");
     } catch (err) {
-      console.error("❌ Error fetching licenses:", err);
-      setError("Failed to load licenses. Please try again.");
+      console.error("Error fetching licenses:", err);
+      setError("Failed to load franchises. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -72,9 +71,7 @@ export default function FranchiseManagement() {
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            is_active: newActive,
-          }),
+          body: JSON.stringify({ is_active: newActive }),
         }
       );
 
@@ -82,27 +79,17 @@ export default function FranchiseManagement() {
         throw new Error("Failed to update license");
       }
 
-      const data = await response.json();
-      console.log("✅ License updated:", data);
-      
-      // Update local state
       setLicenses(prev => prev.map(lic => {
         if (lic.franchise_number === franchiseNumber) {
-          return {
-            ...lic,
-            quickbooks: {
-              ...lic.quickbooks,
-              is_active: newActive,
-            }
-          };
+          return { ...lic, quickbooks: { ...lic.quickbooks, is_active: newActive } };
         }
         return lic;
       }));
 
-      setSuccess(`Franchise #${franchiseNumber} ${newActive === "true" ? "activated" : "deactivated"} successfully`);
+      setSuccess(`Franchise #${franchiseNumber} ${newActive === "true" ? "activated" : "deactivated"}`);
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
-      console.error("❌ Error updating license:", err);
+      console.error("Error updating license:", err);
       setError(`Failed to update franchise #${franchiseNumber}`);
     } finally {
       setSaving(false);
@@ -122,21 +109,17 @@ export default function FranchiseManagement() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            franchise_numbers: allFranchiseNumbers,
-          }),
+          body: JSON.stringify({ franchise_numbers: allFranchiseNumbers }),
         }
       );
 
-      if (!response.ok) {
-        throw new Error("Failed to activate all licenses");
-      }
+      if (!response.ok) throw new Error("Failed to activate all");
 
       await fetchLicenses();
-      setSuccess("All franchises activated successfully");
+      setSuccess("All franchises activated");
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
-      console.error("❌ Error bulk activating:", err);
+      console.error("Error bulk activating:", err);
       setError("Failed to activate all franchises");
     } finally {
       setSaving(false);
@@ -144,9 +127,7 @@ export default function FranchiseManagement() {
   };
 
   const handleBulkDeactivate = async () => {
-    if (!window.confirm("Are you sure you want to deactivate all franchises?")) {
-      return;
-    }
+    if (!window.confirm("Are you sure you want to deactivate all franchises?")) return;
     
     try {
       setSaving(true);
@@ -158,21 +139,17 @@ export default function FranchiseManagement() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            franchise_numbers: [], // Empty array to deactivate all
-          }),
+          body: JSON.stringify({ franchise_numbers: [] }),
         }
       );
 
-      if (!response.ok) {
-        throw new Error("Failed to deactivate all licenses");
-      }
+      if (!response.ok) throw new Error("Failed to deactivate all");
 
       await fetchLicenses();
-      setSuccess("All franchises deactivated successfully");
+      setSuccess("All franchises deactivated");
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
-      console.error("❌ Error bulk deactivating:", err);
+      console.error("Error bulk deactivating:", err);
       setError("Failed to deactivate all franchises");
     } finally {
       setSaving(false);
@@ -188,393 +165,621 @@ export default function FranchiseManagement() {
   const activeCount = licenses.filter(l => l.quickbooks?.is_active === "true").length;
   const inactiveCount = licenses.length - activeCount;
 
+  const filteredLicenses = licenses.filter(lic => 
+    lic.franchise_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    lic.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    lic.city?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   if (loading) {
     return (
-      <div style={styles.pageContainer}>
-        <div style={styles.loadingContainer}>
-          <div style={styles.spinner}></div>
-          <p style={{ marginTop: "20px", fontSize: "16px", color: "#64748b" }}>
-            Loading your franchises...
-          </p>
+      <>
+        <style>{pageStyles}</style>
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <p>Loading your franchises...</p>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div style={styles.pageContainer}>
-      {/* Top Navigation Bar */}
-      <div style={styles.navbar}>
-        <div style={styles.navLeft}>
-          <div style={styles.logo}>⚡</div>
-          <h2 style={styles.navTitle}>CFO Worx</h2>
-        </div>
-        <ProfileWidget user={user} onLogout={handleLogout} />
+    <>
+      <style>{pageStyles}</style>
+      <div className="page">
+        {/* Top Navigation */}
+        <header className="navbar">
+          <div className="navbar-left">
+            <button onClick={() => navigate("/dashboard")} className="back-btn">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              </svg>
+              Back
+            </button>
+            <div className="nav-divider"></div>
+            <div className="logo">
+              <div className="logo-icon">CW</div>
+              <span className="logo-text">CFO Worx</span>
+            </div>
+          </div>
+          <ProfileWidget user={user} onLogout={handleLogout} />
+        </header>
+
+        {/* Main Content */}
+        <main className="main">
+          <div className="container">
+            {/* Page Header */}
+            <div className="page-header">
+              <div>
+                <h1>Franchise Management</h1>
+                {companyName && <p className="subtitle">{companyName}</p>}
+              </div>
+            </div>
+
+            {/* Stats Row */}
+            <div className="stats-row">
+              <div className="stat-item">
+                <div className="stat-value text-success">{activeCount}</div>
+                <div className="stat-label">Active</div>
+              </div>
+              <div className="stat-item">
+                <div className="stat-value text-danger">{inactiveCount}</div>
+                <div className="stat-label">Inactive</div>
+              </div>
+              <div className="stat-item">
+                <div className="stat-value">{licenses.length}</div>
+                <div className="stat-label">Total</div>
+              </div>
+            </div>
+
+            {/* Actions Bar */}
+            <div className="actions-bar">
+              <div className="search-box">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+                </svg>
+                <input 
+                  type="text" 
+                  placeholder="Search franchises..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <div className="action-buttons">
+                <button 
+                  onClick={handleBulkActivate} 
+                  disabled={saving || activeCount === licenses.length}
+                  className="btn btn-success"
+                >
+                  Activate All
+                </button>
+                <button 
+                  onClick={handleBulkDeactivate} 
+                  disabled={saving || inactiveCount === licenses.length}
+                  className="btn btn-danger"
+                >
+                  Deactivate All
+                </button>
+                <button onClick={fetchLicenses} className="btn btn-secondary">
+                  Refresh
+                </button>
+              </div>
+            </div>
+
+            {/* Messages */}
+            {error && <div className="alert alert-error">{error}</div>}
+            {success && <div className="alert alert-success">{success}</div>}
+
+            {/* Table */}
+            {filteredLicenses.length === 0 ? (
+              <div className="empty-state">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M3 21h18M9 8h1M9 12h1M9 16h1M14 8h1M14 12h1M14 16h1M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16"/>
+                </svg>
+                <h3>{searchQuery ? "No matching franchises" : "No franchises found"}</h3>
+                <p>{searchQuery ? "Try adjusting your search" : "Make sure your QuickBooks departments are set up"}</p>
+              </div>
+            ) : (
+              <div className="table-container">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Franchise #</th>
+                      <th>Name</th>
+                      <th>Location</th>
+                      <th>Department</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredLicenses.map((license) => {
+                      const isActive = license.quickbooks?.is_active === "true";
+                      return (
+                        <tr key={license.franchise_number}>
+                          <td><span className="franchise-num">#{license.franchise_number}</span></td>
+                          <td>{license.name}</td>
+                          <td>{license.city && license.state ? `${license.city}, ${license.state}` : "—"}</td>
+                          <td>{license.quickbooks?.department_name || "—"}</td>
+                          <td>
+                            <span className={`status-badge ${isActive ? 'active' : 'inactive'}`}>
+                              {isActive ? "Active" : "Inactive"}
+                            </span>
+                          </td>
+                          <td>
+                            <button
+                              onClick={() => handleToggleLicense(license.franchise_number, license.quickbooks?.is_active || "false")}
+                              disabled={saving}
+                              className={`btn btn-sm ${isActive ? 'btn-outline-danger' : 'btn-outline-success'}`}
+                            >
+                              {isActive ? "Deactivate" : "Activate"}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </main>
       </div>
-
-      {/* Main Content */}
-      <div style={styles.mainContent}>
-        {/* Header */}
-        <div style={styles.header}>
-          <button onClick={() => navigate("/dashboard")} style={styles.backButton}>
-            ← Back to Dashboard
-          </button>
-          <h1 style={styles.pageTitle}>Franchise Management</h1>
-          {companyName && (
-            <p style={styles.companyName}>{companyName}</p>
-          )}
-        </div>
-
-        {/* Stats Cards */}
-        <div style={styles.statsContainer}>
-          <div style={{ ...styles.statCard, borderLeftColor: "#10b981" }}>
-            <div style={styles.statNumber}>{activeCount}</div>
-            <div style={styles.statLabel}>Active</div>
-          </div>
-          <div style={{ ...styles.statCard, borderLeftColor: "#ef4444" }}>
-            <div style={styles.statNumber}>{inactiveCount}</div>
-            <div style={styles.statLabel}>Inactive</div>
-          </div>
-          <div style={{ ...styles.statCard, borderLeftColor: "#3b82f6" }}>
-            <div style={styles.statNumber}>{licenses.length}</div>
-            <div style={styles.statLabel}>Total</div>
-          </div>
-        </div>
-
-        {/* Bulk Actions */}
-        <div style={styles.bulkActions}>
-          <button 
-            onClick={handleBulkActivate} 
-            disabled={saving || activeCount === licenses.length}
-            style={{
-              ...styles.bulkButton,
-              backgroundColor: "#10b981",
-              opacity: saving || activeCount === licenses.length ? 0.5 : 1,
-            }}
-          >
-            ✓ Activate All
-          </button>
-          <button 
-            onClick={handleBulkDeactivate} 
-            disabled={saving || inactiveCount === licenses.length}
-            style={{
-              ...styles.bulkButton,
-              backgroundColor: "#ef4444",
-              opacity: saving || inactiveCount === licenses.length ? 0.5 : 1,
-            }}
-          >
-            ✗ Deactivate All
-          </button>
-          <button onClick={fetchLicenses} style={styles.refreshButton}>
-            🔄 Refresh
-          </button>
-        </div>
-
-        {/* Messages */}
-        {error && (
-          <div style={styles.errorMessage}>
-            ⚠️ {error}
-          </div>
-        )}
-        {success && (
-          <div style={styles.successMessage}>
-            ✅ {success}
-          </div>
-        )}
-
-        {/* Licenses Table */}
-        <div style={styles.tableContainer}>
-          <table style={styles.table}>
-            <thead>
-              <tr style={styles.tableHeader}>
-                <th style={styles.th}>Franchise #</th>
-                <th style={styles.th}>Name</th>
-                <th style={styles.th}>Location</th>
-                <th style={styles.th}>Department</th>
-                <th style={styles.th}>Status</th>
-                <th style={styles.th}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {licenses.map((license) => {
-                const isActive = license.quickbooks?.is_active === "true";
-                return (
-                  <tr key={license.franchise_number} style={styles.tableRow}>
-                    <td style={styles.td}>
-                      <span style={styles.franchiseNumber}>#{license.franchise_number}</span>
-                    </td>
-                    <td style={styles.td}>{license.name}</td>
-                    <td style={styles.td}>
-                      {license.city && license.state 
-                        ? `${license.city}, ${license.state}` 
-                        : "-"}
-                    </td>
-                    <td style={styles.td}>
-                      {license.quickbooks?.department_name || "-"}
-                    </td>
-                    <td style={styles.td}>
-                      <span style={{
-                        ...styles.statusBadge,
-                        backgroundColor: isActive ? "#dcfce7" : "#fee2e2",
-                        color: isActive ? "#16a34a" : "#dc2626",
-                      }}>
-                        {isActive ? "Active" : "Inactive"}
-                      </span>
-                    </td>
-                    <td style={styles.td}>
-                      <button
-                        onClick={() => handleToggleLicense(license.franchise_number, license.quickbooks?.is_active || "false")}
-                        disabled={saving}
-                        style={{
-                          ...styles.actionButton,
-                          backgroundColor: isActive ? "#fee2e2" : "#dcfce7",
-                          color: isActive ? "#dc2626" : "#16a34a",
-                          opacity: saving ? 0.5 : 1,
-                        }}
-                      >
-                        {isActive ? "Deactivate" : "Activate"}
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        {licenses.length === 0 && (
-          <div style={styles.emptyState}>
-            <div style={{ fontSize: "48px", marginBottom: "16px" }}>📋</div>
-            <h3 style={{ margin: "0 0 8px 0", color: "#1e293b" }}>No Franchises Found</h3>
-            <p style={{ color: "#64748b" }}>
-              Make sure your QuickBooks departments are set up with franchise numbers.
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Spinner keyframe animation */}
-      <style>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
-    </div>
+    </>
   );
 }
 
-const styles = {
-  pageContainer: {
-    minHeight: "100vh",
-    backgroundColor: "#f8fafc",
-    fontFamily: "'Inter', 'Segoe UI', sans-serif",
-  },
-  navbar: {
-    background: "linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%)",
-    color: "white",
-    padding: "12px 30px",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
-    position: "sticky",
-    top: 0,
-    zIndex: 100,
-  },
-  navLeft: {
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-  },
-  logo: {
-    width: "40px",
-    height: "40px",
-    background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-    borderRadius: "10px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "20px",
-    fontWeight: "bold",
-  },
-  navTitle: {
-    margin: 0,
-    fontSize: "20px",
-    fontWeight: "700",
-    letterSpacing: "-0.5px",
-  },
-  mainContent: {
-    padding: "40px 30px",
-    maxWidth: "1200px",
-    margin: "0 auto",
-  },
-  header: {
-    marginBottom: "30px",
-  },
-  backButton: {
-    backgroundColor: "transparent",
-    color: "#64748b",
-    border: "none",
-    padding: "8px 0",
-    cursor: "pointer",
-    fontSize: "14px",
-    fontWeight: "500",
-    marginBottom: "16px",
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-  },
-  pageTitle: {
-    margin: "0 0 8px 0",
-    fontSize: "28px",
-    fontWeight: "700",
-    color: "#1e293b",
-  },
-  companyName: {
-    margin: 0,
-    color: "#64748b",
-    fontSize: "16px",
-  },
-  statsContainer: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-    gap: "16px",
-    marginBottom: "24px",
-  },
-  statCard: {
-    backgroundColor: "white",
-    borderRadius: "12px",
-    padding: "20px",
-    borderLeft: "4px solid",
-    boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-  },
-  statNumber: {
-    fontSize: "32px",
-    fontWeight: "700",
-    color: "#1e293b",
-  },
-  statLabel: {
-    fontSize: "14px",
-    color: "#64748b",
-    marginTop: "4px",
-  },
-  bulkActions: {
-    display: "flex",
-    gap: "12px",
-    marginBottom: "24px",
-    flexWrap: "wrap",
-  },
-  bulkButton: {
-    color: "white",
-    border: "none",
-    padding: "10px 20px",
-    borderRadius: "8px",
-    cursor: "pointer",
-    fontSize: "14px",
-    fontWeight: "600",
-    transition: "all 0.2s",
-  },
-  refreshButton: {
-    backgroundColor: "#f1f5f9",
-    color: "#64748b",
-    border: "1px solid #e2e8f0",
-    padding: "10px 20px",
-    borderRadius: "8px",
-    cursor: "pointer",
-    fontSize: "14px",
-    fontWeight: "600",
-  },
-  errorMessage: {
-    padding: "16px",
-    backgroundColor: "#fee2e2",
-    color: "#dc2626",
-    borderRadius: "8px",
-    marginBottom: "20px",
-    fontWeight: "500",
-  },
-  successMessage: {
-    padding: "16px",
-    backgroundColor: "#dcfce7",
-    color: "#16a34a",
-    borderRadius: "8px",
-    marginBottom: "20px",
-    fontWeight: "500",
-  },
-  tableContainer: {
-    backgroundColor: "white",
-    borderRadius: "12px",
-    boxShadow: "0 4px 20px rgba(0,0,0,0.05)",
-    overflow: "hidden",
-    border: "1px solid #e2e8f0",
-  },
-  table: {
-    width: "100%",
-    borderCollapse: "collapse",
-  },
-  tableHeader: {
-    backgroundColor: "#f8fafc",
-    borderBottom: "2px solid #e2e8f0",
-  },
-  th: {
-    padding: "16px",
-    textAlign: "left",
-    fontSize: "13px",
-    fontWeight: "600",
-    color: "#64748b",
-    textTransform: "uppercase",
-    letterSpacing: "0.5px",
-  },
-  tableRow: {
-    borderBottom: "1px solid #f1f5f9",
-    transition: "background-color 0.2s",
-  },
-  td: {
-    padding: "16px",
-    fontSize: "14px",
-    color: "#334155",
-  },
-  franchiseNumber: {
-    fontWeight: "600",
-    color: "#1e293b",
-    fontFamily: "monospace",
-  },
-  statusBadge: {
-    padding: "6px 12px",
-    borderRadius: "6px",
-    fontSize: "12px",
-    fontWeight: "600",
-  },
-  actionButton: {
-    padding: "8px 16px",
-    border: "none",
-    borderRadius: "6px",
-    cursor: "pointer",
-    fontSize: "13px",
-    fontWeight: "600",
-    transition: "all 0.2s",
-  },
-  loadingContainer: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: "400px",
-  },
-  spinner: {
-    width: "50px",
-    height: "50px",
-    border: "4px solid #e5e7eb",
-    borderTop: "4px solid #3b82f6",
-    borderRadius: "50%",
-    animation: "spin 1s linear infinite",
-  },
-  emptyState: {
-    textAlign: "center",
-    padding: "60px 20px",
-    backgroundColor: "white",
-    borderRadius: "12px",
-    boxShadow: "0 4px 20px rgba(0,0,0,0.05)",
-  },
-};
+const pageStyles = `
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
 
+  .page {
+    min-height: 100vh;
+    background: #0f1419;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #e7e9ea;
+  }
+
+  .loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: #0f1419;
+  }
+
+  .loading-spinner {
+    width: 48px;
+    height: 48px;
+    border: 3px solid rgba(99, 102, 241, 0.2);
+    border-top-color: #6366f1;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  .loading-container p {
+    margin-top: 16px;
+    color: #71767b;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* Navbar */
+  .navbar {
+    background: #16181c;
+    border-bottom: 1px solid #2f3336;
+    padding: 16px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .navbar-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .back-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    border: none;
+    color: #71767b;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: all 0.15s;
+  }
+
+  .back-btn:hover {
+    background: #2f3336;
+    color: #e7e9ea;
+  }
+
+  .nav-divider {
+    width: 1px;
+    height: 24px;
+    background: #2f3336;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 12px;
+    color: white;
+  }
+
+  .logo-text {
+    font-size: 16px;
+    font-weight: 700;
+    color: #e7e9ea;
+  }
+
+  /* Main */
+  .main {
+    padding: 32px;
+  }
+
+  .container {
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  /* Page Header */
+  .page-header {
+    margin-bottom: 32px;
+  }
+
+  .page-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .subtitle {
+    color: #71767b;
+    font-size: 15px;
+  }
+
+  /* Stats Row */
+  .stats-row {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+
+  .stat-item {
+    background: #16181c;
+    border: 1px solid #2f3336;
+    border-radius: 12px;
+    padding: 20px 32px;
+    text-align: center;
+    min-width: 120px;
+  }
+
+  .stat-value {
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .stat-label {
+    font-size: 13px;
+    color: #71767b;
+  }
+
+  .text-success { color: #10b981; }
+  .text-danger { color: #ef4444; }
+
+  /* Actions Bar */
+  .actions-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .search-box {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #16181c;
+    border: 1px solid #2f3336;
+    border-radius: 10px;
+    padding: 12px 16px;
+    flex: 1;
+    max-width: 400px;
+  }
+
+  .search-box svg {
+    color: #71767b;
+    flex-shrink: 0;
+  }
+
+  .search-box input {
+    background: none;
+    border: none;
+    color: #e7e9ea;
+    font-size: 14px;
+    outline: none;
+    width: 100%;
+  }
+
+  .search-box input::placeholder {
+    color: #71767b;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 12px;
+  }
+
+  /* Buttons */
+  .btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .btn-success {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+
+  .btn-success:hover:not(:disabled) {
+    background: rgba(16, 185, 129, 0.25);
+  }
+
+  .btn-danger {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+  }
+
+  .btn-danger:hover:not(:disabled) {
+    background: rgba(239, 68, 68, 0.25);
+  }
+
+  .btn-secondary {
+    background: #2f3336;
+    color: #e7e9ea;
+  }
+
+  .btn-secondary:hover:not(:disabled) {
+    background: #3a3d41;
+  }
+
+  .btn-sm {
+    padding: 6px 14px;
+    font-size: 13px;
+  }
+
+  .btn-outline-success {
+    background: transparent;
+    color: #10b981;
+    border: 1px solid #10b981;
+  }
+
+  .btn-outline-success:hover:not(:disabled) {
+    background: rgba(16, 185, 129, 0.15);
+  }
+
+  .btn-outline-danger {
+    background: transparent;
+    color: #ef4444;
+    border: 1px solid #ef4444;
+  }
+
+  .btn-outline-danger:hover:not(:disabled) {
+    background: rgba(239, 68, 68, 0.15);
+  }
+
+  /* Alerts */
+  .alert {
+    padding: 14px 20px;
+    border-radius: 10px;
+    margin-bottom: 24px;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .alert-error {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+  }
+
+  .alert-success {
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: #10b981;
+  }
+
+  /* Table */
+  .table-container {
+    background: #16181c;
+    border: 1px solid #2f3336;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .data-table th {
+    padding: 16px 20px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    color: #71767b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: #1d1f23;
+    border-bottom: 1px solid #2f3336;
+  }
+
+  .data-table td {
+    padding: 16px 20px;
+    font-size: 14px;
+    color: #e7e9ea;
+    border-bottom: 1px solid #2f3336;
+  }
+
+  .data-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .data-table tr:hover td {
+    background: rgba(99, 102, 241, 0.05);
+  }
+
+  .franchise-num {
+    font-weight: 600;
+    color: #818cf8;
+    font-family: 'SF Mono', Monaco, monospace;
+  }
+
+  .status-badge {
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .status-badge.active {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+  }
+
+  .status-badge.inactive {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+  }
+
+  /* Empty State */
+  .empty-state {
+    background: #16181c;
+    border: 1px solid #2f3336;
+    border-radius: 12px;
+    padding: 60px 40px;
+    text-align: center;
+  }
+
+  .empty-state svg {
+    color: #71767b;
+    margin-bottom: 20px;
+  }
+
+  .empty-state h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .empty-state p {
+    font-size: 14px;
+    color: #71767b;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .navbar {
+      padding: 12px 16px;
+    }
+
+    .main {
+      padding: 20px 16px;
+    }
+
+    .page-header h1 {
+      font-size: 24px;
+    }
+
+    .stats-row {
+      flex-wrap: wrap;
+    }
+
+    .stat-item {
+      flex: 1;
+      min-width: 100px;
+      padding: 16px;
+    }
+
+    .stat-value {
+      font-size: 24px;
+    }
+
+    .actions-bar {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .search-box {
+      max-width: 100%;
+    }
+
+    .action-buttons {
+      flex-wrap: wrap;
+    }
+
+    .action-buttons .btn {
+      flex: 1;
+    }
+
+    .table-container {
+      overflow-x: auto;
+    }
+
+    .data-table {
+      min-width: 700px;
+    }
+
+    .logo-text {
+      display: none;
+    }
+  }
+`;
