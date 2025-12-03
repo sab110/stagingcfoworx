@@ -273,7 +273,7 @@ function OverviewSection({ user, licenses, subscription, onManageBilling }) {
         <h3 style={styles.sectionTitle}>Quick Actions</h3>
       </div>
       <div style={styles.actionsGrid}>
-        <button onClick={() => window.location.href = "/onboarding?manage=true"} style={styles.actionCard}>
+        <button onClick={() => window.location.href = "/franchises"} style={styles.actionCard}>
           <span style={styles.actionIcon}>🏢</span>
           <span style={styles.actionLabel}>Manage Franchises</span>
         </button>
@@ -297,7 +297,7 @@ function OverviewSection({ user, licenses, subscription, onManageBilling }) {
           <div style={styles.sectionHeader}>
             <h3 style={styles.sectionTitle}>Your Franchises</h3>
             <button 
-              onClick={() => window.location.href = "/onboarding?manage=true"} 
+              onClick={() => window.location.href = "/franchises"} 
               style={styles.viewAllBtn}
             >
               View All →
@@ -330,7 +330,7 @@ function LicensesSection({ licenses }) {
       <div style={styles.sectionHeader}>
         <h3 style={styles.sectionTitle}>Franchise Management</h3>
         <button 
-          onClick={() => window.location.href = "/onboarding?manage=true"} 
+          onClick={() => window.location.href = "/franchises"} 
           style={styles.primaryBtn}
         >
           + Add / Remove Franchises
@@ -343,7 +343,7 @@ function LicensesSection({ licenses }) {
           <h3 style={styles.emptyTitle}>No franchises yet</h3>
           <p style={styles.emptyText}>Add your first franchise to get started</p>
           <button 
-            onClick={() => window.location.href = "/onboarding?manage=true"} 
+            onClick={() => window.location.href = "/franchises"} 
             style={styles.emptyBtn}
           >
             Add Franchises

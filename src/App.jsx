@@ -4,6 +4,7 @@ import Success from "./pages/Success.jsx";
 import Cancel from "./pages/Cancel.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import OnboardingPage from "./pages/OnboardingPage.jsx";
+import FranchiseManagement from "./pages/FranchiseManagement.jsx";
 import QuickBooksOAuthCallback from "./components/QuickBooksOAuthCallback.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import PrivateRoute from "./components/PrivateRoute.jsx";
@@ -62,6 +63,16 @@ export default function App() {
           element={
             <SubscriptionProtectedRoute>
               <Dashboard />
+            </SubscriptionProtectedRoute>
+          }
+        />
+        
+        {/* Franchise Management - requires both auth AND active subscription */}
+        <Route
+          path="/franchises"
+          element={
+            <SubscriptionProtectedRoute>
+              <FranchiseManagement />
             </SubscriptionProtectedRoute>
           }
         />
