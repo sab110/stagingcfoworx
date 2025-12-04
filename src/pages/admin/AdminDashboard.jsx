@@ -6427,7 +6427,7 @@ function SettingsSection({ adminUsername }) {
       const formData = new FormData();
       formData.append('file', selectedFile);
 
-      const response = await fetch(`${backendURL}/admin/licenses/upload-csv`, {
+      const response = await fetch(`${backendURL}/api/admin/licenses/upload-csv`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
