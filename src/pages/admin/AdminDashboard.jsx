@@ -500,6 +500,7 @@ export default function AdminDashboard() {
               formatDate={formatDate}
               formatDateTime={formatDateTime}
               formatCurrency={formatCurrency}
+              onRefresh={fetchDashboard}
             />
           )}
 
@@ -2501,7 +2502,7 @@ function SubscriptionDetailModal({ subscription, onClose, formatDate }) {
 }
 
 // Errors Section
-function ErrorsSection({ failedPayments, webhookLogs, systemLogs, emailLogs, adminLogs, tenantLogs, tenantLogFilters, formatDate, formatDateTime, formatCurrency }) {
+function ErrorsSection({ failedPayments, webhookLogs, systemLogs, emailLogs, adminLogs, tenantLogs, tenantLogFilters, formatDate, formatDateTime, formatCurrency, onRefresh }) {
   const [activeTab, setActiveTab] = useState("payments");
   
   const tabs = [
@@ -2547,6 +2548,7 @@ function ErrorsSection({ failedPayments, webhookLogs, systemLogs, emailLogs, adm
           failedPayments={failedPayments}
           formatDate={formatDate}
           formatCurrency={formatCurrency}
+          onRefresh={onRefresh}
         />
       )}
 
@@ -2555,6 +2557,7 @@ function ErrorsSection({ failedPayments, webhookLogs, systemLogs, emailLogs, adm
         <WebhookLogsTab 
           webhookLogs={webhookLogs}
           formatDateTime={formatDateTime}
+          onRefresh={onRefresh}
         />
       )}
 
@@ -2563,6 +2566,7 @@ function ErrorsSection({ failedPayments, webhookLogs, systemLogs, emailLogs, adm
         <SystemLogsTab 
           systemLogs={systemLogs}
           formatDateTime={formatDateTime}
+          onRefresh={onRefresh}
         />
       )}
 
@@ -2571,6 +2575,7 @@ function ErrorsSection({ failedPayments, webhookLogs, systemLogs, emailLogs, adm
         <EmailLogsTab 
           emailLogs={emailLogs}
           formatDateTime={formatDateTime}
+          onRefresh={onRefresh}
         />
       )}
 
@@ -2580,6 +2585,7 @@ function ErrorsSection({ failedPayments, webhookLogs, systemLogs, emailLogs, adm
           tenantLogs={tenantLogs}
           tenantLogFilters={tenantLogFilters}
           formatDateTime={formatDateTime}
+          onRefresh={onRefresh}
         />
       )}
 
@@ -2587,7 +2593,8 @@ function ErrorsSection({ failedPayments, webhookLogs, systemLogs, emailLogs, adm
       {activeTab === "admin" && (
         <AdminActivityTab 
           adminLogs={adminLogs} 
-          formatDateTime={formatDateTime} 
+          formatDateTime={formatDateTime}
+          onRefresh={onRefresh}
         />
       )}
     </div>
@@ -2595,13 +2602,20 @@ function ErrorsSection({ failedPayments, webhookLogs, systemLogs, emailLogs, adm
 }
 
 // Admin Activity Tab Component
-function AdminActivityTab({ adminLogs, formatDateTime }) {
+function AdminActivityTab({ adminLogs, formatDateTime, onRefresh }) {
   const [selectedLog, setSelectedLog] = useState(null);
   const [filterAction, setFilterAction] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [sortConfig, setSortConfig] = useState({ field: 'created_at', direction: 'desc' });
+  const [refreshing, setRefreshing] = useState(false);
+  
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await onRefresh?.();
+    setRefreshing(false);
+  };
   
   const actions = [...new Set(adminLogs.map(l => l.action).filter(Boolean))];
 
@@ -2724,6 +2738,31 @@ function AdminActivityTab({ adminLogs, formatDateTime }) {
             Clear
           </button>
         )}
+        
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '10px 16px',
+            background: '#F8FAFC',
+            border: '1px solid #E2E8F0',
+            borderRadius: '10px',
+            color: '#475569',
+            fontSize: '14px',
+            fontWeight: '500',
+            cursor: refreshing ? 'not-allowed' : 'pointer',
+            transition: 'all 0.2s',
+            opacity: refreshing ? 0.7 : 1,
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }}>
+            <path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+          </svg>
+          {refreshing ? 'Refreshing...' : 'Refresh'}
+        </button>
         
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <span style={{ color: '#64748B', fontSize: '13px' }}>{filteredLogs.length} entries</span>
@@ -2984,13 +3023,20 @@ function ActionBadge({ action }) {
 }
 
 // Email Logs Tab Component
-function EmailLogsTab({ emailLogs, formatDateTime }) {
+function EmailLogsTab({ emailLogs, formatDateTime, onRefresh }) {
   const [selectedEmail, setSelectedEmail] = useState(null);
   const [filterType, setFilterType] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [sortConfig, setSortConfig] = useState({ field: 'sent_at', direction: 'desc' });
+  const [refreshing, setRefreshing] = useState(false);
+  
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await onRefresh?.();
+    setRefreshing(false);
+  };
   
   const types = [...new Set(emailLogs.map(l => l.email_type).filter(Boolean))];
 
@@ -3088,6 +3134,30 @@ function EmailLogsTab({ emailLogs, formatDateTime }) {
             <option key={type} value={type}>{type}</option>
           ))}
         </select>
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '10px 16px',
+            background: '#F8FAFC',
+            border: '1px solid #E2E8F0',
+            borderRadius: '10px',
+            color: '#475569',
+            fontSize: '14px',
+            fontWeight: '500',
+            cursor: refreshing ? 'not-allowed' : 'pointer',
+            transition: 'all 0.2s',
+            opacity: refreshing ? 0.7 : 1,
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }}>
+            <path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+          </svg>
+          {refreshing ? 'Refreshing...' : 'Refresh'}
+        </button>
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <span style={{ color: '#64748B', fontSize: '13px' }}>{filteredLogs.length} emails</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -3322,7 +3392,7 @@ function EmailDetailModal({ email, onClose, formatDateTime }) {
 }
 
 // Tenant Activity Tab Component
-function TenantActivityTab({ tenantLogs, tenantLogFilters, formatDateTime }) {
+function TenantActivityTab({ tenantLogs, tenantLogFilters, formatDateTime, onRefresh }) {
   const [selectedLog, setSelectedLog] = useState(null);
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterCompany, setFilterCompany] = useState("all");
@@ -3330,6 +3400,13 @@ function TenantActivityTab({ tenantLogs, tenantLogFilters, formatDateTime }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [sortConfig, setSortConfig] = useState({ field: 'created_at', direction: 'desc' });
+  const [refreshing, setRefreshing] = useState(false);
+  
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await onRefresh?.();
+    setRefreshing(false);
+  };
 
   const handleSort = (field) => {
     setSortConfig(prev => ({ field, direction: prev.field === field && prev.direction === 'desc' ? 'asc' : 'desc' }));
@@ -3480,6 +3557,31 @@ function TenantActivityTab({ tenantLogs, tenantLogFilters, formatDateTime }) {
           </button>
         )}
 
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '10px 16px',
+            background: '#F8FAFC',
+            border: '1px solid #E2E8F0',
+            borderRadius: '10px',
+            color: '#475569',
+            fontSize: '14px',
+            fontWeight: '500',
+            cursor: refreshing ? 'not-allowed' : 'pointer',
+            transition: 'all 0.2s',
+            opacity: refreshing ? 0.7 : 1,
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }}>
+            <path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+          </svg>
+          {refreshing ? 'Refreshing...' : 'Refresh'}
+        </button>
+
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <span style={{ color: '#64748B', fontSize: '13px' }}>{filteredLogs.length} logs</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -3613,12 +3715,19 @@ function CategoryBadge({ category }) {
 }
 
 // Failed Payments Tab Component
-function FailedPaymentsTab({ failedPayments, formatDate, formatCurrency }) {
+function FailedPaymentsTab({ failedPayments, formatDate, formatCurrency, onRefresh }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [sortConfig, setSortConfig] = useState({ field: 'failed_at', direction: 'desc' });
+  const [refreshing, setRefreshing] = useState(false);
+  
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await onRefresh?.();
+    setRefreshing(false);
+  };
   
   const filteredPayments = failedPayments
     .filter(p => {
@@ -3739,6 +3848,31 @@ function FailedPaymentsTab({ failedPayments, formatDate, formatCurrency }) {
             Clear
           </button>
         )}
+        
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '10px 16px',
+            background: '#F8FAFC',
+            border: '1px solid #E2E8F0',
+            borderRadius: '10px',
+            color: '#475569',
+            fontSize: '14px',
+            fontWeight: '500',
+            cursor: refreshing ? 'not-allowed' : 'pointer',
+            transition: 'all 0.2s',
+            opacity: refreshing ? 0.7 : 1,
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }}>
+            <path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+          </svg>
+          {refreshing ? 'Refreshing...' : 'Refresh'}
+        </button>
 
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <span style={{ color: '#64748B', fontSize: '13px' }}>{filteredPayments.length} failed payments</span>
@@ -3931,7 +4065,7 @@ function Pagination({ currentPage, totalPages, onPageChange, totalItems, itemsPe
 }
 
 // System Logs Tab Component
-function SystemLogsTab({ systemLogs, formatDateTime }) {
+function SystemLogsTab({ systemLogs, formatDateTime, onRefresh }) {
   const [selectedLog, setSelectedLog] = useState(null);
   const [filterLevel, setFilterLevel] = useState("all");
   const [filterSource, setFilterSource] = useState("all");
@@ -3939,6 +4073,13 @@ function SystemLogsTab({ systemLogs, formatDateTime }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [sortConfig, setSortConfig] = useState({ field: 'created_at', direction: 'desc' });
+  const [refreshing, setRefreshing] = useState(false);
+  
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await onRefresh?.();
+    setRefreshing(false);
+  };
   
   const levels = [...new Set(systemLogs.map(l => l.level).filter(Boolean))];
   const sources = [...new Set(systemLogs.map(l => l.source).filter(Boolean))];
@@ -4088,6 +4229,31 @@ function SystemLogsTab({ systemLogs, formatDateTime }) {
             Clear
           </button>
         )}
+
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '10px 16px',
+            background: '#F8FAFC',
+            border: '1px solid #E2E8F0',
+            borderRadius: '10px',
+            color: '#475569',
+            fontSize: '14px',
+            fontWeight: '500',
+            cursor: refreshing ? 'not-allowed' : 'pointer',
+            transition: 'all 0.2s',
+            opacity: refreshing ? 0.7 : 1,
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }}>
+            <path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+          </svg>
+          {refreshing ? 'Refreshing...' : 'Refresh'}
+        </button>
 
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <span style={{ color: '#64748B', fontSize: '13px' }}>{filteredLogs.length} logs</span>
@@ -4331,7 +4497,7 @@ function SystemLogDetailModal({ log, onClose, formatDateTime }) {
 }
 
 // Webhook Logs Tab Component
-function WebhookLogsTab({ webhookLogs, formatDateTime }) {
+function WebhookLogsTab({ webhookLogs, formatDateTime, onRefresh }) {
   const [selectedLog, setSelectedLog] = useState(null);
   const [filterSource, setFilterSource] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -4339,6 +4505,13 @@ function WebhookLogsTab({ webhookLogs, formatDateTime }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [sortConfig, setSortConfig] = useState({ field: 'created_at', direction: 'desc' });
+  const [refreshing, setRefreshing] = useState(false);
+  
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await onRefresh?.();
+    setRefreshing(false);
+  };
   
   const sources = [...new Set(webhookLogs.map(l => l.source).filter(Boolean))];
 
@@ -4488,6 +4661,31 @@ function WebhookLogsTab({ webhookLogs, formatDateTime }) {
             Clear
           </button>
         )}
+
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '10px 16px',
+            background: '#F8FAFC',
+            border: '1px solid #E2E8F0',
+            borderRadius: '10px',
+            color: '#475569',
+            fontSize: '14px',
+            fontWeight: '500',
+            cursor: refreshing ? 'not-allowed' : 'pointer',
+            transition: 'all 0.2s',
+            opacity: refreshing ? 0.7 : 1,
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }}>
+            <path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+          </svg>
+          {refreshing ? 'Refreshing...' : 'Refresh'}
+        </button>
 
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <span style={{ color: '#64748B', fontSize: '13px' }}>{filteredLogs.length} webhooks</span>
@@ -6020,9 +6218,32 @@ function SettingsSection({ adminUsername }) {
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState(null);
   const [uploadError, setUploadError] = useState(null);
+  const [csvPreview, setCsvPreview] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
   const fileInputRef = useRef(null);
 
-  const handleFileSelect = async (e) => {
+  const parseCSV = (text) => {
+    const lines = text.split('\n').filter(line => line.trim());
+    if (lines.length === 0) return null;
+    
+    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+    const rows = [];
+    
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+      if (values.length === headers.length) {
+        const row = {};
+        headers.forEach((header, idx) => {
+          row[header] = values[idx];
+        });
+        rows.push(row);
+      }
+    }
+    
+    return { headers, rows, totalRows: rows.length };
+  };
+
+  const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -6031,6 +6252,33 @@ function SettingsSection({ adminUsername }) {
       return;
     }
 
+    setUploadError(null);
+    setUploadResult(null);
+    setSelectedFile(file);
+
+    // Read and preview the file
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target.result;
+      const preview = parseCSV(text);
+      setCsvPreview(preview);
+    };
+    reader.readAsText(file);
+  };
+
+  const handleClearPreview = () => {
+    setCsvPreview(null);
+    setSelectedFile(null);
+    setUploadError(null);
+    setUploadResult(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!selectedFile) return;
+
     setUploading(true);
     setUploadError(null);
     setUploadResult(null);
@@ -6038,7 +6286,7 @@ function SettingsSection({ adminUsername }) {
     try {
       const token = localStorage.getItem('adminToken');
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', selectedFile);
 
       const response = await fetch(`${backendURL}/admin/licenses/upload-csv`, {
         method: 'POST',
@@ -6052,6 +6300,8 @@ function SettingsSection({ adminUsername }) {
 
       if (response.ok) {
         setUploadResult(data);
+        setCsvPreview(null);
+        setSelectedFile(null);
       } else {
         setUploadError(data.detail || 'Upload failed');
       }
@@ -6156,20 +6406,120 @@ function SettingsSection({ adminUsername }) {
                   style={{ display: 'none' }}
                   id="csv-upload"
                 />
-                <label
-                  htmlFor="csv-upload"
+                {!csvPreview ? (
+                  <label
+                    htmlFor="csv-upload"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '10px 20px',
+                      background: '#059669',
+                      color: '#fff',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                    </svg>
+                    Select CSV File
+                  </label>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ 
+                      display: 'inline-flex', 
+                      alignItems: 'center', 
+                      gap: '8px',
+                      padding: '8px 14px',
+                      background: '#ECFDF5',
+                      border: '1px solid #A7F3D0',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: '500',
+                      color: '#059669',
+                    }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+                      </svg>
+                      {selectedFile?.name}
+                    </span>
+                    <button
+                      onClick={handleClearPreview}
+                      style={{
+                        padding: '8px 14px',
+                        background: '#FEF2F2',
+                        border: '1px solid #FECACA',
+                        borderRadius: '8px',
+                        color: '#DC2626',
+                        fontSize: '13px',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                      </svg>
+                      Cancel
+                    </button>
+                  </div>
+                )}
+                
+                {!csvPreview && (
+                  <span style={{ fontSize: '13px', color: '#94A3B8' }}>
+                    Required columns: franchise_number (name, owner, city, state, zip_code are optional)
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* CSV Preview */}
+          {csvPreview && (
+            <div style={{
+              marginTop: '20px',
+              border: '1px solid #E2E8F0',
+              borderRadius: '12px',
+              overflow: 'hidden',
+            }}>
+              <div style={{
+                padding: '16px 20px',
+                background: '#F8FAFC',
+                borderBottom: '1px solid #E2E8F0',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}>
+                <div>
+                  <h5 style={{ margin: '0 0 4px', fontSize: '15px', fontWeight: '600', color: '#0F172A' }}>
+                    CSV Preview
+                  </h5>
+                  <p style={{ margin: 0, fontSize: '13px', color: '#64748B' }}>
+                    {csvPreview.totalRows} rows found • Showing first {Math.min(10, csvPreview.totalRows)} rows
+                  </p>
+                </div>
+                <button
+                  onClick={handleUpload}
+                  disabled={uploading}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '8px',
-                    padding: '10px 20px',
-                    background: uploading ? '#94A3B8' : '#059669',
+                    padding: '10px 24px',
+                    background: uploading ? '#94A3B8' : 'linear-gradient(135deg, #059669 0%, #047857 100%)',
                     color: '#fff',
+                    border: 'none',
                     borderRadius: '8px',
                     fontSize: '14px',
                     fontWeight: '600',
                     cursor: uploading ? 'not-allowed' : 'pointer',
-                    transition: 'all 0.15s',
+                    boxShadow: '0 2px 4px rgba(5, 150, 105, 0.2)',
                   }}
                 >
                   {uploading ? (
@@ -6187,19 +6537,55 @@ function SettingsSection({ adminUsername }) {
                   ) : (
                     <>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                        <polyline points="20 6 9 17 4 12"/>
                       </svg>
-                      Select CSV File
+                      Proceed with Upload
                     </>
                   )}
-                </label>
-                
-                <span style={{ fontSize: '13px', color: '#94A3B8' }}>
-                  Required columns: franchise_number (name, owner, city, state, zip_code are optional)
-                </span>
+                </button>
               </div>
+              
+              <div style={{ maxHeight: '400px', overflow: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                  <thead>
+                    <tr style={{ background: '#F1F5F9', position: 'sticky', top: 0 }}>
+                      <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: '600', color: '#475569', borderBottom: '1px solid #E2E8F0' }}>#</th>
+                      {csvPreview.headers.map((header, i) => (
+                        <th key={i} style={{ padding: '10px 16px', textAlign: 'left', fontWeight: '600', color: '#475569', borderBottom: '1px solid #E2E8F0' }}>
+                          {header}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {csvPreview.rows.slice(0, 10).map((row, rowIdx) => (
+                      <tr key={rowIdx} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                        <td style={{ padding: '10px 16px', color: '#94A3B8', fontWeight: '500' }}>{rowIdx + 1}</td>
+                        {csvPreview.headers.map((header, colIdx) => (
+                          <td key={colIdx} style={{ padding: '10px 16px', color: '#0F172A' }}>
+                            {row[header] || <span style={{ color: '#CBD5E1' }}>—</span>}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              
+              {csvPreview.totalRows > 10 && (
+                <div style={{
+                  padding: '12px 20px',
+                  background: '#F8FAFC',
+                  borderTop: '1px solid #E2E8F0',
+                  textAlign: 'center',
+                  fontSize: '13px',
+                  color: '#64748B',
+                }}>
+                  ... and {csvPreview.totalRows - 10} more rows
+                </div>
+              )}
             </div>
-          </div>
+          )}
 
           {/* Upload Error */}
           {uploadError && (
