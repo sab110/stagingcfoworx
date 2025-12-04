@@ -9,6 +9,9 @@ export default function LicenseSelection({ realmId, onComplete, isManageMode = f
   const [error, setError] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [sortConfig, setSortConfig] = useState({ field: 'franchise_number', direction: 'asc' });
+  const [pagination, setPagination] = useState({ page: 1, limit: 10 });
 
   useEffect(() => {
     fetchLicenses();
@@ -106,11 +109,55 @@ export default function LicenseSelection({ realmId, onComplete, isManageMode = f
     }
   };
 
-  const filteredLicenses = licenses.filter(lic =>
-    lic.franchise_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    lic.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    lic.city?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const handleSort = (field) => {
+    setSortConfig(prev => ({
+      field,
+      direction: prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc',
+    }));
+    setPagination(p => ({ ...p, page: 1 }));
+  };
+
+  const SortIcon = ({ field }) => {
+    const isActive = sortConfig.field === field;
+    return (
+      <span style={{ marginLeft: '4px', opacity: isActive ? 1 : 0.3, display: 'inline-flex', flexDirection: 'column', verticalAlign: 'middle' }}>
+        <svg width="8" height="5" viewBox="0 0 8 5" style={{ marginBottom: '-1px' }}><path d="M4 0L7 4H1L4 0Z" fill={isActive && sortConfig.direction === 'asc' ? '#059669' : '#94A3B8'} /></svg>
+        <svg width="8" height="5" viewBox="0 0 8 5"><path d="M4 5L1 1H7L4 5Z" fill={isActive && sortConfig.direction === 'desc' ? '#059669' : '#94A3B8'} /></svg>
+      </span>
+    );
+  };
+
+  const filteredLicenses = licenses
+    .filter(lic => {
+      const matchesSearch = lic.franchise_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        lic.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        lic.city?.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const isSelected = selectedLicenses.has(lic.franchise_number);
+      const matchesFilter = filterStatus === "all" || 
+        (filterStatus === "selected" && isSelected) || 
+        (filterStatus === "unselected" && !isSelected);
+      
+      return matchesSearch && matchesFilter;
+    })
+    .sort((a, b) => {
+      const getValue = (obj) => {
+        switch (sortConfig.field) {
+          case 'franchise_number': return obj.franchise_number || '';
+          case 'name': return obj.name || '';
+          case 'city': return obj.city || '';
+          default: return '';
+        }
+      };
+      const aVal = getValue(a);
+      const bVal = getValue(b);
+      if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+  
+  const totalPages = Math.ceil(filteredLicenses.length / pagination.limit);
+  const paginatedLicenses = filteredLicenses.slice((pagination.page - 1) * pagination.limit, pagination.page * pagination.limit);
 
   if (loading) {
     return (
@@ -211,10 +258,71 @@ export default function LicenseSelection({ realmId, onComplete, isManageMode = f
                   type="text"
                   placeholder="Search franchises..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => { setSearchQuery(e.target.value); setPagination(p => ({ ...p, page: 1 })); }}
                   style={styles.searchInput}
                 />
               </div>
+              <select 
+                value={filterStatus} 
+                onChange={(e) => { setFilterStatus(e.target.value); setPagination(p => ({ ...p, page: 1 })); }}
+                style={{
+                  padding: '10px 32px 10px 14px',
+                  border: '1px solid #E2E8F0',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  background: '#fff',
+                  cursor: 'pointer',
+                  appearance: 'none',
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+                  backgroundRepeat: 'no-repeat',
+                  backgroundPosition: 'right 10px center',
+                }}
+              >
+                <option value="all">All ({licenses.length})</option>
+                <option value="selected">Selected ({selectedLicenses.size})</option>
+                <option value="unselected">Unselected ({licenses.length - selectedLicenses.size})</option>
+              </select>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '12px', color: '#64748B' }}>Show</span>
+                <select 
+                  value={pagination.limit} 
+                  onChange={(e) => setPagination({ page: 1, limit: parseInt(e.target.value) })}
+                  style={{
+                    padding: '8px 28px 8px 10px',
+                    border: '1px solid #E2E8F0',
+                    borderRadius: '6px',
+                    fontSize: '13px',
+                    background: '#fff',
+                    cursor: 'pointer',
+                    appearance: 'none',
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='10' height='10' viewBox='0 0 10 10' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2.5 4L5 6.5L7.5 4' stroke='%2364748B' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E")`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 8px center',
+                  }}
+                >
+                  <option value="10">10</option>
+                  <option value="25">25</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                </select>
+              </div>
+              {(searchQuery || filterStatus !== "all") && (
+                <button 
+                  onClick={() => { setSearchQuery(""); setFilterStatus("all"); setPagination(p => ({ ...p, page: 1 })); }}
+                  style={{
+                    padding: '8px 12px',
+                    background: '#FEF2F2',
+                    border: '1px solid #FECACA',
+                    borderRadius: '6px',
+                    color: '#DC2626',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Clear
+                </button>
+              )}
               <div style={styles.bulkButtons}>
                 <button onClick={handleSelectAll} style={styles.bulkButton}>
                   Select All
@@ -224,62 +332,195 @@ export default function LicenseSelection({ realmId, onComplete, isManageMode = f
                 </button>
               </div>
             </div>
+            
+            {/* Sort Bar */}
+            <div style={{
+              display: 'flex',
+              gap: '12px',
+              marginBottom: '12px',
+              padding: '10px 16px',
+              background: '#F8FAFC',
+              borderRadius: '8px',
+              fontSize: '13px',
+              color: '#64748B',
+            }}>
+              <span style={{ fontWeight: '500' }}>Sort by:</span>
+              <button 
+                onClick={() => handleSort('franchise_number')}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: sortConfig.field === 'franchise_number' ? '#059669' : '#64748B', fontWeight: sortConfig.field === 'franchise_number' ? '600' : '400', display: 'flex', alignItems: 'center', fontSize: '13px' }}
+              >
+                Franchise #<SortIcon field="franchise_number" />
+              </button>
+              <button 
+                onClick={() => handleSort('name')}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: sortConfig.field === 'name' ? '#059669' : '#64748B', fontWeight: sortConfig.field === 'name' ? '600' : '400', display: 'flex', alignItems: 'center', fontSize: '13px' }}
+              >
+                Name<SortIcon field="name" />
+              </button>
+              <button 
+                onClick={() => handleSort('city')}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: sortConfig.field === 'city' ? '#059669' : '#64748B', fontWeight: sortConfig.field === 'city' ? '600' : '400', display: 'flex', alignItems: 'center', fontSize: '13px' }}
+              >
+                Location<SortIcon field="city" />
+              </button>
+              <span style={{ marginLeft: 'auto' }}>{filteredLicenses.length} results</span>
+            </div>
 
             {/* License List */}
             <div style={styles.licenseList}>
-              {filteredLicenses.map((license) => {
-                const isSelected = selectedLicenses.has(license.franchise_number);
-                return (
-                  <div
-                    key={license.franchise_number}
-                    style={{
-                      ...styles.licenseItem,
-                      backgroundColor: isSelected ? '#ECFDF5' : '#fff',
-                      borderColor: isSelected ? '#059669' : '#E2E8F0',
-                    }}
-                    onClick={() => handleToggleLicense(license.franchise_number)}
-                  >
-                    <div style={{
-                      ...styles.checkbox,
-                      backgroundColor: isSelected ? '#059669' : '#fff',
-                      borderColor: isSelected ? '#059669' : '#CBD5E1',
-                    }}>
-                      {isSelected && (
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
-                          <polyline points="20 6 9 17 4 12"/>
-                        </svg>
-                      )}
-                    </div>
-                    <div style={styles.licenseInfo}>
-                      <div style={styles.licenseName}>
-                        <span style={styles.franchiseNumber}>#{license.franchise_number}</span>
-                        <span style={styles.franchiseName}>{license.name}</span>
-                      </div>
-                      <div style={styles.licenseDetails}>
-                        {license.city && license.state && (
-                          <span style={styles.detail}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2">
-                              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
-                              <circle cx="12" cy="10" r="3"/>
-                            </svg>
-                            {license.city}, {license.state}
-                          </span>
-                        )}
-                        {license.quickbooks?.department_name && (
-                          <span style={styles.detail}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2">
-                              <rect x="2" y="7" width="20" height="14" rx="2"/>
-                              <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/>
-                            </svg>
-                            {license.quickbooks.department_name}
-                          </span>
+              {paginatedLicenses.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px 20px', color: '#64748B' }}>
+                  <p>No franchises match your search or filter</p>
+                </div>
+              ) : (
+                paginatedLicenses.map((license) => {
+                  const isSelected = selectedLicenses.has(license.franchise_number);
+                  return (
+                    <div
+                      key={license.franchise_number}
+                      style={{
+                        ...styles.licenseItem,
+                        backgroundColor: isSelected ? '#ECFDF5' : '#fff',
+                        borderColor: isSelected ? '#059669' : '#E2E8F0',
+                      }}
+                      onClick={() => handleToggleLicense(license.franchise_number)}
+                    >
+                      <div style={{
+                        ...styles.checkbox,
+                        backgroundColor: isSelected ? '#059669' : '#fff',
+                        borderColor: isSelected ? '#059669' : '#CBD5E1',
+                      }}>
+                        {isSelected && (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+                            <polyline points="20 6 9 17 4 12"/>
+                          </svg>
                         )}
                       </div>
+                      <div style={styles.licenseInfo}>
+                        <div style={styles.licenseName}>
+                          <span style={styles.franchiseNumber}>#{license.franchise_number}</span>
+                          <span style={styles.franchiseName}>{license.name}</span>
+                        </div>
+                        <div style={styles.licenseDetails}>
+                          {license.city && license.state && (
+                            <span style={styles.detail}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+                                <circle cx="12" cy="10" r="3"/>
+                              </svg>
+                              {license.city}, {license.state}
+                            </span>
+                          )}
+                          {license.quickbooks?.department_name && (
+                            <span style={styles.detail}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2">
+                                <rect x="2" y="7" width="20" height="14" rx="2"/>
+                                <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/>
+                              </svg>
+                              {license.quickbooks.department_name}
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
+            
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '16px 0',
+                borderTop: '1px solid #E2E8F0',
+                marginTop: '16px',
+              }}>
+                <span style={{ fontSize: '13px', color: '#64748B' }}>
+                  Showing {((pagination.page - 1) * pagination.limit) + 1} - {Math.min(pagination.page * pagination.limit, filteredLicenses.length)} of {filteredLicenses.length}
+                </span>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button 
+                    onClick={() => setPagination(p => ({ ...p, page: 1 }))} 
+                    disabled={pagination.page === 1}
+                    style={{
+                      padding: '8px 12px',
+                      background: pagination.page === 1 ? '#F1F5F9' : '#fff',
+                      border: '1px solid #E2E8F0',
+                      borderRadius: '6px',
+                      color: pagination.page === 1 ? '#94A3B8' : '#475569',
+                      fontSize: '13px',
+                      cursor: pagination.page === 1 ? 'not-allowed' : 'pointer',
+                    }}
+                  >First</button>
+                  <button 
+                    onClick={() => setPagination(p => ({ ...p, page: p.page - 1 }))} 
+                    disabled={pagination.page === 1}
+                    style={{
+                      padding: '8px 12px',
+                      background: pagination.page === 1 ? '#F1F5F9' : '#fff',
+                      border: '1px solid #E2E8F0',
+                      borderRadius: '6px',
+                      color: pagination.page === 1 ? '#94A3B8' : '#475569',
+                      fontSize: '13px',
+                      cursor: pagination.page === 1 ? 'not-allowed' : 'pointer',
+                    }}
+                  >Prev</button>
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) pageNum = i + 1;
+                    else if (pagination.page <= 3) pageNum = i + 1;
+                    else if (pagination.page >= totalPages - 2) pageNum = totalPages - 4 + i;
+                    else pageNum = pagination.page - 2 + i;
+                    return (
+                      <button 
+                        key={pageNum}
+                        onClick={() => setPagination(p => ({ ...p, page: pageNum }))}
+                        style={{
+                          width: '36px',
+                          height: '36px',
+                          background: pagination.page === pageNum ? '#059669' : '#fff',
+                          border: pagination.page === pageNum ? 'none' : '1px solid #E2E8F0',
+                          borderRadius: '6px',
+                          color: pagination.page === pageNum ? '#fff' : '#475569',
+                          fontSize: '13px',
+                          fontWeight: pagination.page === pageNum ? '600' : '400',
+                          cursor: 'pointer',
+                        }}
+                      >{pageNum}</button>
+                    );
+                  })}
+                  <button 
+                    onClick={() => setPagination(p => ({ ...p, page: p.page + 1 }))} 
+                    disabled={pagination.page === totalPages}
+                    style={{
+                      padding: '8px 12px',
+                      background: pagination.page === totalPages ? '#F1F5F9' : '#fff',
+                      border: '1px solid #E2E8F0',
+                      borderRadius: '6px',
+                      color: pagination.page === totalPages ? '#94A3B8' : '#475569',
+                      fontSize: '13px',
+                      cursor: pagination.page === totalPages ? 'not-allowed' : 'pointer',
+                    }}
+                  >Next</button>
+                  <button 
+                    onClick={() => setPagination(p => ({ ...p, page: totalPages }))} 
+                    disabled={pagination.page === totalPages}
+                    style={{
+                      padding: '8px 12px',
+                      background: pagination.page === totalPages ? '#F1F5F9' : '#fff',
+                      border: '1px solid #E2E8F0',
+                      borderRadius: '6px',
+                      color: pagination.page === totalPages ? '#94A3B8' : '#475569',
+                      fontSize: '13px',
+                      cursor: pagination.page === totalPages ? 'not-allowed' : 'pointer',
+                    }}
+                  >Last</button>
+                </div>
+              </div>
+            )}
 
             {/* Error Message */}
             {error && (

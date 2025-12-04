@@ -442,6 +442,26 @@ function FranchisesSection({ licenses, setLicenses, realmId, backendURL, refresh
   const [message, setMessage] = useState({ type: '', text: '' });
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [sortConfig, setSortConfig] = useState({ field: 'franchise_number', direction: 'asc' });
+  const [pagination, setPagination] = useState({ page: 1, limit: 10 });
+
+  const handleSort = (field) => {
+    setSortConfig(prev => ({
+      field,
+      direction: prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc',
+    }));
+    setPagination(p => ({ ...p, page: 1 }));
+  };
+
+  const SortIcon = ({ field }) => {
+    const isActive = sortConfig.field === field;
+    return (
+      <span style={{ marginLeft: '6px', opacity: isActive ? 1 : 0.3, display: 'inline-flex', flexDirection: 'column', verticalAlign: 'middle' }}>
+        <svg width="8" height="5" viewBox="0 0 8 5" style={{ marginBottom: '-1px' }}><path d="M4 0L7 4H1L4 0Z" fill={isActive && sortConfig.direction === 'asc' ? '#059669' : '#94A3B8'} /></svg>
+        <svg width="8" height="5" viewBox="0 0 8 5"><path d="M4 5L1 1H7L4 5Z" fill={isActive && sortConfig.direction === 'desc' ? '#059669' : '#94A3B8'} /></svg>
+      </span>
+    );
+  };
 
   const handleToggleLicense = async (franchiseNumber, currentActive) => {
     const newActive = currentActive === "true" ? "false" : "true";
@@ -517,20 +537,40 @@ function FranchisesSection({ licenses, setLicenses, realmId, backendURL, refresh
     }
   };
 
-  const filteredLicenses = licenses.filter(lic => {
-    const matchesSearch = 
-      lic.franchise_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      lic.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      lic.city?.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const isActive = lic.quickbooks?.is_active === "true";
-    const matchesFilter = 
-      filterStatus === "all" ||
-      (filterStatus === "active" && isActive) ||
-      (filterStatus === "inactive" && !isActive);
-    
-    return matchesSearch && matchesFilter;
-  });
+  const filteredLicenses = licenses
+    .filter(lic => {
+      const matchesSearch = 
+        lic.franchise_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        lic.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        lic.city?.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const isActive = lic.quickbooks?.is_active === "true";
+      const matchesFilter = 
+        filterStatus === "all" ||
+        (filterStatus === "active" && isActive) ||
+        (filterStatus === "inactive" && !isActive);
+      
+      return matchesSearch && matchesFilter;
+    })
+    .sort((a, b) => {
+      const getValue = (obj) => {
+        switch (sortConfig.field) {
+          case 'franchise_number': return obj.franchise_number || '';
+          case 'name': return obj.name || '';
+          case 'city': return obj.city || '';
+          case 'status': return obj.quickbooks?.is_active === "true" ? 'active' : 'inactive';
+          default: return '';
+        }
+      };
+      const aVal = getValue(a);
+      const bVal = getValue(b);
+      if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+  const totalPages = Math.ceil(filteredLicenses.length / pagination.limit);
+  const paginatedLicenses = filteredLicenses.slice((pagination.page - 1) * pagination.limit, pagination.page * pagination.limit);
 
   const activeCount = licenses.filter(l => l.quickbooks?.is_active === "true").length;
   const inactiveCount = licenses.length - activeCount;
@@ -571,20 +611,56 @@ function FranchisesSection({ licenses, setLicenses, realmId, backendURL, refresh
             type="text" 
             placeholder="Search franchises..." 
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => { setSearchQuery(e.target.value); setPagination(p => ({ ...p, page: 1 })); }}
             style={styles.searchInput}
           />
         </div>
         
         <select 
           value={filterStatus} 
-          onChange={(e) => setFilterStatus(e.target.value)}
+          onChange={(e) => { setFilterStatus(e.target.value); setPagination(p => ({ ...p, page: 1 })); }}
           style={styles.filterSelect}
         >
           <option value="all">All Status</option>
           <option value="active">Active Only</option>
           <option value="inactive">Inactive Only</option>
         </select>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span style={{ fontSize: '13px', color: '#64748B' }}>Show</span>
+          <select 
+            value={pagination.limit} 
+            onChange={(e) => setPagination({ page: 1, limit: parseInt(e.target.value) })}
+            style={styles.filterSelect}
+          >
+            <option value="10">10</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+        </div>
+
+        {(searchQuery || filterStatus !== "all") && (
+          <button 
+            onClick={() => { setSearchQuery(""); setFilterStatus("all"); setPagination(p => ({ ...p, page: 1 })); }}
+            style={{
+              padding: '8px 14px',
+              background: '#FEF2F2',
+              border: '1px solid #FECACA',
+              borderRadius: '8px',
+              color: '#DC2626',
+              fontSize: '13px',
+              fontWeight: '500',
+              cursor: 'pointer',
+            }}
+          >
+            Clear
+          </button>
+        )}
+
+        <span style={{ fontSize: '13px', color: '#64748B' }}>
+          {filteredLicenses.length} of {licenses.length}
+        </span>
 
         <div style={styles.bulkActions}>
                 <button
@@ -640,16 +716,24 @@ function FranchisesSection({ licenses, setLicenses, realmId, backendURL, refresh
           <table style={styles.table}>
             <thead>
               <tr>
-                <th style={styles.th}>Franchise #</th>
-                <th style={styles.th}>Name</th>
-                <th style={styles.th}>Location</th>
+                <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('franchise_number')}>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>Franchise #<SortIcon field="franchise_number" /></div>
+                </th>
+                <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('name')}>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>Name<SortIcon field="name" /></div>
+                </th>
+                <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('city')}>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>Location<SortIcon field="city" /></div>
+                </th>
                 <th style={styles.th}>Department</th>
-                <th style={styles.th}>Status</th>
+                <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('status')}>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>Status<SortIcon field="status" /></div>
+                </th>
                 <th style={{ ...styles.th, textAlign: 'center' }}>Action</th>
               </tr>
             </thead>
             <tbody>
-              {filteredLicenses.map((license) => {
+              {paginatedLicenses.map((license) => {
                 const isActive = license.quickbooks?.is_active === "true";
                 return (
                   <tr key={license.franchise_number} style={styles.tr}>
@@ -693,6 +777,104 @@ function FranchisesSection({ licenses, setLicenses, realmId, backendURL, refresh
               })}
             </tbody>
           </table>
+          
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '16px 20px',
+              borderTop: '1px solid #E2E8F0',
+              background: '#F8FAFC',
+              borderRadius: '0 0 12px 12px',
+            }}>
+              <span style={{ fontSize: '13px', color: '#64748B' }}>
+                Page {pagination.page} of {totalPages}
+              </span>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <button 
+                  onClick={() => setPagination(p => ({ ...p, page: 1 }))} 
+                  disabled={pagination.page === 1}
+                  style={{
+                    padding: '8px 12px',
+                    background: pagination.page === 1 ? '#F1F5F9' : '#fff',
+                    border: '1px solid #E2E8F0',
+                    borderRadius: '6px',
+                    color: pagination.page === 1 ? '#94A3B8' : '#475569',
+                    fontSize: '13px',
+                    cursor: pagination.page === 1 ? 'not-allowed' : 'pointer',
+                  }}
+                >First</button>
+                <button 
+                  onClick={() => setPagination(p => ({ ...p, page: p.page - 1 }))} 
+                  disabled={pagination.page === 1}
+                  style={{
+                    padding: '8px 12px',
+                    background: pagination.page === 1 ? '#F1F5F9' : '#fff',
+                    border: '1px solid #E2E8F0',
+                    borderRadius: '6px',
+                    color: pagination.page === 1 ? '#94A3B8' : '#475569',
+                    fontSize: '13px',
+                    cursor: pagination.page === 1 ? 'not-allowed' : 'pointer',
+                  }}
+                >Prev</button>
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) pageNum = i + 1;
+                  else if (pagination.page <= 3) pageNum = i + 1;
+                  else if (pagination.page >= totalPages - 2) pageNum = totalPages - 4 + i;
+                  else pageNum = pagination.page - 2 + i;
+                  return (
+                    <button 
+                      key={pageNum}
+                      onClick={() => setPagination(p => ({ ...p, page: pageNum }))}
+                      style={{
+                        width: '36px',
+                        height: '36px',
+                        background: pagination.page === pageNum ? '#059669' : '#fff',
+                        border: pagination.page === pageNum ? 'none' : '1px solid #E2E8F0',
+                        borderRadius: '6px',
+                        color: pagination.page === pageNum ? '#fff' : '#475569',
+                        fontSize: '13px',
+                        fontWeight: pagination.page === pageNum ? '600' : '400',
+                        cursor: 'pointer',
+                      }}
+                    >{pageNum}</button>
+                  );
+                })}
+                <button 
+                  onClick={() => setPagination(p => ({ ...p, page: p.page + 1 }))} 
+                  disabled={pagination.page === totalPages}
+                  style={{
+                    padding: '8px 12px',
+                    background: pagination.page === totalPages ? '#F1F5F9' : '#fff',
+                    border: '1px solid #E2E8F0',
+                    borderRadius: '6px',
+                    color: pagination.page === totalPages ? '#94A3B8' : '#475569',
+                    fontSize: '13px',
+                    cursor: pagination.page === totalPages ? 'not-allowed' : 'pointer',
+                  }}
+                >Next</button>
+                <button 
+                  onClick={() => setPagination(p => ({ ...p, page: totalPages }))} 
+                  disabled={pagination.page === totalPages}
+                  style={{
+                    padding: '8px 12px',
+                    background: pagination.page === totalPages ? '#F1F5F9' : '#fff',
+                    border: '1px solid #E2E8F0',
+                    borderRadius: '6px',
+                    color: pagination.page === totalPages ? '#94A3B8' : '#475569',
+                    fontSize: '13px',
+                    cursor: pagination.page === totalPages ? 'not-allowed' : 'pointer',
+                  }}
+                >Last</button>
+              </div>
+              <span style={{ fontSize: '13px', color: '#64748B' }}>
+                {filteredLicenses.length} total
+              </span>
+            </div>
+          )}
         </div>
       )}
     </div>
