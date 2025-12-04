@@ -6235,22 +6235,63 @@ function SettingsSection({ adminUsername }) {
   const fileInputRef = useRef(null);
 
   const parseCSV = (text) => {
-    const lines = text.split('\n').filter(line => line.trim());
-    if (lines.length === 0) return null;
+    // Handle different line endings (Windows \r\n, Mac \r, Unix \n)
+    const normalizedText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    const lines = normalizedText.split('\n');
     
-    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+    // Filter out completely empty lines but keep lines with just whitespace for now
+    const nonEmptyLines = lines.filter(line => line.trim().length > 0);
+    
+    console.log('CSV Debug - Total lines:', lines.length, 'Non-empty lines:', nonEmptyLines.length);
+    
+    if (nonEmptyLines.length === 0) return { headers: [], rows: [], totalRows: 0 };
+    
+    // Parse CSV line handling quoted values with commas
+    const parseCSVLine = (line) => {
+      const result = [];
+      let current = '';
+      let inQuotes = false;
+      
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        
+        if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+          result.push(current.trim().replace(/^"|"$/g, ''));
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      // Don't forget the last field
+      result.push(current.trim().replace(/^"|"$/g, ''));
+      return result;
+    };
+    
+    const headers = parseCSVLine(nonEmptyLines[0]);
+    console.log('CSV Debug - Headers:', headers);
+    
     const rows = [];
     
-    for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
-      if (values.length === headers.length) {
-        const row = {};
-        headers.forEach((header, idx) => {
-          row[header] = values[idx];
-        });
-        rows.push(row);
-      }
+    for (let i = 1; i < nonEmptyLines.length; i++) {
+      const line = nonEmptyLines[i];
+      const values = parseCSVLine(line);
+      
+      console.log(`CSV Debug - Row ${i}:`, values);
+      
+      const row = {};
+      
+      // Map values to headers
+      headers.forEach((header, idx) => {
+        row[header] = values[idx] !== undefined ? values[idx] : '';
+      });
+      
+      rows.push(row);
     }
+    
+    console.log('CSV Debug - Total rows parsed:', rows.length);
+    console.log('CSV Debug - First row:', rows[0]);
     
     return { headers, rows, totalRows: rows.length };
   };
