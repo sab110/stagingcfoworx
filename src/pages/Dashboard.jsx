@@ -118,7 +118,7 @@ export default function Dashboard() {
   };
 
   if (loading) {
-    return (
+  return (
       <div style={styles.loadingContainer}>
         <div style={styles.spinner}></div>
         <p style={styles.loadingText}>Loading your dashboard...</p>
@@ -162,7 +162,7 @@ export default function Dashboard() {
         <aside style={{
           ...styles.sidebar,
           width: sidebarCollapsed ? 72 : 260,
-        }}>
+      }}>
           <div style={styles.sidebarHeader}>
             <div style={styles.logo}>
               <div style={styles.logoIcon}>
@@ -172,7 +172,7 @@ export default function Dashboard() {
               </div>
               {!sidebarCollapsed && <span style={styles.logoText}>RoyaltiesAgent</span>}
             </div>
-            <button
+        <button
               style={styles.collapseBtn}
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
             >
@@ -191,7 +191,7 @@ export default function Dashboard() {
               <button
                 key={item.id}
                 onClick={() => setActiveSection(item.id)}
-                style={{
+          style={{
                   ...styles.navItem,
                   ...(activeSection === item.id ? styles.navItemActive : {}),
                   justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
@@ -199,7 +199,7 @@ export default function Dashboard() {
               >
                 <MenuIcon name={item.icon} active={activeSection === item.id} />
                 {!sidebarCollapsed && <span>{item.label}</span>}
-              </button>
+        </button>
             ))}
           </nav>
 
@@ -210,11 +210,11 @@ export default function Dashboard() {
             }}>
               <span style={styles.statusDot}></span>
               {!sidebarCollapsed && <span style={styles.statusText}>QuickBooks Connected</span>}
-            </div>
+      </div>
           </div>
         </aside>
 
-        {/* Main Content */}
+      {/* Main Content */}
         <main style={styles.mainContent}>
           {/* Top Bar */}
           <header style={styles.topBar}>
@@ -256,7 +256,7 @@ export default function Dashboard() {
                 navigate={navigate}
                 setActiveSection={setActiveSection}
               />
-            )}
+          )}
             {activeSection === "franchises" && (
               <FranchisesSection 
                 licenses={licenses}
@@ -342,7 +342,7 @@ function OverviewSection({ user, licenses, activeLicenses, subscription, onManag
           <button onClick={() => navigate("/subscribe")} style={styles.subscribeBtn}>
             Subscribe Now
           </button>
-        )}
+              )}
       </div>
 
       {/* Stats Grid */}
@@ -379,7 +379,7 @@ function OverviewSection({ user, licenses, activeLicenses, subscription, onManag
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2">
               <path d="M9 18l6-6-6-6"/>
             </svg>
-          </span>
+                </span>
         </button>
         <button onClick={() => setActiveSection("reports")} style={styles.actionCard}>
           <div style={{ ...styles.actionIcon, background: '#EFF6FF' }}>
@@ -587,28 +587,28 @@ function FranchisesSection({ licenses, setLicenses, realmId, backendURL, refresh
         </select>
 
         <div style={styles.bulkActions}>
-          <button 
+                <button
             onClick={() => handleBulkAction(true)} 
             disabled={saving || activeCount === licenses.length}
-            style={{
+                  style={{
               ...styles.bulkBtn,
               ...styles.bulkBtnSuccess,
               opacity: (saving || activeCount === licenses.length) ? 0.5 : 1,
-            }}
-          >
+                  }}
+                >
             Activate All
-          </button>
-          <button 
+                </button>
+                  <button
             onClick={() => handleBulkAction(false)} 
             disabled={saving || inactiveCount === licenses.length}
-            style={{
+                    style={{
               ...styles.bulkBtn,
               ...styles.bulkBtnDanger,
               opacity: (saving || inactiveCount === licenses.length) ? 0.5 : 1,
-            }}
-          >
+                    }}
+                  >
             Deactivate All
-          </button>
+                  </button>
         </div>
       </div>
 
@@ -634,7 +634,7 @@ function FranchisesSection({ licenses, setLicenses, realmId, backendURL, refresh
           <p style={styles.emptyText}>
             {searchQuery || filterStatus !== "all" ? "Try adjusting your search or filter" : "Your QuickBooks departments will appear here"}
           </p>
-        </div>
+              </div>
       ) : (
         <div style={styles.tableContainer}>
           <table style={styles.table}>
@@ -676,17 +676,17 @@ function FranchisesSection({ licenses, setLicenses, realmId, backendURL, refresh
                       </span>
                     </td>
                     <td style={{ ...styles.td, textAlign: 'center' }}>
-                      <button
+              <button
                         onClick={() => handleToggleLicense(license.franchise_number, license.quickbooks?.is_active || "false")}
                         disabled={saving}
-                        style={{
+                style={{
                           ...styles.toggleBtn,
                           ...(isActive ? styles.toggleBtnDeactivate : styles.toggleBtnActivate),
                           opacity: saving ? 0.5 : 1,
-                        }}
-                      >
+                }}
+              >
                         {isActive ? "Deactivate" : "Activate"}
-                      </button>
+              </button>
                     </td>
                   </tr>
                 );
@@ -753,10 +753,10 @@ function BillingSection({ subscription, activeLicenses, onManageBilling, navigat
       {/* Subscription Card */}
       <div style={styles.billingCard}>
         <div style={styles.billingHeader}>
-          <div>
+                    <div>
             <h3 style={styles.billingTitle}>Subscription Details</h3>
             <p style={styles.billingSubtitle}>Manage your plan and billing preferences</p>
-          </div>
+                    </div>
           <span style={{
             ...styles.billingStatus,
             ...(subscription.status === 'active' ? styles.billingStatusActive : 
@@ -765,13 +765,13 @@ function BillingSection({ subscription, activeLicenses, onManageBilling, navigat
             {subscription.status === 'active' ? 'Active' : 
              subscription.status === 'canceled' ? 'Canceled' : subscription.status}
           </span>
-        </div>
+                    </div>
 
         <div style={styles.billingDetails}>
           <div style={styles.billingRow}>
             <span style={styles.billingLabel}>Plan</span>
             <span style={styles.billingValue}>{subscription.plan_name || 'Standard'}</span>
-          </div>
+                  </div>
           <div style={styles.billingRow}>
             <span style={styles.billingLabel}>Active Franchises</span>
             <span style={styles.billingValue}>{activeLicenses.length} franchises</span>
@@ -794,8 +794,8 @@ function BillingSection({ subscription, activeLicenses, onManageBilling, navigat
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
             </svg>
             Manage in Stripe Portal
-          </button>
-        </div>
+                </button>
+              </div>
       </div>
 
       {/* Billing Info */}
