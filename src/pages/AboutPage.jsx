@@ -646,45 +646,74 @@ const styles = `
   .values-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 24px;
+    gap: 28px;
   }
 
   .value-card {
     background: #fff;
-    border-radius: 20px;
-    padding: 32px;
+    border-radius: 24px;
+    padding: 40px 32px;
     text-align: center;
     border: 1px solid #E2E8F0;
-    transition: all 0.3s ease;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .value-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, transparent, transparent);
+    transition: all 0.4s ease;
+    opacity: 0;
   }
 
   .value-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+    transform: translateY(-8px);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
     border-color: transparent;
   }
 
+  .value-card:hover::before {
+    opacity: 1;
+  }
+
+  .value-card:nth-child(1):hover::before { background: linear-gradient(90deg, #059669, #10B981); }
+  .value-card:nth-child(2):hover::before { background: linear-gradient(90deg, #0EA5E9, #38BDF8); }
+  .value-card:nth-child(3):hover::before { background: linear-gradient(90deg, #EF4444, #F87171); }
+  .value-card:nth-child(4):hover::before { background: linear-gradient(90deg, #8B5CF6, #A78BFA); }
+
   .value-icon {
-    width: 64px;
-    height: 64px;
-    border-radius: 16px;
+    width: 72px;
+    height: 72px;
+    border-radius: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0 auto 20px;
+    margin: 0 auto 24px;
+    transition: transform 0.3s ease;
+  }
+
+  .value-card:hover .value-icon {
+    transform: scale(1.1) rotate(3deg);
   }
 
   .value-title {
-    font-size: 18px;
+    font-size: 19px;
     font-weight: 700;
     color: #0F172A;
-    margin: 0 0 12px;
+    margin: 0 0 14px;
+    letter-spacing: -0.01em;
   }
 
   .value-desc {
     font-size: 14px;
     color: #64748B;
-    line-height: 1.6;
+    line-height: 1.7;
     margin: 0;
   }
 

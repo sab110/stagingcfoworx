@@ -215,15 +215,11 @@ export default function Pricing() {
                   >
                     {cycle}
                     {cycle === "Annual" && (
-                      <span style={styles.saveBadgeInline}>Save 13%</span>
+                      <span style={styles.saveBadgeInline}>SAVE 13%</span>
                     )}
                   </button>
                 );
               })}
-              <div style={{
-                ...styles.toggleSlider,
-                transform: `translateX(${billingCycle === "Monthly" ? 0 : billingCycle === "6-Month" ? 100 : 200}%)`,
-              }}></div>
             </div>
           </div>
         </div>
@@ -763,14 +759,15 @@ const styles = {
     backgroundColor: '#F1F5F9',
     borderRadius: '14px',
     padding: '6px',
-    gap: '4px',
+    gap: '0px',
+    border: '1px solid #E2E8F0',
   },
   toggleButton: {
     position: 'relative',
     backgroundColor: 'transparent',
     color: '#64748B',
     border: 'none',
-    padding: '14px 28px',
+    padding: '14px 32px',
     borderRadius: '10px',
     fontSize: '15px',
     fontWeight: '600',
@@ -779,7 +776,8 @@ const styles = {
     zIndex: 1,
     display: 'flex',
     alignItems: 'center',
-    gap: '8px',
+    gap: '10px',
+    whiteSpace: 'nowrap',
   },
   toggleButtonActive: {
     backgroundColor: '#fff',
@@ -787,25 +785,18 @@ const styles = {
     boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
   },
   toggleSlider: {
-    position: 'absolute',
-    top: '6px',
-    left: '6px',
-    width: 'calc(33.33% - 4px)',
-    height: 'calc(100% - 12px)',
-    backgroundColor: '#fff',
-    borderRadius: '10px',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-    transition: 'transform 0.3s ease',
-    zIndex: 0,
+    display: 'none', // Hide this as we're using direct styling now
   },
   saveBadgeInline: {
     backgroundColor: '#059669',
     color: '#fff',
     fontSize: '10px',
     fontWeight: '700',
-    padding: '3px 8px',
-    borderRadius: '6px',
+    padding: '4px 10px',
+    borderRadius: '20px',
     textTransform: 'uppercase',
+    letterSpacing: '0.3px',
+    marginLeft: '4px',
   },
   
   // Pricing Section
@@ -1060,25 +1051,26 @@ const styles = {
   faqList: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '12px',
+    gap: '16px',
   },
   faqItem: {
     backgroundColor: '#fff',
-    borderRadius: '16px',
+    borderRadius: '20px',
     border: '1px solid #E2E8F0',
     overflow: 'hidden',
-    transition: 'all 0.2s',
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
   },
   faqItemOpen: {
     border: '1px solid #059669',
-    boxShadow: '0 4px 16px rgba(44, 160, 28, 0.1)',
+    boxShadow: '0 8px 24px rgba(5, 150, 105, 0.12)',
+    background: 'linear-gradient(135deg, #ECFDF5 0%, #fff 100%)',
   },
   faqQuestion: {
     width: '100%',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '24px',
+    padding: '28px',
     border: 'none',
     backgroundColor: 'transparent',
     cursor: 'pointer',
@@ -1089,18 +1081,19 @@ const styles = {
     fontWeight: '600',
     color: '#0F172A',
     flex: 1,
-    paddingRight: '16px',
+    paddingRight: '20px',
+    lineHeight: '1.4',
   },
   faqIcon: {
-    width: '32px',
-    height: '32px',
+    width: '36px',
+    height: '36px',
     backgroundColor: '#F1F5F9',
-    borderRadius: '8px',
+    borderRadius: '10px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     color: '#64748B',
-    transition: 'all 0.3s',
+    transition: 'all 0.3s ease',
     flexShrink: 0,
   },
   faqAnswer: {
@@ -1110,34 +1103,38 @@ const styles = {
   faqAnswerText: {
     fontSize: '15px',
     color: '#64748B',
-    lineHeight: '1.7',
+    lineHeight: '1.8',
     margin: 0,
   },
   faqCta: {
     textAlign: 'center',
-    marginTop: '48px',
-    padding: '32px',
-    backgroundColor: '#fff',
-    borderRadius: '16px',
+    marginTop: '56px',
+    padding: '48px 40px',
+    background: 'linear-gradient(135deg, #F8FAFC 0%, #fff 100%)',
+    borderRadius: '24px',
     border: '1px solid #E2E8F0',
+    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
   },
   faqCtaText: {
-    fontSize: '16px',
-    color: '#64748B',
-    margin: '0 0 16px',
+    fontSize: '18px',
+    color: '#475569',
+    margin: '0 0 20px',
+    fontWeight: '500',
   },
   faqCtaButton: {
     display: 'inline-flex',
     alignItems: 'center',
-    gap: '8px',
-    backgroundColor: '#0F172A',
+    gap: '10px',
+    background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
     color: '#fff',
     border: 'none',
-    padding: '14px 28px',
-    borderRadius: '10px',
-    fontSize: '15px',
+    padding: '16px 32px',
+    borderRadius: '12px',
+    fontSize: '16px',
     fontWeight: '600',
     cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    boxShadow: '0 4px 12px rgba(15, 23, 42, 0.2)',
   },
   
   // CTA Section

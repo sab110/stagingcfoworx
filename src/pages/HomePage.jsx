@@ -935,44 +935,75 @@ const styles = `
   .features-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 24px;
+    gap: 28px;
   }
 
   .feature-card {
     background: #fff;
-    border-radius: 20px;
-    padding: 36px;
+    border-radius: 24px;
+    padding: 40px 36px;
     border: 1px solid #E2E8F0;
-    transition: all 0.3s ease;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, transparent, transparent);
+    transition: all 0.4s ease;
+    opacity: 0;
   }
 
   .feature-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+    transform: translateY(-8px);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.12);
     border-color: transparent;
   }
 
+  .feature-card:hover::before {
+    opacity: 1;
+  }
+
+  .feature-card:nth-child(1):hover::before { background: linear-gradient(90deg, #059669, #10B981); }
+  .feature-card:nth-child(2):hover::before { background: linear-gradient(90deg, #0EA5E9, #38BDF8); }
+  .feature-card:nth-child(3):hover::before { background: linear-gradient(90deg, #8B5CF6, #A78BFA); }
+  .feature-card:nth-child(4):hover::before { background: linear-gradient(90deg, #F59E0B, #FBBF24); }
+  .feature-card:nth-child(5):hover::before { background: linear-gradient(90deg, #EF4444, #F87171); }
+  .feature-card:nth-child(6):hover::before { background: linear-gradient(90deg, #06B6D4, #22D3EE); }
+
   .feature-icon {
-    width: 56px;
-    height: 56px;
-    border-radius: 14px;
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 24px;
+    margin-bottom: 28px;
+    transition: transform 0.3s ease;
+  }
+
+  .feature-card:hover .feature-icon {
+    transform: scale(1.1);
   }
 
   .feature-title {
-    font-size: 20px;
+    font-size: 21px;
     font-weight: 700;
     color: #0F172A;
-    margin: 0 0 12px;
+    margin: 0 0 14px;
+    letter-spacing: -0.01em;
   }
 
   .feature-desc {
     font-size: 15px;
     color: #64748B;
-    line-height: 1.6;
+    line-height: 1.7;
     margin: 0;
   }
 

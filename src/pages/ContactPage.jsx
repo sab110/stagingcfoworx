@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 
 export default function ContactPage() {
   const navigate = useNavigate();
+  const backendURL = import.meta.env.VITE_BACKEND_URL;
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -12,6 +13,9 @@ export default function ContactPage() {
     message: "",
   });
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [expandedFaq, setExpandedFaq] = useState(null);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -19,10 +23,35 @@ export default function ContactPage() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Contact form submitted:", formData);
-    setSubmitted(true);
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const response = await fetch(`${backendURL}/api/admin/contact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        setSubmitted(true);
+        setFormData({ name: "", email: "", subject: "", message: "" });
+      } else {
+        setError(data.detail || 'Failed to submit. Please try again.');
+      }
+    } catch (err) {
+      setError('Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleFaq = (index) => {
+    setExpandedFaq(expandedFaq === index ? null : index);
   };
 
   const contactInfo = [
@@ -197,6 +226,14 @@ export default function ContactPage() {
               </div>
             ) : (
               <form onSubmit={handleSubmit}>
+                {error && (
+                  <div className="form-error">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+                    </svg>
+                    {error}
+                  </div>
+                )}
                 <div className="form-row">
                   <div className="form-group">
                     <label className="form-label">Full Name</label>
@@ -223,19 +260,24 @@ export default function ContactPage() {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Subject</label>
-                  <select
-                    value={formData.subject}
-                    onChange={(e) => setFormData({...formData, subject: e.target.value})}
-                    className="form-select"
-                    required
-                  >
-                    <option value="">Select a subject</option>
-                    <option value="general">General Inquiry</option>
-                    <option value="support">Technical Support</option>
-                    <option value="billing">Billing Question</option>
-                    <option value="partnership">Partnership</option>
-                    <option value="feedback">Feedback</option>
-                  </select>
+                  <div className="select-wrapper">
+                    <select
+                      value={formData.subject}
+                      onChange={(e) => setFormData({...formData, subject: e.target.value})}
+                      className="form-select"
+                      required
+                    >
+                      <option value="">Select a subject</option>
+                      <option value="general">General Inquiry</option>
+                      <option value="support">Technical Support</option>
+                      <option value="billing">Billing Question</option>
+                      <option value="partnership">Partnership</option>
+                      <option value="feedback">Feedback</option>
+                    </select>
+                    <svg className="select-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M6 9l6 6 6-6"/>
+                    </svg>
+                  </div>
                 </div>
                 <div className="form-group">
                   <label className="form-label">Message</label>
@@ -248,11 +290,20 @@ export default function ContactPage() {
                     rows={5}
                   />
                 </div>
-                <button type="submit" className="btn-submit">
-                  Send Message
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
-                  </svg>
+                <button type="submit" className="btn-submit" disabled={loading}>
+                  {loading ? (
+                    <>
+                      <span className="spinner"></span>
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      Send Message
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                      </svg>
+                    </>
+                  )}
                 </button>
               </form>
             )}
@@ -269,11 +320,20 @@ export default function ContactPage() {
             <p className="section-subtitle">Quick answers to common questions</p>
           </div>
 
-          <div className="faq-grid">
+          <div className="faq-list">
             {faqs.map((faq, i) => (
-              <div key={i} className="faq-item">
-                <h3 className="faq-question">{faq.question}</h3>
-                <p className="faq-answer">{faq.answer}</p>
+              <div key={i} className={`faq-item ${expandedFaq === i ? 'faq-item-open' : ''}`}>
+                <button className="faq-question-btn" onClick={() => toggleFaq(i)}>
+                  <span className="faq-question-text">{faq.question}</span>
+                  <div className={`faq-icon ${expandedFaq === i ? 'faq-icon-open' : ''}`}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="M6 9l6 6 6-6"/>
+                    </svg>
+                  </div>
+                </button>
+                <div className={`faq-answer ${expandedFaq === i ? 'faq-answer-open' : ''}`}>
+                  <p className="faq-answer-text">{faq.answer}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -634,14 +694,28 @@ const styles = `
     margin-bottom: 8px;
   }
 
+  .form-error {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 18px;
+    background: #FEF2F2;
+    border: 1px solid #FECACA;
+    border-radius: 12px;
+    color: #DC2626;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 20px;
+  }
+
   .form-input,
   .form-select,
   .form-textarea {
     width: 100%;
-    padding: 14px 18px;
+    padding: 16px 20px;
     background: #F8FAFC;
     border: 1px solid #E2E8F0;
-    border-radius: 12px;
+    border-radius: 14px;
     color: #0F172A;
     font-size: 15px;
     font-family: inherit;
@@ -655,10 +729,43 @@ const styles = `
   .form-textarea:focus {
     border-color: #059669;
     box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
+    background: #fff;
   }
 
-  .form-select { cursor: pointer; }
+  .select-wrapper {
+    position: relative;
+  }
+
+  .form-select {
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 48px;
+  }
+
+  .select-arrow {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #64748B;
+    pointer-events: none;
+  }
+
   .form-textarea { resize: vertical; min-height: 140px; }
+
+  .spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
 
   .btn-submit {
     width: 100%;
@@ -763,37 +870,84 @@ const styles = `
     line-height: 1.6;
   }
 
-  .faq-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 24px;
+  .faq-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
   }
 
   .faq-item {
     background: #fff;
     border-radius: 20px;
-    padding: 32px;
     border: 1px solid #E2E8F0;
-    transition: all 0.3s ease;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  .faq-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
-    border-color: transparent;
+  .faq-item-open {
+    border-color: #059669;
+    box-shadow: 0 8px 24px rgba(5, 150, 105, 0.1);
+    background: linear-gradient(135deg, #ECFDF5 0%, #fff 100%);
   }
 
-  .faq-question {
+  .faq-question-btn {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 28px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .faq-question-text {
     font-size: 17px;
-    font-weight: 700;
+    font-weight: 600;
     color: #0F172A;
-    margin: 0 0 12px;
+    flex: 1;
+    padding-right: 20px;
+    line-height: 1.4;
+  }
+
+  .faq-icon {
+    width: 36px;
+    height: 36px;
+    background: #F1F5F9;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748B;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+  }
+
+  .faq-icon-open {
+    transform: rotate(180deg);
+    background: #ECFDF5;
+    color: #059669;
   }
 
   .faq-answer {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: all 0.3s ease-in-out;
+    padding: 0 28px;
+  }
+
+  .faq-answer-open {
+    max-height: 300px;
+    opacity: 1;
+    padding: 0 28px 28px;
+  }
+
+  .faq-answer-text {
     font-size: 15px;
     color: #64748B;
-    line-height: 1.6;
+    line-height: 1.8;
     margin: 0;
   }
 
@@ -869,7 +1023,7 @@ const styles = `
   /* Responsive */
   @media (max-width: 1024px) {
     .contact-container { grid-template-columns: 1fr; }
-    .faq-grid { grid-template-columns: 1fr; }
+    .faq-list { max-width: 700px; margin: 0 auto; }
   }
 
   @media (max-width: 768px) {

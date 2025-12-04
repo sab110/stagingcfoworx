@@ -297,6 +297,7 @@ export default function AdminDashboard() {
     { id: "mapping", icon: <GitBranchIcon />, label: "Mapping Rules" },
     { id: "billing", icon: <CreditCardIcon />, label: "Billing" },
     { id: "errors", icon: <AlertTriangleIcon />, label: "Errors / Logs", alert: dashboard?.alerts?.has_failed_payments },
+    { id: "queries", icon: <MessageSquareIcon />, label: "User Queries" },
     { id: "settings", icon: <SettingsIcon />, label: "Settings" },
   ];
 
@@ -500,6 +501,11 @@ export default function AdminDashboard() {
               formatDateTime={formatDateTime}
               formatCurrency={formatCurrency}
             />
+          )}
+
+          {/* User Queries Section */}
+          {activeSection === "queries" && !selectedClient && (
+            <UserQueriesSection getAuthHeaders={getAuthHeaders} formatDate={formatDate} formatDateTime={formatDateTime} />
           )}
 
           {/* Settings Section */}
@@ -4290,6 +4296,485 @@ function LogLevelBadge({ level }) {
   );
 }
 
+// User Queries Section
+function UserQueriesSection({ getAuthHeaders, formatDate, formatDateTime }) {
+  const backendURL = import.meta.env.VITE_BACKEND_URL;
+  const [queries, setQueries] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedQuery, setSelectedQuery] = useState(null);
+  const [stats, setStats] = useState(null);
+  const [filters, setFilters] = useState({
+    status: '',
+    subject: '',
+    search: '',
+  });
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    total_pages: 0,
+  });
+
+  useEffect(() => {
+    fetchQueries();
+    fetchStats();
+  }, [filters, pagination.page]);
+
+  const fetchQueries = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: pagination.page,
+        limit: pagination.limit,
+      });
+      if (filters.status) params.append('status', filters.status);
+      if (filters.subject) params.append('subject', filters.subject);
+      if (filters.search) params.append('search', filters.search);
+      
+      const response = await fetch(`${backendURL}/api/admin/user-queries?${params}`, {
+        headers: getAuthHeaders(),
+      });
+      const data = await response.json();
+      setQueries(data.queries || []);
+      setPagination((prev) => ({ ...prev, ...data.pagination }));
+    } catch (err) {
+      console.error('Error fetching queries:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      const response = await fetch(`${backendURL}/api/admin/user-queries-stats`, {
+        headers: getAuthHeaders(),
+      });
+      const data = await response.json();
+      setStats(data);
+    } catch (err) {
+      console.error('Error fetching query stats:', err);
+    }
+  };
+
+  const updateQueryStatus = async (queryId, newStatus) => {
+    try {
+      const response = await fetch(`${backendURL}/api/admin/user-queries/${queryId}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (response.ok) {
+        fetchQueries();
+        fetchStats();
+        if (selectedQuery?.id === queryId) {
+          setSelectedQuery({ ...selectedQuery, status: newStatus });
+        }
+      }
+    } catch (err) {
+      console.error('Error updating query:', err);
+    }
+  };
+
+  const getStatusStyle = (status) => {
+    const statusStyles = {
+      new: { bg: '#DBEAFE', color: '#1D4ED8' },
+      in_progress: { bg: '#FEF3C7', color: '#D97706' },
+      resolved: { bg: '#ECFDF5', color: '#059669' },
+      closed: { bg: '#F1F5F9', color: '#64748B' },
+    };
+    return statusStyles[status] || statusStyles.new;
+  };
+
+  const getSubjectLabel = (subject) => {
+    const labels = {
+      general: 'General Inquiry',
+      support: 'Technical Support',
+      billing: 'Billing Question',
+      partnership: 'Partnership',
+      feedback: 'Feedback',
+    };
+    return labels[subject] || subject;
+  };
+
+  return (
+    <div>
+      <div style={styles.sectionHeader}>
+        <h3 style={styles.sectionTitle}>User Queries</h3>
+        <span style={styles.resultCount}>{pagination.total} total queries</span>
+      </div>
+
+      {/* Stats Cards */}
+      {stats && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '32px' }}>
+          <StatCard
+            icon={<MessageSquareIcon />}
+            value={stats.by_status?.new || 0}
+            label="New Queries"
+            color="#1D4ED8"
+            alert={stats.by_status?.new > 0}
+          />
+          <StatCard
+            icon={<ClockIcon />}
+            value={stats.by_status?.in_progress || 0}
+            label="In Progress"
+            color="#D97706"
+          />
+          <StatCard
+            icon={<CheckCircleIcon />}
+            value={stats.by_status?.resolved || 0}
+            label="Resolved"
+            color="#059669"
+          />
+          <StatCard
+            icon={<FileTextIcon />}
+            value={stats.total || 0}
+            label="Total Queries"
+            color="#64748B"
+          />
+        </div>
+      )}
+
+      {/* Filters */}
+      <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ position: 'relative', flex: '1', minWidth: '200px' }}>
+          <SearchIcon style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+          <input
+            type="text"
+            placeholder="Search by name, email, or message..."
+            value={filters.search}
+            onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+            style={{ ...styles.searchInput, paddingLeft: '44px', width: '100%' }}
+          />
+        </div>
+        <select
+          value={filters.status}
+          onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+          style={{ ...styles.searchInput, width: '160px', cursor: 'pointer' }}
+        >
+          <option value="">All Statuses</option>
+          <option value="new">New</option>
+          <option value="in_progress">In Progress</option>
+          <option value="resolved">Resolved</option>
+          <option value="closed">Closed</option>
+        </select>
+        <select
+          value={filters.subject}
+          onChange={(e) => setFilters({ ...filters, subject: e.target.value })}
+          style={{ ...styles.searchInput, width: '180px', cursor: 'pointer' }}
+        >
+          <option value="">All Subjects</option>
+          <option value="general">General Inquiry</option>
+          <option value="support">Technical Support</option>
+          <option value="billing">Billing Question</option>
+          <option value="partnership">Partnership</option>
+          <option value="feedback">Feedback</option>
+        </select>
+        {(filters.status || filters.subject || filters.search) && (
+          <button
+            onClick={() => setFilters({ status: '', subject: '', search: '' })}
+            style={{ ...styles.viewBtn, color: '#DC2626', borderColor: '#FECACA', background: '#FEF2F2' }}
+          >
+            Clear Filters
+          </button>
+        )}
+      </div>
+
+      {/* Queries Table */}
+      <div style={styles.tableContainer}>
+        <table style={styles.table}>
+          <thead>
+            <tr>
+              <th style={styles.th}>Sender</th>
+              <th style={styles.th}>Subject</th>
+              <th style={styles.th}>Status</th>
+              <th style={styles.th}>Date</th>
+              <th style={styles.th}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={5} style={{ ...styles.td, textAlign: 'center', padding: '40px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', color: '#64748B' }}>
+                    <span style={{ width: '20px', height: '20px', border: '2px solid #E2E8F0', borderTopColor: '#059669', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }}></span>
+                    Loading queries...
+                  </div>
+                </td>
+              </tr>
+            ) : queries.length === 0 ? (
+              <tr>
+                <td colSpan={5} style={{ ...styles.td, textAlign: 'center', padding: '60px' }}>
+                  <div style={styles.emptyState}>
+                    <div style={styles.emptyIcon}><MessageSquareIcon /></div>
+                    <h4 style={styles.emptyTitle}>No queries found</h4>
+                    <p style={styles.emptyDesc}>No user queries match your filters</p>
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              queries.map((query) => (
+                <tr key={query.id} style={styles.tr}>
+                  <td style={styles.td}>
+                    <div style={styles.companyCell}>
+                      <div style={{
+                        ...styles.companyAvatar,
+                        background: '#EFF6FF',
+                        color: '#3B82F6',
+                      }}>
+                        {query.name?.charAt(0)?.toUpperCase() || '?'}
+                      </div>
+                      <div>
+                        <div style={styles.companyName}>{query.name}</div>
+                        <div style={styles.realmId}>{query.email}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td style={styles.td}>
+                    <span style={{
+                      display: 'inline-block',
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      fontSize: '13px',
+                      fontWeight: '500',
+                      background: '#F1F5F9',
+                      color: '#475569',
+                    }}>
+                      {getSubjectLabel(query.subject)}
+                    </span>
+                  </td>
+                  <td style={styles.td}>
+                    <span style={{
+                      display: 'inline-block',
+                      padding: '4px 12px',
+                      borderRadius: '20px',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      background: getStatusStyle(query.status).bg,
+                      color: getStatusStyle(query.status).color,
+                      textTransform: 'capitalize',
+                    }}>
+                      {query.status?.replace('_', ' ')}
+                    </span>
+                  </td>
+                  <td style={styles.td}>
+                    <span style={{ fontSize: '13px', color: '#64748B' }}>{formatDate(query.created_at)}</span>
+                  </td>
+                  <td style={styles.td}>
+                    <button
+                      onClick={() => setSelectedQuery(query)}
+                      style={styles.viewBtn}
+                    >
+                      View Details
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pagination */}
+      {pagination.total_pages > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', marginTop: '24px' }}>
+          <button
+            onClick={() => setPagination({ ...pagination, page: pagination.page - 1 })}
+            disabled={pagination.page === 1}
+            style={{ ...styles.viewBtn, opacity: pagination.page === 1 ? 0.5 : 1, cursor: pagination.page === 1 ? 'not-allowed' : 'pointer' }}
+          >
+            Previous
+          </button>
+          <span style={{ fontSize: '14px', color: '#64748B' }}>
+            Page {pagination.page} of {pagination.total_pages}
+          </span>
+          <button
+            onClick={() => setPagination({ ...pagination, page: pagination.page + 1 })}
+            disabled={pagination.page === pagination.total_pages}
+            style={{ ...styles.viewBtn, opacity: pagination.page === pagination.total_pages ? 0.5 : 1, cursor: pagination.page === pagination.total_pages ? 'not-allowed' : 'pointer' }}
+          >
+            Next
+          </button>
+        </div>
+      )}
+
+      {/* Query Detail Modal */}
+      {selectedQuery && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.6)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '20px',
+        }} onClick={() => setSelectedQuery(null)}>
+          <div style={{
+            background: '#fff',
+            borderRadius: '20px',
+            width: '100%',
+            maxWidth: '600px',
+            maxHeight: '90vh',
+            overflow: 'auto',
+            boxShadow: '0 25px 50px rgba(0, 0, 0, 0.2)',
+          }} onClick={(e) => e.stopPropagation()}>
+            {/* Modal Header */}
+            <div style={{
+              padding: '24px',
+              borderBottom: '1px solid #E2E8F0',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+              <div>
+                <h3 style={{ margin: '0 0 4px', fontSize: '18px', fontWeight: '700', color: '#0F172A' }}>Query Details</h3>
+                <span style={{ fontSize: '13px', color: '#64748B' }}>ID: #{selectedQuery.id}</span>
+              </div>
+              <button
+                onClick={() => setSelectedQuery(null)}
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '8px',
+                  background: '#F1F5F9',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#64748B',
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div style={{ padding: '24px' }}>
+              {/* Sender Info */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px', padding: '16px', background: '#F8FAFC', borderRadius: '12px' }}>
+                <div style={{
+                  width: '56px',
+                  height: '56px',
+                  borderRadius: '14px',
+                  background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#fff',
+                  fontSize: '22px',
+                  fontWeight: '700',
+                }}>
+                  {selectedQuery.name?.charAt(0)?.toUpperCase()}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '17px', fontWeight: '600', color: '#0F172A', marginBottom: '4px' }}>{selectedQuery.name}</div>
+                  <div style={{ fontSize: '14px', color: '#64748B' }}>{selectedQuery.email}</div>
+                </div>
+                <span style={{
+                  padding: '6px 14px',
+                  borderRadius: '20px',
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  background: getStatusStyle(selectedQuery.status).bg,
+                  color: getStatusStyle(selectedQuery.status).color,
+                  textTransform: 'capitalize',
+                }}>
+                  {selectedQuery.status?.replace('_', ' ')}
+                </span>
+              </div>
+
+              {/* Query Details */}
+              <div style={{ marginBottom: '24px' }}>
+                <div style={{ fontSize: '12px', fontWeight: '600', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>Subject</div>
+                <div style={{
+                  padding: '8px 14px',
+                  background: '#F1F5F9',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#475569',
+                  display: 'inline-block',
+                }}>
+                  {getSubjectLabel(selectedQuery.subject)}
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '24px' }}>
+                <div style={{ fontSize: '12px', fontWeight: '600', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>Message</div>
+                <div style={{
+                  padding: '16px',
+                  background: '#F8FAFC',
+                  border: '1px solid #E2E8F0',
+                  borderRadius: '12px',
+                  fontSize: '15px',
+                  color: '#374151',
+                  lineHeight: '1.7',
+                  whiteSpace: 'pre-wrap',
+                }}>
+                  {selectedQuery.message}
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', marginBottom: '24px' }}>
+                <div>
+                  <div style={{ fontSize: '12px', fontWeight: '600', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Submitted</div>
+                  <div style={{ fontSize: '14px', color: '#0F172A' }}>{formatDateTime(selectedQuery.created_at)}</div>
+                </div>
+                {selectedQuery.responded_at && (
+                  <div>
+                    <div style={{ fontSize: '12px', fontWeight: '600', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Responded</div>
+                    <div style={{ fontSize: '14px', color: '#0F172A' }}>
+                      {formatDateTime(selectedQuery.responded_at)}
+                      {selectedQuery.responded_by && <span style={{ color: '#64748B' }}> by {selectedQuery.responded_by}</span>}
+                    </div>
+                  </div>
+                )}
+                {selectedQuery.ip_address && (
+                  <div>
+                    <div style={{ fontSize: '12px', fontWeight: '600', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>IP Address</div>
+                    <div style={{ fontSize: '13px', color: '#64748B', fontFamily: 'monospace' }}>{selectedQuery.ip_address}</div>
+                  </div>
+                )}
+              </div>
+
+              {/* Status Update */}
+              <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '20px' }}>
+                <div style={{ fontSize: '12px', fontWeight: '600', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>Update Status</div>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  {['new', 'in_progress', 'resolved', 'closed'].map((status) => (
+                    <button
+                      key={status}
+                      onClick={() => updateQueryStatus(selectedQuery.id, status)}
+                      style={{
+                        padding: '8px 16px',
+                        borderRadius: '8px',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        border: selectedQuery.status === status ? 'none' : '1px solid #E2E8F0',
+                        background: selectedQuery.status === status ? getStatusStyle(status).bg : '#fff',
+                        color: selectedQuery.status === status ? getStatusStyle(status).color : '#64748B',
+                        cursor: 'pointer',
+                        textTransform: 'capitalize',
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      {status.replace('_', ' ')}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Settings Section
 function SettingsSection({ adminUsername }) {
   const backendURL = import.meta.env.VITE_BACKEND_URL;
@@ -4674,6 +5159,14 @@ function CreditCardIcon() {
 
 function AlertTriangleIcon() {
   return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>;
+}
+
+function MessageSquareIcon() {
+  return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>;
+}
+
+function ClockIcon() {
+  return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>;
 }
 
 function SettingsIcon() {
