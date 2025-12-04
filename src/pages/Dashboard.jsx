@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import ProfileWidget from "../components/ProfileWidget";
 
 export default function Dashboard() {
   const backendURL = import.meta.env.VITE_BACKEND_URL;
@@ -35,7 +34,7 @@ export default function Dashboard() {
         const data = await res.json();
         if (data.email) localStorage.setItem("user_email", data.email);
         setUser(data);
-        await fetchSelectedLicenses();
+        await fetchAllLicenses();
       } catch (err) {
         console.error("Error loading user data:", err);
         setError("Unable to load data. Please try again.");
@@ -44,9 +43,9 @@ export default function Dashboard() {
       }
     };
 
-    const fetchSelectedLicenses = async () => {
+    const fetchAllLicenses = async () => {
       try {
-        const response = await fetch(`${backendURL}/api/licenses/company/${realmId}/selected`);
+        const response = await fetch(`${backendURL}/api/licenses/company/${realmId}`);
         if (response.ok) {
           const data = await response.json();
           setLicenses(data.licenses || []);
@@ -106,26 +105,42 @@ export default function Dashboard() {
     }
   };
 
+  const refreshLicenses = async () => {
+    try {
+      const response = await fetch(`${backendURL}/api/licenses/company/${realmId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setLicenses(data.licenses || []);
+      }
+    } catch (err) {
+      console.error("Error refreshing licenses:", err);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="loading-container">
-        <div className="loading-spinner"></div>
-        <p>Loading your dashboard...</p>
-        <style>{loaderStyles}</style>
+      <div style={styles.loadingContainer}>
+        <div style={styles.spinner}></div>
+        <p style={styles.loadingText}>Loading your dashboard...</p>
+        <style>{keyframes}</style>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="error-container">
-        <div className="error-icon">!</div>
-        <h2>Something went wrong</h2>
-        <p>{error}</p>
-        <button onClick={() => navigate("/login")} className="btn btn-primary">
+      <div style={styles.errorContainer}>
+        <div style={styles.errorIcon}>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+        </div>
+        <h2 style={styles.errorTitle}>Something went wrong</h2>
+        <p style={styles.errorText}>{error}</p>
+        <button onClick={() => navigate("/login")} style={styles.errorBtn}>
           Back to Login
         </button>
-        <style>{loaderStyles}</style>
+        <style>{keyframes}</style>
       </div>
     );
   }
@@ -135,25 +150,33 @@ export default function Dashboard() {
     { id: "franchises", icon: "building", label: "Franchises" },
     { id: "reports", icon: "chart", label: "Reports" },
     { id: "billing", icon: "card", label: "Billing" },
-    { id: "submissions", icon: "upload", label: "Submissions" },
   ];
+
+  const activeLicenses = licenses.filter(l => l.quickbooks?.is_active === "true");
 
   return (
     <>
-      <style>{dashboardStyles}</style>
-      <div className="dashboard">
+      <style>{keyframes}</style>
+      <div style={styles.dashboard}>
         {/* Sidebar */}
-        <aside className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
-          <div className="sidebar-header">
-            <div className="logo">
-              <div className="logo-icon">CW</div>
-              {!sidebarCollapsed && <span className="logo-text">CFO Worx</span>}
+        <aside style={{
+          ...styles.sidebar,
+          width: sidebarCollapsed ? 72 : 260,
+        }}>
+          <div style={styles.sidebarHeader}>
+            <div style={styles.logo}>
+              <div style={styles.logoIcon}>
+                <svg viewBox="0 0 24 24" fill="none" style={{ width: 18, height: 18 }}>
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              {!sidebarCollapsed && <span style={styles.logoText}>RoyaltiesAgent</span>}
             </div>
-            <button 
-              className="collapse-btn"
+            <button
+              style={styles.collapseBtn}
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 {sidebarCollapsed ? (
                   <path d="M9 18l6-6-6-6" />
                 ) : (
@@ -163,55 +186,85 @@ export default function Dashboard() {
             </button>
           </div>
 
-          <nav className="sidebar-nav">
+          <nav style={styles.sidebarNav}>
             {menuItems.map((item) => (
               <button
                 key={item.id}
                 onClick={() => setActiveSection(item.id)}
-                className={`nav-item ${activeSection === item.id ? 'active' : ''}`}
+                style={{
+                  ...styles.navItem,
+                  ...(activeSection === item.id ? styles.navItemActive : {}),
+                  justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+                }}
               >
-                <MenuIcon name={item.icon} />
+                <MenuIcon name={item.icon} active={activeSection === item.id} />
                 {!sidebarCollapsed && <span>{item.label}</span>}
               </button>
             ))}
           </nav>
 
-          <div className="sidebar-footer">
-            <div className="connection-status">
-              <span className="status-dot"></span>
-              {!sidebarCollapsed && <span>QuickBooks Connected</span>}
+          <div style={styles.sidebarFooter}>
+            <div style={{
+              ...styles.connectionStatus,
+              justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+            }}>
+              <span style={styles.statusDot}></span>
+              {!sidebarCollapsed && <span style={styles.statusText}>QuickBooks Connected</span>}
             </div>
           </div>
         </aside>
 
         {/* Main Content */}
-        <main className="main-content">
+        <main style={styles.mainContent}>
           {/* Top Bar */}
-          <header className="top-bar">
-            <div className="top-bar-left">
-              <h1 className="page-title">
+          <header style={styles.topBar}>
+            <div style={styles.topBarLeft}>
+              <h1 style={styles.pageTitle}>
                 {menuItems.find(item => item.id === activeSection)?.label || "Dashboard"}
               </h1>
               {user?.company_name && (
-                <span className="company-badge">{user.company_name}</span>
+                <span style={styles.companyBadge}>{user.company_name}</span>
               )}
             </div>
-            <ProfileWidget user={user} onLogout={handleLogout} />
+            <div style={styles.topBarRight}>
+              <div style={styles.userMenu}>
+                <div style={styles.userAvatar}>
+                  {user?.full_name?.charAt(0) || 'U'}
+                </div>
+                <div style={styles.userInfo}>
+                  <span style={styles.userName}>{user?.full_name || 'User'}</span>
+                  <span style={styles.userEmail}>{user?.email || ''}</span>
+                </div>
+                <button onClick={handleLogout} style={styles.logoutBtn}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
           </header>
 
           {/* Content Area */}
-          <div className="content">
+          <div style={styles.content}>
             {activeSection === "overview" && (
               <OverviewSection 
                 user={user} 
-                licenses={licenses} 
+                licenses={licenses}
+                activeLicenses={activeLicenses}
                 subscription={subscription}
                 onManageBilling={handleManageBilling}
                 navigate={navigate}
+                setActiveSection={setActiveSection}
               />
             )}
             {activeSection === "franchises" && (
-              <FranchisesSection licenses={licenses} navigate={navigate} />
+              <FranchisesSection 
+                licenses={licenses}
+                setLicenses={setLicenses}
+                realmId={realmId}
+                backendURL={backendURL}
+                refreshLicenses={refreshLicenses}
+              />
             )}
             {activeSection === "reports" && (
               <ReportsSection />
@@ -219,12 +272,10 @@ export default function Dashboard() {
             {activeSection === "billing" && (
               <BillingSection 
                 subscription={subscription} 
+                activeLicenses={activeLicenses}
                 onManageBilling={handleManageBilling}
                 navigate={navigate}
               />
-            )}
-            {activeSection === "submissions" && (
-              <SubmissionsSection />
             )}
           </div>
         </main>
@@ -234,85 +285,148 @@ export default function Dashboard() {
 }
 
 // Menu Icon Component
-function MenuIcon({ name }) {
+function MenuIcon({ name, active }) {
+  const color = active ? "#2CA01C" : "#64748B";
   const icons = {
-    grid: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>,
-    building: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 21h18M9 8h1M9 12h1M9 16h1M14 8h1M14 12h1M14 16h1M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16"/></svg>,
-    chart: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>,
-    card: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>,
-    upload: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>,
+    grid: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>,
+    building: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2"><path d="M3 21h18M9 8h1M9 12h1M9 16h1M14 8h1M14 12h1M14 16h1M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16"/></svg>,
+    chart: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>,
+    card: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>,
   };
-  return <span className="nav-icon">{icons[name]}</span>;
+  return icons[name] || null;
 }
 
 // Overview Section
-function OverviewSection({ user, licenses, subscription, onManageBilling, navigate }) {
+function OverviewSection({ user, licenses, activeLicenses, subscription, onManageBilling, navigate, setActiveSection }) {
   const stats = [
-    { label: "Active Franchises", value: licenses.length, color: "#10b981" },
-    { label: "Subscription", value: subscription?.status === "active" ? "Active" : "Inactive", color: subscription?.status === "active" ? "#10b981" : "#f59e0b" },
-    { label: "Licensed Seats", value: subscription?.quantity || 0, color: "#6366f1" },
-    { label: "Next Billing", value: subscription?.end_date ? new Date(subscription.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : "N/A", color: "#8b5cf6" },
+    { 
+      label: "Active Franchises", 
+      value: activeLicenses.length, 
+      total: licenses.length,
+      icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2CA01C" strokeWidth="2"><path d="M3 21h18M9 8h1M9 12h1M9 16h1M14 8h1M14 12h1M14 16h1M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16"/></svg>,
+      color: "#2CA01C",
+      bgColor: "#ECFDF5",
+    },
+    { 
+      label: "Subscription Status", 
+      value: subscription?.status === "active" ? "Active" : subscription?.status === "canceled" ? "Canceled" : "None",
+      icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={subscription?.status === "active" ? "#2CA01C" : "#F59E0B"} strokeWidth="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>,
+      color: subscription?.status === "active" ? "#2CA01C" : "#F59E0B",
+      bgColor: subscription?.status === "active" ? "#ECFDF5" : "#FFFBEB",
+    },
+    { 
+      label: "Licensed Seats", 
+      value: subscription?.quantity || 0,
+      icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>,
+      color: "#3B82F6",
+      bgColor: "#EFF6FF",
+    },
+    { 
+      label: "Next Billing", 
+      value: subscription?.end_date ? new Date(subscription.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : "N/A",
+      icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
+      color: "#8B5CF6",
+      bgColor: "#F5F3FF",
+    },
   ];
 
   return (
-    <div className="section">
-      {/* Welcome */}
-      <div className="welcome-card">
-        <div className="welcome-content">
-          <h2>Welcome back, {user?.full_name?.split(' ')[0] || 'User'}</h2>
-          <p>Here's an overview of your franchise operations.</p>
+    <div style={styles.section}>
+      {/* Welcome Card */}
+      <div style={styles.welcomeCard}>
+        <div style={styles.welcomeContent}>
+          <h2 style={styles.welcomeTitle}>Welcome back, {user?.full_name?.split(' ')[0] || 'User'}</h2>
+          <p style={styles.welcomeText}>Here's an overview of your franchise operations.</p>
         </div>
+        {!subscription && (
+          <button onClick={() => navigate("/subscribe")} style={styles.subscribeBtn}>
+            Subscribe Now
+          </button>
+        )}
       </div>
 
-      {/* Stats */}
-      <div className="stats-grid">
+      {/* Stats Grid */}
+      <div style={styles.statsGrid}>
         {stats.map((stat, i) => (
-          <div key={i} className="stat-card">
-            <div className="stat-value" style={{ color: stat.color }}>{stat.value}</div>
-            <div className="stat-label">{stat.label}</div>
+          <div key={i} style={styles.statCard}>
+            <div style={{ ...styles.statIcon, background: stat.bgColor }}>
+              {stat.icon}
+            </div>
+            <div style={styles.statContent}>
+              <div style={{ ...styles.statValue, color: stat.color }}>
+                {stat.value}
+                {stat.total !== undefined && (
+                  <span style={styles.statTotal}>/ {stat.total}</span>
+                )}
+              </div>
+              <div style={styles.statLabel}>{stat.label}</div>
+            </div>
           </div>
         ))}
       </div>
 
       {/* Quick Actions */}
-      <div className="section-header">
-        <h3>Quick Actions</h3>
-      </div>
-      <div className="actions-grid">
-        <button onClick={() => navigate("/franchises")} className="action-card">
-          <MenuIcon name="building" />
-          <span>Manage Franchises</span>
+      <h3 style={styles.sectionTitle}>Quick Actions</h3>
+      <div style={styles.actionsGrid}>
+        <button onClick={() => setActiveSection("franchises")} style={styles.actionCard}>
+          <div style={{ ...styles.actionIcon, background: '#ECFDF5' }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2CA01C" strokeWidth="2">
+              <path d="M3 21h18M9 8h1M9 12h1M9 16h1M14 8h1M14 12h1M14 16h1M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16"/>
+            </svg>
+          </div>
+          <span style={styles.actionLabel}>Manage Franchises</span>
+          <span style={styles.actionArrow}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2">
+              <path d="M9 18l6-6-6-6"/>
+            </svg>
+          </span>
         </button>
-        <button className="action-card">
-          <MenuIcon name="chart" />
-          <span>Generate Report</span>
+        <button onClick={() => setActiveSection("reports")} style={styles.actionCard}>
+          <div style={{ ...styles.actionIcon, background: '#EFF6FF' }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2">
+              <path d="M18 20V10M12 20V4M6 20v-6"/>
+            </svg>
+          </div>
+          <span style={styles.actionLabel}>View Reports</span>
+          <span style={styles.actionArrow}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2">
+              <path d="M9 18l6-6-6-6"/>
+            </svg>
+          </span>
         </button>
-        <button onClick={onManageBilling} className="action-card">
-          <MenuIcon name="card" />
-          <span>Manage Billing</span>
-        </button>
-        <button className="action-card">
-          <MenuIcon name="upload" />
-          <span>New Submission</span>
+        <button onClick={onManageBilling} style={styles.actionCard}>
+          <div style={{ ...styles.actionIcon, background: '#F5F3FF' }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2">
+              <rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+            </svg>
+          </div>
+          <span style={styles.actionLabel}>Manage Billing</span>
+          <span style={styles.actionArrow}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2">
+              <path d="M9 18l6-6-6-6"/>
+            </svg>
+          </span>
         </button>
       </div>
 
-      {/* Recent Franchises */}
-      {licenses.length > 0 && (
+      {/* Recent Franchises Preview */}
+      {activeLicenses.length > 0 && (
         <>
-          <div className="section-header">
-            <h3>Your Franchises</h3>
-            <button onClick={() => navigate("/franchises")} className="link-btn">View All</button>
+          <div style={styles.sectionHeader}>
+            <h3 style={styles.sectionTitle}>Active Franchises</h3>
+            <button onClick={() => setActiveSection("franchises")} style={styles.viewAllBtn}>View All</button>
           </div>
-          <div className="franchise-grid">
-            {licenses.slice(0, 6).map((license) => (
-              <div key={license.franchise_number} className="franchise-card">
-                <div className="franchise-header">
-                  <span className="franchise-number">#{license.franchise_number}</span>
-                  <span className="status-badge active">Active</span>
+          <div style={styles.franchisePreviewGrid}>
+            {activeLicenses.slice(0, 4).map((license) => (
+              <div key={license.franchise_number} style={styles.franchisePreviewCard}>
+                <div style={styles.franchisePreviewHeader}>
+                  <span style={styles.franchiseNum}>#{license.franchise_number}</span>
+                  <span style={styles.activeBadge}>Active</span>
                 </div>
-                <div className="franchise-name">{license.name}</div>
-                <div className="franchise-location">{license.city}, {license.state}</div>
+                <div style={styles.franchisePreviewName}>{license.name}</div>
+                <div style={styles.franchisePreviewLocation}>
+                  {license.city && license.state ? `${license.city}, ${license.state}` : "Location not set"}
+                </div>
               </div>
             ))}
           </div>
@@ -322,50 +436,261 @@ function OverviewSection({ user, licenses, subscription, onManageBilling, naviga
   );
 }
 
-// Franchises Section
-function FranchisesSection({ licenses, navigate }) {
+// Franchises Section with full management
+function FranchisesSection({ licenses, setLicenses, realmId, backendURL, refreshLicenses }) {
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState({ type: '', text: '' });
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+
+  const handleToggleLicense = async (franchiseNumber, currentActive) => {
+    const newActive = currentActive === "true" ? "false" : "true";
+    
+    try {
+      setSaving(true);
+      setMessage({ type: '', text: '' });
+
+      const response = await fetch(
+        `${backendURL}/api/licenses/company/${realmId}/mapping/${franchiseNumber}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ is_active: newActive }),
+        }
+      );
+
+      if (!response.ok) throw new Error("Failed to update license");
+
+      setLicenses(prev => prev.map(lic => {
+        if (lic.franchise_number === franchiseNumber) {
+          return { ...lic, quickbooks: { ...lic.quickbooks, is_active: newActive } };
+        }
+        return lic;
+      }));
+
+      setMessage({ 
+        type: 'success', 
+        text: `Franchise #${franchiseNumber} ${newActive === "true" ? "activated" : "deactivated"}` 
+      });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+    } catch (err) {
+      console.error("Error updating license:", err);
+      setMessage({ type: 'error', text: `Failed to update franchise #${franchiseNumber}` });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleBulkAction = async (activate) => {
+    if (!activate && !window.confirm("Are you sure you want to deactivate all franchises? This will affect your billing.")) {
+      return;
+    }
+    
+    try {
+      setSaving(true);
+      setMessage({ type: '', text: '' });
+
+      const franchiseNumbers = activate ? licenses.map(lic => lic.franchise_number) : [];
+      
+      const response = await fetch(
+        `${backendURL}/api/licenses/company/${realmId}/select-licenses`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ franchise_numbers: franchiseNumbers }),
+        }
+      );
+
+      if (!response.ok) throw new Error("Failed to update");
+
+      await refreshLicenses();
+      setMessage({ 
+        type: 'success', 
+        text: activate ? "All franchises activated" : "All franchises deactivated" 
+      });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+    } catch (err) {
+      console.error("Error:", err);
+      setMessage({ type: 'error', text: "Failed to update franchises" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const filteredLicenses = licenses.filter(lic => {
+    const matchesSearch = 
+      lic.franchise_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      lic.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      lic.city?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const isActive = lic.quickbooks?.is_active === "true";
+    const matchesFilter = 
+      filterStatus === "all" ||
+      (filterStatus === "active" && isActive) ||
+      (filterStatus === "inactive" && !isActive);
+    
+    return matchesSearch && matchesFilter;
+  });
+
+  const activeCount = licenses.filter(l => l.quickbooks?.is_active === "true").length;
+  const inactiveCount = licenses.length - activeCount;
+
   return (
-    <div className="section">
-      <div className="section-header">
-        <h3>Franchise Management</h3>
-        <button onClick={() => navigate("/franchises")} className="btn btn-primary">
-          Manage Franchises
-        </button>
+    <div style={styles.section}>
+      {/* Stats Cards */}
+      <div style={styles.franchiseStats}>
+        <div style={{ ...styles.franchiseStatCard, borderColor: '#2CA01C' }}>
+          <div style={{ ...styles.franchiseStatValue, color: '#2CA01C' }}>{activeCount}</div>
+          <div style={styles.franchiseStatLabel}>Active</div>
+        </div>
+        <div style={{ ...styles.franchiseStatCard, borderColor: '#EF4444' }}>
+          <div style={{ ...styles.franchiseStatValue, color: '#EF4444' }}>{inactiveCount}</div>
+          <div style={styles.franchiseStatLabel}>Inactive</div>
+        </div>
+        <div style={{ ...styles.franchiseStatCard, borderColor: '#3B82F6' }}>
+          <div style={{ ...styles.franchiseStatValue, color: '#3B82F6' }}>{licenses.length}</div>
+          <div style={styles.franchiseStatLabel}>Total</div>
+        </div>
       </div>
 
-      {licenses.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-icon">
-            <MenuIcon name="building" />
-          </div>
-          <h3>No franchises yet</h3>
-          <p>Add your first franchise to get started</p>
-          <button onClick={() => navigate("/franchises")} className="btn btn-primary">
-            Add Franchises
+      {/* Info Banner */}
+      <div style={styles.infoBanner}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+        </svg>
+        <span>Billing is based on <strong>active franchises</strong>. Changes will apply on your next billing cycle.</span>
+      </div>
+
+      {/* Actions Bar */}
+      <div style={styles.franchiseActionsBar}>
+        <div style={styles.searchBox}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2">
+            <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+          </svg>
+          <input 
+            type="text" 
+            placeholder="Search franchises..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={styles.searchInput}
+          />
+        </div>
+        
+        <select 
+          value={filterStatus} 
+          onChange={(e) => setFilterStatus(e.target.value)}
+          style={styles.filterSelect}
+        >
+          <option value="all">All Status</option>
+          <option value="active">Active Only</option>
+          <option value="inactive">Inactive Only</option>
+        </select>
+
+        <div style={styles.bulkActions}>
+          <button 
+            onClick={() => handleBulkAction(true)} 
+            disabled={saving || activeCount === licenses.length}
+            style={{
+              ...styles.bulkBtn,
+              ...styles.bulkBtnSuccess,
+              opacity: (saving || activeCount === licenses.length) ? 0.5 : 1,
+            }}
+          >
+            Activate All
+          </button>
+          <button 
+            onClick={() => handleBulkAction(false)} 
+            disabled={saving || inactiveCount === licenses.length}
+            style={{
+              ...styles.bulkBtn,
+              ...styles.bulkBtnDanger,
+              opacity: (saving || inactiveCount === licenses.length) ? 0.5 : 1,
+            }}
+          >
+            Deactivate All
           </button>
         </div>
+      </div>
+
+      {/* Messages */}
+      {message.text && (
+        <div style={{
+          ...styles.message,
+          ...(message.type === 'success' ? styles.messageSuccess : styles.messageError)
+        }}>
+          {message.text}
+        </div>
+      )}
+
+      {/* Table */}
+      {filteredLicenses.length === 0 ? (
+        <div style={styles.emptyState}>
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="1.5">
+            <path d="M3 21h18M9 8h1M9 12h1M9 16h1M14 8h1M14 12h1M14 16h1M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16"/>
+          </svg>
+          <h3 style={styles.emptyTitle}>
+            {searchQuery || filterStatus !== "all" ? "No matching franchises" : "No franchises found"}
+          </h3>
+          <p style={styles.emptyText}>
+            {searchQuery || filterStatus !== "all" ? "Try adjusting your search or filter" : "Your QuickBooks departments will appear here"}
+          </p>
+        </div>
       ) : (
-        <div className="table-container">
-          <table className="data-table">
+        <div style={styles.tableContainer}>
+          <table style={styles.table}>
             <thead>
               <tr>
-                <th>Franchise #</th>
-                <th>Name</th>
-                <th>Location</th>
-                <th>Department</th>
-                <th>Status</th>
+                <th style={styles.th}>Franchise #</th>
+                <th style={styles.th}>Name</th>
+                <th style={styles.th}>Location</th>
+                <th style={styles.th}>Department</th>
+                <th style={styles.th}>Status</th>
+                <th style={{ ...styles.th, textAlign: 'center' }}>Action</th>
               </tr>
             </thead>
             <tbody>
-              {licenses.map((license) => (
-                <tr key={license.franchise_number}>
-                  <td><strong>#{license.franchise_number}</strong></td>
-                  <td>{license.name}</td>
-                  <td>{license.city}, {license.state}</td>
-                  <td>{license.quickbooks?.department_name || "—"}</td>
-                  <td><span className="status-badge active">Active</span></td>
-                </tr>
-              ))}
+              {filteredLicenses.map((license) => {
+                const isActive = license.quickbooks?.is_active === "true";
+                return (
+                  <tr key={license.franchise_number} style={styles.tr}>
+                    <td style={styles.td}>
+                      <span style={styles.franchiseNumber}>#{license.franchise_number}</span>
+                    </td>
+                    <td style={styles.td}>
+                      <span style={styles.franchiseName}>{license.name}</span>
+                    </td>
+                    <td style={styles.td}>
+                      <span style={styles.franchiseLocation}>
+                        {license.city && license.state ? `${license.city}, ${license.state}` : "—"}
+                      </span>
+                    </td>
+                    <td style={styles.td}>
+                      <span style={styles.departmentName}>{license.quickbooks?.department_name || "—"}</span>
+                    </td>
+                    <td style={styles.td}>
+                      <span style={{
+                        ...styles.statusBadge,
+                        ...(isActive ? styles.statusActive : styles.statusInactive)
+                      }}>
+                        {isActive ? "Active" : "Inactive"}
+                      </span>
+                    </td>
+                    <td style={{ ...styles.td, textAlign: 'center' }}>
+                      <button
+                        onClick={() => handleToggleLicense(license.franchise_number, license.quickbooks?.is_active || "false")}
+                        disabled={saving}
+                        style={{
+                          ...styles.toggleBtn,
+                          ...(isActive ? styles.toggleBtnDeactivate : styles.toggleBtnActivate),
+                          opacity: saving ? 0.5 : 1,
+                        }}
+                      >
+                        {isActive ? "Deactivate" : "Activate"}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -376,846 +701,922 @@ function FranchisesSection({ licenses, navigate }) {
 
 // Reports Section
 function ReportsSection() {
-  const reportTypes = [
-    { title: "Royalty Volume Calculation", desc: "Calculate royalties based on sales volume" },
-    { title: "Sales Summary", desc: "Monthly sales breakdown by franchise" },
-    { title: "Compliance Report", desc: "Franchise compliance and audit report" },
-  ];
-
   return (
-    <div className="section">
-      <div className="section-header">
-        <h3>Reports</h3>
-        <button className="btn btn-primary">Generate New Report</button>
-      </div>
-
-      <div className="reports-grid">
-        {reportTypes.map((report, i) => (
-          <div key={i} className="report-card">
-            <h4>{report.title}</h4>
-            <p>{report.desc}</p>
-            <button className="btn btn-secondary">Generate</button>
-          </div>
-        ))}
-      </div>
-
-      <div className="section-header" style={{ marginTop: '32px' }}>
-        <h3>Recent Reports</h3>
-      </div>
-      <div className="empty-state">
-        <div className="empty-icon">
-          <MenuIcon name="chart" />
-        </div>
-        <h3>No reports yet</h3>
-        <p>Generate your first report to see it here</p>
+    <div style={styles.section}>
+      <div style={styles.comingSoon}>
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="1.5">
+          <path d="M18 20V10M12 20V4M6 20v-6"/>
+        </svg>
+        <h3 style={styles.comingSoonTitle}>Reports Coming Soon</h3>
+        <p style={styles.comingSoonText}>
+          Your royalty reports, analytics, and file downloads will be available here.
+        </p>
       </div>
     </div>
   );
 }
 
 // Billing Section
-function BillingSection({ subscription, onManageBilling, navigate }) {
-  return (
-    <div className="section">
-      <div className="section-header">
-        <h3>Billing & Subscription</h3>
-      </div>
+function BillingSection({ subscription, activeLicenses, onManageBilling, navigate }) {
+  const formatDate = (dateStr) => {
+    if (!dateStr) return 'N/A';
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
 
-      {subscription ? (
-        <div className="billing-grid">
-          <div className="billing-card">
-            <h4>Current Plan</h4>
-            <div className="plan-name">{subscription.plan?.name || "Standard"} Plan</div>
-            <div className="plan-cycle">{subscription.plan?.billing_cycle || "Monthly"}</div>
-            <div className="plan-price">
-              {subscription.plan?.price || "$39/mo"} × {subscription.quantity || 1} license(s)
-            </div>
-            <div className="plan-status">
-              Status: <span className={subscription.status === "active" ? "text-success" : "text-warning"}>
-                {subscription.status?.toUpperCase()}
-              </span>
-            </div>
+  if (!subscription) {
+    return (
+      <div style={styles.section}>
+        <div style={styles.noSubscription}>
+          <div style={styles.noSubIcon}>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="1.5">
+              <rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+            </svg>
           </div>
-
-          <div className="billing-card">
-            <h4>Billing Details</h4>
-            <div className="billing-item">
-              <span>Next billing date</span>
-              <span className="billing-value">
-                {subscription.end_date ? new Date(subscription.end_date).toLocaleDateString() : "N/A"}
-              </span>
-            </div>
-            <div className="billing-item">
-              <span>Total licenses</span>
-              <span className="billing-value">{subscription.quantity || 1}</span>
-            </div>
-            <button onClick={onManageBilling} className="btn btn-primary" style={{ marginTop: '20px', width: '100%' }}>
-              Manage Billing
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="empty-state">
-          <div className="empty-icon">
-            <MenuIcon name="card" />
-          </div>
-          <h3>No active subscription</h3>
-          <p>Subscribe to access all features</p>
-          <button onClick={() => navigate("/subscribe")} className="btn btn-primary">
+          <h3 style={styles.noSubTitle}>No Active Subscription</h3>
+          <p style={styles.noSubText}>
+            Subscribe to unlock full access to royalty reporting and automation features.
+          </p>
+          <button onClick={() => navigate("/subscribe")} style={styles.subscribeNowBtn}>
             Subscribe Now
           </button>
         </div>
-      )}
-    </div>
-  );
-}
+      </div>
+    );
+  }
 
-// Submissions Section
-function SubmissionsSection() {
   return (
-    <div className="section">
-      <div className="section-header">
-        <h3>Submissions</h3>
-        <button className="btn btn-primary">New Submission</button>
+    <div style={styles.section}>
+      {/* Subscription Card */}
+      <div style={styles.billingCard}>
+        <div style={styles.billingHeader}>
+          <div>
+            <h3 style={styles.billingTitle}>Subscription Details</h3>
+            <p style={styles.billingSubtitle}>Manage your plan and billing preferences</p>
+          </div>
+          <span style={{
+            ...styles.billingStatus,
+            ...(subscription.status === 'active' ? styles.billingStatusActive : 
+                subscription.status === 'canceled' ? styles.billingStatusCanceled : styles.billingStatusPending)
+          }}>
+            {subscription.status === 'active' ? 'Active' : 
+             subscription.status === 'canceled' ? 'Canceled' : subscription.status}
+          </span>
+        </div>
+
+        <div style={styles.billingDetails}>
+          <div style={styles.billingRow}>
+            <span style={styles.billingLabel}>Plan</span>
+            <span style={styles.billingValue}>{subscription.plan_name || 'Standard'}</span>
+          </div>
+          <div style={styles.billingRow}>
+            <span style={styles.billingLabel}>Active Franchises</span>
+            <span style={styles.billingValue}>{activeLicenses.length} franchises</span>
+          </div>
+          <div style={styles.billingRow}>
+            <span style={styles.billingLabel}>Licensed Seats</span>
+            <span style={styles.billingValue}>{subscription.quantity || 0}</span>
+          </div>
+          <div style={styles.billingRow}>
+            <span style={styles.billingLabel}>
+              {subscription.status === 'canceled' ? 'Access Until' : 'Next Billing Date'}
+            </span>
+            <span style={styles.billingValue}>{formatDate(subscription.end_date)}</span>
+          </div>
+        </div>
+
+        <div style={styles.billingActions}>
+          <button onClick={onManageBilling} style={styles.manageBillingBtn}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            Manage in Stripe Portal
+          </button>
+        </div>
       </div>
 
-      <div className="empty-state">
-        <div className="empty-icon">
-          <MenuIcon name="upload" />
+      {/* Billing Info */}
+      <div style={styles.billingInfo}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+        </svg>
+        <div>
+          <strong>Billing adjusts automatically:</strong> When you activate or deactivate franchises, 
+          your billing will be updated on the next billing cycle based on the number of active franchises.
         </div>
-        <h3>No submissions yet</h3>
-        <p>Submit your first royalty report to see it here</p>
-        <button className="btn btn-primary">Create Submission</button>
       </div>
     </div>
   );
 }
 
-// Loader Styles
-const loaderStyles = `
-  .loading-container, .error-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    background: #0f1419;
-    color: #e7e9ea;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  }
-  .loading-spinner {
-    width: 48px;
-    height: 48px;
-    border: 3px solid rgba(99, 102, 241, 0.2);
-    border-top-color: #6366f1;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-  }
-  .loading-container p, .error-container p {
-    margin-top: 16px;
-    color: #71767b;
-  }
-  .error-icon {
-    width: 64px;
-    height: 64px;
-    background: rgba(239, 68, 68, 0.1);
-    border: 2px solid #ef4444;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 32px;
-    font-weight: 700;
-    color: #ef4444;
-    margin-bottom: 16px;
-  }
-  .error-container h2 {
-    margin: 0 0 8px;
-    font-size: 24px;
-    font-weight: 600;
-  }
-  .error-container .btn {
-    margin-top: 24px;
-  }
+const keyframes = `
   @keyframes spin {
     to { transform: rotate(360deg); }
   }
 `;
 
-// Dashboard Styles
-const dashboardStyles = `
-  * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
-
-  .dashboard {
-    display: flex;
-    min-height: 100vh;
-    background: #0f1419;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    color: #e7e9ea;
-  }
-
-  /* Sidebar */
-  .sidebar {
-    width: 260px;
-    background: #16181c;
-    border-right: 1px solid #2f3336;
-    display: flex;
-    flex-direction: column;
-    position: fixed;
-    height: 100vh;
-    z-index: 100;
-    transition: width 0.2s ease;
-  }
-
-  .sidebar.collapsed {
-    width: 72px;
-  }
-
-  .sidebar-header {
-    padding: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid #2f3336;
-  }
-
-  .logo {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .logo-icon {
-    width: 40px;
-    height: 40px;
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    font-size: 14px;
-    color: white;
-  }
-
-  .logo-text {
-    font-size: 18px;
-    font-weight: 700;
-    color: #e7e9ea;
-  }
-
-  .collapse-btn {
-    background: none;
-    border: none;
-    color: #71767b;
-    cursor: pointer;
-    padding: 8px;
-    border-radius: 8px;
-    transition: all 0.15s;
-  }
-
-  .collapse-btn:hover {
-    background: #2f3336;
-    color: #e7e9ea;
-  }
-
-  .sidebar.collapsed .collapse-btn {
-    display: none;
-  }
-
-  .sidebar-nav {
-    flex: 1;
-    padding: 16px 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    overflow-y: auto;
-  }
-
-  .nav-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    border-radius: 10px;
-    border: none;
-    background: transparent;
-    color: #71767b;
-    font-size: 15px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.15s;
-    text-align: left;
-    width: 100%;
-  }
-
-  .nav-item:hover {
-    background: #1d1f23;
-    color: #e7e9ea;
-  }
-
-  .nav-item.active {
-    background: rgba(99, 102, 241, 0.15);
-    color: #818cf8;
-  }
-
-  .nav-icon {
-    width: 20px;
-    height: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .nav-icon svg {
-    width: 20px;
-    height: 20px;
-  }
-
-  .sidebar.collapsed .nav-item {
-    justify-content: center;
-    padding: 12px;
-  }
-
-  .sidebar.collapsed .nav-item span:not(.nav-icon) {
-    display: none;
-  }
-
-  .sidebar-footer {
-    padding: 16px 20px;
-    border-top: 1px solid #2f3336;
-  }
-
-  .connection-status {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    color: #71767b;
-  }
-
-  .status-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #10b981;
-  }
-
-  .sidebar.collapsed .connection-status span:not(.status-dot) {
-    display: none;
-  }
-
-  /* Main Content */
-  .main-content {
-    flex: 1;
-    margin-left: 260px;
-    display: flex;
-    flex-direction: column;
-    transition: margin-left 0.2s ease;
-  }
-
-  .sidebar.collapsed + .main-content {
-    margin-left: 72px;
-  }
-
-  .top-bar {
-    background: #16181c;
-    padding: 16px 32px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid #2f3336;
-    position: sticky;
-    top: 0;
-    z-index: 50;
-  }
-
-  .top-bar-left {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
-
-  .page-title {
-    font-size: 24px;
-    font-weight: 700;
-    color: #e7e9ea;
-  }
-
-  .company-badge {
-    background: rgba(99, 102, 241, 0.15);
-    color: #818cf8;
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 13px;
-    font-weight: 500;
-  }
-
-  .content {
-    padding: 32px;
-    flex: 1;
-  }
-
-  /* Section */
-  .section {
-    max-width: 1400px;
-    margin: 0 auto;
-  }
-
-  .section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-  }
-
-  .section-header h3 {
-    font-size: 18px;
-    font-weight: 600;
-    color: #e7e9ea;
-  }
-
-  .link-btn {
-    background: none;
-    border: none;
-    color: #818cf8;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: color 0.15s;
-  }
-
-  .link-btn:hover {
-    color: #a5b4fc;
-  }
-
-  /* Buttons */
-  .btn {
-    padding: 12px 24px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.15s;
-    border: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .btn-primary {
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-    color: white;
-  }
-
-  .btn-primary:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
-  }
-
-  .btn-secondary {
-    background: #2f3336;
-    color: #e7e9ea;
-  }
-
-  .btn-secondary:hover {
-    background: #3a3d41;
-  }
-
-  /* Welcome Card */
-  .welcome-card {
-    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
-    border-radius: 16px;
-    padding: 32px;
-    margin-bottom: 32px;
-    border: 1px solid rgba(99, 102, 241, 0.2);
-  }
-
-  .welcome-content h2 {
-    font-size: 24px;
-    font-weight: 700;
-    margin-bottom: 8px;
-  }
-
-  .welcome-content p {
-    color: #a5b4fc;
-    font-size: 15px;
-  }
-
-  /* Stats Grid */
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 20px;
-    margin-bottom: 32px;
-  }
-
-  .stat-card {
-    background: #16181c;
-    border: 1px solid #2f3336;
-    border-radius: 12px;
-    padding: 24px;
-  }
-
-  .stat-value {
-    font-size: 28px;
-    font-weight: 700;
-    margin-bottom: 4px;
-  }
-
-  .stat-label {
-    font-size: 14px;
-    color: #71767b;
-  }
-
-  /* Actions Grid */
-  .actions-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-    margin-bottom: 32px;
-  }
-
-  .action-card {
-    background: #16181c;
-    border: 1px solid #2f3336;
-    border-radius: 12px;
-    padding: 24px;
-    cursor: pointer;
-    transition: all 0.15s;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-    color: #e7e9ea;
-    text-align: center;
-  }
-
-  .action-card:hover {
-    border-color: #6366f1;
-    background: rgba(99, 102, 241, 0.05);
-  }
-
-  .action-card .nav-icon {
-    width: 32px;
-    height: 32px;
-    color: #818cf8;
-  }
-
-  .action-card .nav-icon svg {
-    width: 32px;
-    height: 32px;
-  }
-
-  .action-card span:not(.nav-icon) {
-    font-size: 14px;
-    font-weight: 500;
-  }
-
-  /* Franchise Grid */
-  .franchise-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-  }
-
-  .franchise-card {
-    background: #16181c;
-    border: 1px solid #2f3336;
-    border-radius: 12px;
-    padding: 20px;
-    transition: all 0.15s;
-  }
-
-  .franchise-card:hover {
-    border-color: #6366f1;
-  }
-
-  .franchise-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-  }
-
-  .franchise-number {
-    font-weight: 600;
-    color: #818cf8;
-    font-size: 14px;
-  }
-
-  .status-badge {
-    padding: 4px 10px;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .status-badge.active {
-    background: rgba(16, 185, 129, 0.15);
-    color: #10b981;
-  }
-
-  .status-badge.inactive {
-    background: rgba(239, 68, 68, 0.15);
-    color: #ef4444;
-  }
-
-  .franchise-name {
-    font-size: 16px;
-    font-weight: 600;
-    color: #e7e9ea;
-    margin-bottom: 8px;
-  }
-
-  .franchise-location {
-    font-size: 13px;
-    color: #71767b;
-  }
-
-  /* Table */
-  .table-container {
-    background: #16181c;
-    border: 1px solid #2f3336;
-    border-radius: 12px;
-    overflow: hidden;
-  }
-
-  .data-table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-
-  .data-table th {
-    padding: 16px 20px;
-    text-align: left;
-    font-size: 13px;
-    font-weight: 600;
-    color: #71767b;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    background: #1d1f23;
-    border-bottom: 1px solid #2f3336;
-  }
-
-  .data-table td {
-    padding: 16px 20px;
-    font-size: 14px;
-    color: #e7e9ea;
-    border-bottom: 1px solid #2f3336;
-  }
-
-  .data-table tr:last-child td {
-    border-bottom: none;
-  }
-
-  .data-table tr:hover td {
-    background: rgba(99, 102, 241, 0.05);
-  }
-
-  /* Reports Grid */
-  .reports-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-  }
-
-  .report-card {
-    background: #16181c;
-    border: 1px solid #2f3336;
-    border-radius: 12px;
-    padding: 28px;
-    text-align: center;
-  }
-
-  .report-card h4 {
-    font-size: 16px;
-    font-weight: 600;
-    color: #e7e9ea;
-    margin-bottom: 8px;
-  }
-
-  .report-card p {
-    font-size: 13px;
-    color: #71767b;
-    margin-bottom: 20px;
-  }
-
-  /* Billing Grid */
-  .billing-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 24px;
-  }
-
-  .billing-card {
-    background: #16181c;
-    border: 1px solid #2f3336;
-    border-radius: 12px;
-    padding: 28px;
-  }
-
-  .billing-card h4 {
-    font-size: 14px;
-    font-weight: 600;
-    color: #71767b;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 20px;
-  }
-
-  .plan-name {
-    font-size: 24px;
-    font-weight: 700;
-    color: #e7e9ea;
-  }
-
-  .plan-cycle {
-    font-size: 14px;
-    color: #71767b;
-    margin-bottom: 16px;
-  }
-
-  .plan-price {
-    font-size: 16px;
-    color: #e7e9ea;
-    margin-bottom: 12px;
-  }
-
-  .plan-status {
-    font-size: 14px;
-    color: #71767b;
-  }
-
-  .text-success { color: #10b981; font-weight: 600; }
-  .text-warning { color: #f59e0b; font-weight: 600; }
-
-  .billing-item {
-    display: flex;
-    justify-content: space-between;
-    padding: 12px 0;
-    border-bottom: 1px solid #2f3336;
-    font-size: 14px;
-    color: #71767b;
-  }
-
-  .billing-value {
-    font-weight: 600;
-    color: #e7e9ea;
-  }
-
-  /* Empty State */
-  .empty-state {
-    background: #16181c;
-    border: 1px solid #2f3336;
-    border-radius: 12px;
-    padding: 60px 40px;
-    text-align: center;
-  }
-
-  .empty-icon {
-    width: 64px;
-    height: 64px;
-    margin: 0 auto 20px;
-    color: #71767b;
-  }
-
-  .empty-icon .nav-icon {
-    width: 64px;
-    height: 64px;
-  }
-
-  .empty-icon svg {
-    width: 64px;
-    height: 64px;
-  }
-
-  .empty-state h3 {
-    font-size: 18px;
-    font-weight: 600;
-    color: #e7e9ea;
-    margin-bottom: 8px;
-  }
-
-  .empty-state p {
-    font-size: 14px;
-    color: #71767b;
-    margin-bottom: 24px;
-  }
-
-  /* Responsive */
-  @media (max-width: 1200px) {
-    .stats-grid, .actions-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-    .franchise-grid, .reports-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-  }
-
-  @media (max-width: 768px) {
-    .sidebar {
-      width: 72px;
-    }
-    .sidebar .logo-text,
-    .sidebar .nav-item span:not(.nav-icon),
-    .sidebar .connection-status span:not(.status-dot) {
-      display: none;
-    }
-    .sidebar .nav-item {
-      justify-content: center;
-      padding: 12px;
-    }
-    .sidebar .collapse-btn {
-      display: none;
-    }
-    .main-content {
-      margin-left: 72px;
-    }
-    .stats-grid, .actions-grid, .franchise-grid, .reports-grid, .billing-grid {
-      grid-template-columns: 1fr;
-    }
-    .top-bar {
-      padding: 16px 20px;
-    }
-    .content {
-      padding: 20px;
-    }
-    .page-title {
-      font-size: 20px;
-    }
-  }
-
-  @media (max-width: 480px) {
-    .sidebar {
-      position: fixed;
-      bottom: 0;
-      top: auto;
-      left: 0;
-      right: 0;
-      width: 100%;
-      height: 64px;
-      flex-direction: row;
-      border-right: none;
-      border-top: 1px solid #2f3336;
-    }
-    .sidebar-header, .sidebar-footer {
-      display: none;
-    }
-    .sidebar-nav {
-      flex-direction: row;
-      padding: 8px;
-      justify-content: space-around;
-    }
-    .main-content {
-      margin-left: 0;
-      padding-bottom: 80px;
-    }
-  }
-`;
+const styles = {
+  // Layout
+  dashboard: {
+    display: 'flex',
+    minHeight: '100vh',
+    background: '#F8FAFC',
+    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+  },
+  
+  // Loading & Error
+  loadingContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '100vh',
+    background: '#F8FAFC',
+  },
+  spinner: {
+    width: 48,
+    height: 48,
+    border: '3px solid #E2E8F0',
+    borderTopColor: '#2CA01C',
+    borderRadius: '50%',
+    animation: 'spin 1s linear infinite',
+  },
+  loadingText: {
+    marginTop: 16,
+    color: '#64748B',
+    fontSize: 15,
+  },
+  errorContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '100vh',
+    background: '#F8FAFC',
+    textAlign: 'center',
+    padding: 24,
+  },
+  errorIcon: {
+    marginBottom: 16,
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: 600,
+    color: '#0F172A',
+    marginBottom: 8,
+  },
+  errorText: {
+    color: '#64748B',
+    marginBottom: 24,
+  },
+  errorBtn: {
+    padding: '12px 24px',
+    background: '#2CA01C',
+    color: '#fff',
+    border: 'none',
+    borderRadius: 8,
+    fontSize: 14,
+    fontWeight: 600,
+    cursor: 'pointer',
+  },
+  
+  // Sidebar
+  sidebar: {
+    background: '#fff',
+    borderRight: '1px solid #E2E8F0',
+    display: 'flex',
+    flexDirection: 'column',
+    transition: 'width 0.2s ease',
+    position: 'fixed',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    zIndex: 40,
+  },
+  sidebarHeader: {
+    padding: 20,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottom: '1px solid #F1F5F9',
+  },
+  logo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+  },
+  logoIcon: {
+    width: 36,
+    height: 36,
+    background: 'linear-gradient(135deg, #2CA01C 0%, #1E7A14 100%)',
+    borderRadius: 10,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoText: {
+    fontSize: 16,
+    fontWeight: 700,
+    color: '#0F172A',
+  },
+  collapseBtn: {
+    width: 32,
+    height: 32,
+    background: '#F8FAFC',
+    border: '1px solid #E2E8F0',
+    borderRadius: 8,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    color: '#64748B',
+  },
+  sidebarNav: {
+    flex: 1,
+    padding: '16px 12px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 4,
+  },
+  navItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    padding: '12px 16px',
+    background: 'transparent',
+    border: 'none',
+    borderRadius: 10,
+    fontSize: 14,
+    fontWeight: 500,
+    color: '#64748B',
+    cursor: 'pointer',
+    transition: 'all 0.15s',
+    width: '100%',
+    textAlign: 'left',
+  },
+  navItemActive: {
+    background: '#ECFDF5',
+    color: '#2CA01C',
+  },
+  sidebarFooter: {
+    padding: 16,
+    borderTop: '1px solid #F1F5F9',
+  },
+  connectionStatus: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    padding: '12px 16px',
+    background: '#F8FAFC',
+    borderRadius: 10,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    background: '#2CA01C',
+    borderRadius: '50%',
+  },
+  statusText: {
+    fontSize: 13,
+    color: '#64748B',
+  },
+  
+  // Main Content
+  mainContent: {
+    flex: 1,
+    marginLeft: 260,
+    transition: 'margin-left 0.2s ease',
+  },
+  topBar: {
+    background: '#fff',
+    borderBottom: '1px solid #E2E8F0',
+    padding: '16px 32px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    position: 'sticky',
+    top: 0,
+    zIndex: 30,
+  },
+  topBarLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 16,
+  },
+  pageTitle: {
+    fontSize: 20,
+    fontWeight: 700,
+    color: '#0F172A',
+    margin: 0,
+  },
+  companyBadge: {
+    padding: '6px 12px',
+    background: '#F1F5F9',
+    borderRadius: 6,
+    fontSize: 13,
+    color: '#64748B',
+  },
+  topBarRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 16,
+  },
+  userMenu: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+  },
+  userAvatar: {
+    width: 40,
+    height: 40,
+    background: 'linear-gradient(135deg, #2CA01C 0%, #1E7A14 100%)',
+    borderRadius: 10,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: '#fff',
+    fontWeight: 600,
+    fontSize: 16,
+  },
+  userInfo: {
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  userName: {
+    fontSize: 14,
+    fontWeight: 600,
+    color: '#0F172A',
+  },
+  userEmail: {
+    fontSize: 12,
+    color: '#64748B',
+  },
+  logoutBtn: {
+    width: 40,
+    height: 40,
+    background: '#F8FAFC',
+    border: '1px solid #E2E8F0',
+    borderRadius: 10,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    color: '#64748B',
+    marginLeft: 8,
+  },
+  
+  // Content
+  content: {
+    padding: 32,
+  },
+  section: {
+    maxWidth: 1200,
+    margin: '0 auto',
+  },
+  
+  // Welcome Card
+  welcomeCard: {
+    background: 'linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)',
+    borderRadius: 16,
+    padding: 32,
+    marginBottom: 32,
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    border: '1px solid #A7F3D0',
+  },
+  welcomeContent: {},
+  welcomeTitle: {
+    fontSize: 24,
+    fontWeight: 700,
+    color: '#064E3B',
+    marginBottom: 8,
+  },
+  welcomeText: {
+    fontSize: 15,
+    color: '#047857',
+    margin: 0,
+  },
+  subscribeBtn: {
+    padding: '12px 24px',
+    background: '#2CA01C',
+    color: '#fff',
+    border: 'none',
+    borderRadius: 10,
+    fontSize: 14,
+    fontWeight: 600,
+    cursor: 'pointer',
+  },
+  
+  // Stats Grid
+  statsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, 1fr)',
+    gap: 20,
+    marginBottom: 40,
+  },
+  statCard: {
+    background: '#fff',
+    border: '1px solid #E2E8F0',
+    borderRadius: 14,
+    padding: 24,
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: 16,
+  },
+  statIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statContent: {},
+  statValue: {
+    fontSize: 28,
+    fontWeight: 700,
+    marginBottom: 4,
+  },
+  statTotal: {
+    fontSize: 16,
+    fontWeight: 400,
+    color: '#94A3B8',
+  },
+  statLabel: {
+    fontSize: 14,
+    color: '#64748B',
+  },
+  
+  // Section Titles
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 600,
+    color: '#0F172A',
+    marginBottom: 16,
+    marginTop: 0,
+  },
+  sectionHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    marginTop: 40,
+  },
+  viewAllBtn: {
+    background: 'none',
+    border: 'none',
+    color: '#2CA01C',
+    fontSize: 14,
+    fontWeight: 600,
+    cursor: 'pointer',
+  },
+  
+  // Actions Grid
+  actionsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: 16,
+    marginBottom: 40,
+  },
+  actionCard: {
+    background: '#fff',
+    border: '1px solid #E2E8F0',
+    borderRadius: 14,
+    padding: 20,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 16,
+    cursor: 'pointer',
+    transition: 'all 0.15s',
+    width: '100%',
+    textAlign: 'left',
+  },
+  actionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionLabel: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: 600,
+    color: '#0F172A',
+  },
+  actionArrow: {
+    color: '#94A3B8',
+  },
+  
+  // Franchise Preview Grid
+  franchisePreviewGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, 1fr)',
+    gap: 16,
+  },
+  franchisePreviewCard: {
+    background: '#fff',
+    border: '1px solid #E2E8F0',
+    borderRadius: 12,
+    padding: 20,
+  },
+  franchisePreviewHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  franchiseNum: {
+    fontFamily: "'SF Mono', Monaco, monospace",
+    fontSize: 14,
+    fontWeight: 600,
+    color: '#2CA01C',
+  },
+  activeBadge: {
+    padding: '4px 8px',
+    background: '#ECFDF5',
+    color: '#2CA01C',
+    borderRadius: 4,
+    fontSize: 11,
+    fontWeight: 600,
+    textTransform: 'uppercase',
+  },
+  franchisePreviewName: {
+    fontSize: 15,
+    fontWeight: 600,
+    color: '#0F172A',
+    marginBottom: 4,
+  },
+  franchisePreviewLocation: {
+    fontSize: 13,
+    color: '#64748B',
+  },
+  
+  // Franchise Section
+  franchiseStats: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: 16,
+    marginBottom: 24,
+  },
+  franchiseStatCard: {
+    background: '#fff',
+    border: '2px solid',
+    borderRadius: 12,
+    padding: 24,
+    textAlign: 'center',
+  },
+  franchiseStatValue: {
+    fontSize: 36,
+    fontWeight: 700,
+    marginBottom: 4,
+  },
+  franchiseStatLabel: {
+    fontSize: 14,
+    color: '#64748B',
+  },
+  infoBanner: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    padding: '16px 20px',
+    background: '#EFF6FF',
+    border: '1px solid #BFDBFE',
+    borderRadius: 12,
+    marginBottom: 24,
+    fontSize: 14,
+    color: '#1E40AF',
+  },
+  franchiseActionsBar: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 16,
+    marginBottom: 24,
+    flexWrap: 'wrap',
+  },
+  searchBox: {
+    flex: 1,
+    minWidth: 200,
+    maxWidth: 400,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    padding: '12px 16px',
+    background: '#fff',
+    border: '1px solid #E2E8F0',
+    borderRadius: 10,
+  },
+  searchInput: {
+    flex: 1,
+    border: 'none',
+    outline: 'none',
+    fontSize: 14,
+    color: '#0F172A',
+  },
+  filterSelect: {
+    padding: '12px 16px',
+    background: '#fff',
+    border: '1px solid #E2E8F0',
+    borderRadius: 10,
+    fontSize: 14,
+    color: '#0F172A',
+    cursor: 'pointer',
+  },
+  bulkActions: {
+    display: 'flex',
+    gap: 12,
+    marginLeft: 'auto',
+  },
+  bulkBtn: {
+    padding: '10px 18px',
+    borderRadius: 8,
+    fontSize: 14,
+    fontWeight: 600,
+    cursor: 'pointer',
+    border: 'none',
+    transition: 'all 0.15s',
+  },
+  bulkBtnSuccess: {
+    background: '#ECFDF5',
+    color: '#2CA01C',
+    border: '1px solid #A7F3D0',
+  },
+  bulkBtnDanger: {
+    background: '#FEF2F2',
+    color: '#DC2626',
+    border: '1px solid #FECACA',
+  },
+  
+  // Messages
+  message: {
+    padding: '14px 20px',
+    borderRadius: 10,
+    marginBottom: 24,
+    fontSize: 14,
+    fontWeight: 500,
+  },
+  messageSuccess: {
+    background: '#ECFDF5',
+    color: '#065F46',
+    border: '1px solid #A7F3D0',
+  },
+  messageError: {
+    background: '#FEF2F2',
+    color: '#991B1B',
+    border: '1px solid #FECACA',
+  },
+  
+  // Table
+  tableContainer: {
+    background: '#fff',
+    border: '1px solid #E2E8F0',
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse',
+  },
+  th: {
+    padding: '14px 20px',
+    textAlign: 'left',
+    fontSize: 12,
+    fontWeight: 600,
+    color: '#64748B',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+    background: '#F8FAFC',
+    borderBottom: '1px solid #E2E8F0',
+  },
+  tr: {
+    borderBottom: '1px solid #F1F5F9',
+  },
+  td: {
+    padding: '16px 20px',
+    fontSize: 14,
+    color: '#0F172A',
+  },
+  franchiseNumber: {
+    fontFamily: "'SF Mono', Monaco, monospace",
+    fontWeight: 600,
+    color: '#2CA01C',
+  },
+  franchiseName: {
+    fontWeight: 500,
+  },
+  franchiseLocation: {
+    color: '#64748B',
+  },
+  departmentName: {
+    color: '#64748B',
+    fontSize: 13,
+  },
+  statusBadge: {
+    padding: '5px 10px',
+    borderRadius: 6,
+    fontSize: 12,
+    fontWeight: 600,
+    textTransform: 'uppercase',
+  },
+  statusActive: {
+    background: '#ECFDF5',
+    color: '#2CA01C',
+  },
+  statusInactive: {
+    background: '#FEF2F2',
+    color: '#DC2626',
+  },
+  toggleBtn: {
+    padding: '8px 16px',
+    borderRadius: 6,
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: 'pointer',
+    transition: 'all 0.15s',
+  },
+  toggleBtnActivate: {
+    background: '#fff',
+    color: '#2CA01C',
+    border: '1px solid #2CA01C',
+  },
+  toggleBtnDeactivate: {
+    background: '#fff',
+    color: '#DC2626',
+    border: '1px solid #DC2626',
+  },
+  
+  // Empty State
+  emptyState: {
+    background: '#fff',
+    border: '1px solid #E2E8F0',
+    borderRadius: 14,
+    padding: 60,
+    textAlign: 'center',
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: 600,
+    color: '#0F172A',
+    marginTop: 20,
+    marginBottom: 8,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#64748B',
+    margin: 0,
+  },
+  
+  // Coming Soon
+  comingSoon: {
+    background: '#fff',
+    border: '1px solid #E2E8F0',
+    borderRadius: 14,
+    padding: 80,
+    textAlign: 'center',
+  },
+  comingSoonTitle: {
+    fontSize: 20,
+    fontWeight: 600,
+    color: '#0F172A',
+    marginTop: 24,
+    marginBottom: 8,
+  },
+  comingSoonText: {
+    fontSize: 15,
+    color: '#64748B',
+    margin: 0,
+  },
+  
+  // Billing Section
+  noSubscription: {
+    background: '#fff',
+    border: '1px solid #E2E8F0',
+    borderRadius: 14,
+    padding: 60,
+    textAlign: 'center',
+  },
+  noSubIcon: {
+    marginBottom: 24,
+  },
+  noSubTitle: {
+    fontSize: 20,
+    fontWeight: 600,
+    color: '#0F172A',
+    marginBottom: 8,
+  },
+  noSubText: {
+    fontSize: 15,
+    color: '#64748B',
+    marginBottom: 24,
+  },
+  subscribeNowBtn: {
+    padding: '14px 32px',
+    background: 'linear-gradient(135deg, #2CA01C 0%, #1E7A14 100%)',
+    color: '#fff',
+    border: 'none',
+    borderRadius: 10,
+    fontSize: 15,
+    fontWeight: 600,
+    cursor: 'pointer',
+  },
+  billingCard: {
+    background: '#fff',
+    border: '1px solid #E2E8F0',
+    borderRadius: 14,
+    overflow: 'hidden',
+    marginBottom: 24,
+  },
+  billingHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    padding: 24,
+    background: '#F8FAFC',
+    borderBottom: '1px solid #E2E8F0',
+  },
+  billingTitle: {
+    fontSize: 18,
+    fontWeight: 600,
+    color: '#0F172A',
+    marginBottom: 4,
+    marginTop: 0,
+  },
+  billingSubtitle: {
+    fontSize: 14,
+    color: '#64748B',
+    margin: 0,
+  },
+  billingStatus: {
+    padding: '6px 12px',
+    borderRadius: 6,
+    fontSize: 13,
+    fontWeight: 600,
+  },
+  billingStatusActive: {
+    background: '#ECFDF5',
+    color: '#2CA01C',
+  },
+  billingStatusCanceled: {
+    background: '#FEF2F2',
+    color: '#DC2626',
+  },
+  billingStatusPending: {
+    background: '#FFFBEB',
+    color: '#D97706',
+  },
+  billingDetails: {
+    padding: 24,
+  },
+  billingRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '16px 0',
+    borderBottom: '1px solid #F1F5F9',
+  },
+  billingLabel: {
+    fontSize: 14,
+    color: '#64748B',
+  },
+  billingValue: {
+    fontSize: 14,
+    fontWeight: 600,
+    color: '#0F172A',
+  },
+  billingActions: {
+    padding: 24,
+    borderTop: '1px solid #E2E8F0',
+  },
+  manageBillingBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    padding: '14px 24px',
+    background: '#0F172A',
+    color: '#fff',
+    border: 'none',
+    borderRadius: 10,
+    fontSize: 14,
+    fontWeight: 600,
+    cursor: 'pointer',
+    width: '100%',
+    justifyContent: 'center',
+  },
+  billingInfo: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: 12,
+    padding: '16px 20px',
+    background: '#EFF6FF',
+    border: '1px solid #BFDBFE',
+    borderRadius: 12,
+    fontSize: 14,
+    color: '#1E40AF',
+    lineHeight: 1.5,
+  },
+};

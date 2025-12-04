@@ -1,10 +1,9 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Subscribe from "./pages/Subscribe.jsx";
 import Success from "./pages/Success.jsx";
 import Cancel from "./pages/Cancel.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import OnboardingPage from "./pages/OnboardingPage.jsx";
-import FranchiseManagement from "./pages/FranchiseManagement.jsx";
 import QuickBooksOAuthCallback from "./components/QuickBooksOAuthCallback.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import PrivateRoute from "./components/PrivateRoute.jsx";
@@ -67,14 +66,10 @@ export default function App() {
           }
         />
         
-        {/* Franchise Management - requires both auth AND active subscription */}
+        {/* Redirect old franchises route to dashboard */}
         <Route
           path="/franchises"
-          element={
-            <SubscriptionProtectedRoute>
-              <FranchiseManagement />
-            </SubscriptionProtectedRoute>
-          }
+          element={<Navigate to="/dashboard" replace />}
         />
         
         {/* OAuth Callback */}

@@ -212,13 +212,6 @@ export default function ProfileWidget({ user, onLogout }) {
                 Email Preferences
               </button>
 
-              <button onClick={() => window.location.href = "/franchises"} className="menu-item">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M3 21h18M9 8h1M9 12h1M9 16h1M14 8h1M14 12h1M14 16h1M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16"/>
-                </svg>
-                Manage Franchises
-              </button>
-
               <div className="menu-divider"></div>
 
               <button onClick={onLogout} className="menu-item">
@@ -415,7 +408,7 @@ const widgetStyles = `
     width: 40px;
     height: 40px;
     border-radius: 10px;
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    background: linear-gradient(135deg, #2CA01C 0%, #1E7A14 100%);
     border: none;
     color: white;
     font-weight: 700;
@@ -426,20 +419,21 @@ const widgetStyles = `
 
   .avatar-btn:hover, .avatar-btn.active {
     transform: scale(1.05);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+    box-shadow: 0 0 0 3px rgba(44, 160, 28, 0.2);
   }
 
   .dropdown {
     position: absolute;
     top: calc(100% + 8px);
     right: 0;
-    background: #16181c;
-    border: 1px solid #2f3336;
+    background: #fff;
+    border: 1px solid #E2E8F0;
     border-radius: 12px;
     min-width: 280px;
     z-index: 1000;
     overflow: hidden;
     animation: fadeIn 0.15s ease;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
   }
 
   @keyframes fadeIn {
@@ -449,26 +443,30 @@ const widgetStyles = `
 
   .dropdown-header {
     padding: 20px;
-    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
-    border-bottom: 1px solid #2f3336;
+    background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%);
+    border-bottom: 1px solid #A7F3D0;
   }
 
   .user-name {
     font-size: 16px;
     font-weight: 600;
-    color: #e7e9ea;
+    color: #064E3B;
     margin-bottom: 4px;
   }
 
   .user-email {
     font-size: 13px;
-    color: #a5b4fc;
+    color: #047857;
   }
 
   .user-company {
     font-size: 12px;
-    color: #818cf8;
+    color: #059669;
     margin-top: 8px;
+    padding: 4px 8px;
+    background: rgba(255,255,255,0.5);
+    border-radius: 4px;
+    display: inline-block;
   }
 
   .dropdown-menu {
@@ -483,7 +481,7 @@ const widgetStyles = `
     padding: 12px 16px;
     border: none;
     background: none;
-    color: #e7e9ea;
+    color: #0F172A;
     font-size: 14px;
     cursor: pointer;
     border-radius: 8px;
@@ -492,28 +490,28 @@ const widgetStyles = `
   }
 
   .menu-item:hover {
-    background: #2f3336;
+    background: #F1F5F9;
   }
 
   .menu-item.danger {
-    color: #ef4444;
+    color: #DC2626;
   }
 
   .menu-item.danger:hover {
-    background: rgba(239, 68, 68, 0.1);
+    background: #FEF2F2;
   }
 
   .menu-item svg {
-    color: #71767b;
+    color: #64748B;
   }
 
   .menu-item.danger svg {
-    color: #ef4444;
+    color: #DC2626;
   }
 
   .menu-divider {
     height: 1px;
-    background: #2f3336;
+    background: #E2E8F0;
     margin: 8px 0;
   }
 
@@ -524,7 +522,7 @@ const widgetStyles = `
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.75);
+    background: rgba(0, 0, 0, 0.5);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -533,8 +531,7 @@ const widgetStyles = `
   }
 
   .modal {
-    background: #16181c;
-    border: 1px solid #2f3336;
+    background: #fff;
     border-radius: 16px;
     width: 100%;
     max-width: 600px;
@@ -542,6 +539,7 @@ const widgetStyles = `
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
   }
 
   .modal.modal-sm {
@@ -550,32 +548,36 @@ const widgetStyles = `
 
   .modal-header {
     padding: 20px 24px;
-    border-bottom: 1px solid #2f3336;
+    border-bottom: 1px solid #E2E8F0;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+    background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%);
   }
 
   .modal-header.danger {
-    background: linear-gradient(135deg, #450a0a 0%, #7f1d1d 100%);
+    background: linear-gradient(135deg, #FEF2F2 0%, #FECACA 100%);
   }
 
   .modal-header h2 {
     font-size: 18px;
     font-weight: 600;
-    color: #e7e9ea;
+    color: #064E3B;
     margin: 0;
   }
 
+  .modal-header.danger h2 {
+    color: #991B1B;
+  }
+
   .close-btn {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.5);
     border: none;
     width: 32px;
     height: 32px;
     border-radius: 8px;
     cursor: pointer;
-    color: white;
+    color: #064E3B;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -583,7 +585,7 @@ const widgetStyles = `
   }
 
   .close-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.8);
   }
 
   .modal-content {
@@ -601,28 +603,28 @@ const widgetStyles = `
   }
 
   .alert-error {
-    background: rgba(239, 68, 68, 0.15);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    color: #ef4444;
+    background: #FEF2F2;
+    border: 1px solid #FECACA;
+    color: #DC2626;
   }
 
   .alert-success {
-    background: rgba(16, 185, 129, 0.15);
-    border: 1px solid rgba(16, 185, 129, 0.3);
-    color: #10b981;
+    background: #ECFDF5;
+    border: 1px solid #A7F3D0;
+    color: #059669;
   }
 
   /* Form */
   .email-form {
     margin-bottom: 24px;
     padding-bottom: 24px;
-    border-bottom: 1px solid #2f3336;
+    border-bottom: 1px solid #E2E8F0;
   }
 
   .email-form h3 {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
-    color: #71767b;
+    color: #64748B;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: 16px;
@@ -637,17 +639,18 @@ const widgetStyles = `
   .form-input {
     flex: 1;
     padding: 12px 16px;
-    background: #0f1419;
-    border: 1px solid #2f3336;
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
     border-radius: 8px;
-    color: #e7e9ea;
+    color: #0F172A;
     font-size: 14px;
     outline: none;
     transition: border-color 0.15s;
   }
 
   .form-input:focus {
-    border-color: #6366f1;
+    border-color: #2CA01C;
+    background: #fff;
   }
 
   .form-input.small {
@@ -655,7 +658,7 @@ const widgetStyles = `
   }
 
   .form-input::placeholder {
-    color: #71767b;
+    color: #94A3B8;
   }
 
   .form-checkboxes {
@@ -670,14 +673,14 @@ const widgetStyles = `
     align-items: center;
     gap: 8px;
     font-size: 14px;
-    color: #e7e9ea;
+    color: #0F172A;
     cursor: pointer;
   }
 
   .checkbox-label input {
     width: 16px;
     height: 16px;
-    accent-color: #6366f1;
+    accent-color: #2CA01C;
   }
 
   .form-actions {
@@ -702,37 +705,38 @@ const widgetStyles = `
   }
 
   .btn-primary {
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    background: linear-gradient(135deg, #2CA01C 0%, #1E7A14 100%);
     color: white;
   }
 
   .btn-primary:hover:not(:disabled) {
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+    box-shadow: 0 4px 12px rgba(44, 160, 28, 0.3);
   }
 
   .btn-secondary {
-    background: #2f3336;
-    color: #e7e9ea;
+    background: #F1F5F9;
+    color: #475569;
+    border: 1px solid #E2E8F0;
   }
 
   .btn-secondary:hover:not(:disabled) {
-    background: #3a3d41;
+    background: #E2E8F0;
   }
 
   .btn-danger {
-    background: #ef4444;
+    background: #DC2626;
     color: white;
   }
 
   .btn-danger:hover:not(:disabled) {
-    background: #dc2626;
+    background: #B91C1C;
   }
 
   .btn-icon {
     background: none;
     border: none;
-    color: #71767b;
+    color: #64748B;
     padding: 8px;
     border-radius: 6px;
     cursor: pointer;
@@ -740,27 +744,27 @@ const widgetStyles = `
   }
 
   .btn-icon:hover {
-    background: #2f3336;
-    color: #e7e9ea;
+    background: #F1F5F9;
+    color: #0F172A;
   }
 
   .btn-icon.danger:hover {
-    background: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
+    background: #FEF2F2;
+    color: #DC2626;
   }
 
   /* Email List */
   .email-list h3 {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
-    color: #71767b;
+    color: #64748B;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: 16px;
   }
 
   .loading-text, .empty-text {
-    color: #71767b;
+    color: #64748B;
     font-size: 14px;
     text-align: center;
     padding: 20px;
@@ -771,8 +775,8 @@ const widgetStyles = `
     justify-content: space-between;
     align-items: flex-start;
     padding: 16px;
-    background: #0f1419;
-    border: 1px solid #2f3336;
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
     border-radius: 10px;
     margin-bottom: 12px;
   }
@@ -784,7 +788,7 @@ const widgetStyles = `
   .email-address {
     font-size: 15px;
     font-weight: 600;
-    color: #e7e9ea;
+    color: #0F172A;
     margin-bottom: 4px;
     display: flex;
     align-items: center;
@@ -792,8 +796,8 @@ const widgetStyles = `
   }
 
   .primary-badge {
-    background: rgba(99, 102, 241, 0.15);
-    color: #818cf8;
+    background: #ECFDF5;
+    color: #059669;
     padding: 2px 8px;
     border-radius: 4px;
     font-size: 11px;
@@ -803,7 +807,7 @@ const widgetStyles = `
 
   .email-label {
     font-size: 13px;
-    color: #71767b;
+    color: #64748B;
     margin-bottom: 8px;
   }
 
@@ -818,8 +822,8 @@ const widgetStyles = `
     border-radius: 4px;
     font-size: 11px;
     font-weight: 500;
-    background: rgba(99, 102, 241, 0.15);
-    color: #818cf8;
+    background: #EFF6FF;
+    color: #3B82F6;
   }
 
   .email-actions {
@@ -830,12 +834,12 @@ const widgetStyles = `
   /* Delete Modal */
   .delete-warning {
     font-size: 15px;
-    color: #e7e9ea;
+    color: #0F172A;
     margin-bottom: 16px;
   }
 
   .delete-warning strong {
-    color: #ef4444;
+    color: #DC2626;
   }
 
   .delete-list {
@@ -846,17 +850,20 @@ const widgetStyles = `
 
   .delete-list li {
     font-size: 14px;
-    color: #71767b;
+    color: #64748B;
     padding: 8px 0;
-    border-bottom: 1px solid #2f3336;
+    border-bottom: 1px solid #F1F5F9;
     display: flex;
     align-items: center;
     gap: 8px;
   }
 
   .delete-list li:before {
-    content: "•";
-    color: #ef4444;
+    content: "";
+    width: 6px;
+    height: 6px;
+    background: #DC2626;
+    border-radius: 50%;
   }
 
   .delete-list li:last-child {
