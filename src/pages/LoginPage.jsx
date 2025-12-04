@@ -64,10 +64,6 @@ export default function LoginPage() {
             )}
           </button>
 
-          <div style={styles.divider}>
-            <span>or</span>
-          </div>
-
           <Link to="/pricing" style={styles.pricingLink}>
             View Pricing Plans
           </Link>
