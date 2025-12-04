@@ -193,6 +193,18 @@ export default function AdminDashboard() {
     }
   };
 
+  // Refresh all logs - called by refresh buttons in log tabs
+  const refreshAllLogs = async () => {
+    await Promise.all([
+      fetchFailedPayments(),
+      fetchWebhookLogs(),
+      fetchSystemLogs(),
+      fetchEmailLogs(),
+      fetchAdminLogs(),
+      fetchTenantLogs(),
+    ]);
+  };
+
   const fetchClientDetail = async (realmId) => {
     setLoadingClientDetail(true);
     try {
@@ -500,7 +512,7 @@ export default function AdminDashboard() {
               formatDate={formatDate}
               formatDateTime={formatDateTime}
               formatCurrency={formatCurrency}
-              onRefresh={fetchDashboard}
+              onRefresh={refreshAllLogs}
             />
           )}
 
