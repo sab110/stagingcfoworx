@@ -4,13 +4,13 @@ import { useNavigate } from "react-router-dom";
 const plans = [
   {
     product: "Standard",
-    description: "Perfect for small franchises getting started",
+    description: "Essential royalty reporting for growing franchises",
     features: [
-      "Basic royalty tracking",
+      "Automated royalty calculations",
       "QuickBooks integration",
-      "Email support",
       "Monthly reports",
-      "Up to 5 locations",
+      "Email support",
+      "Up to 10 franchises",
     ],
     variations: [
       { label: "Monthly", price: "$39", period: "/mo", priceId: "price_1SHskmLByti58Oj8nuGBedKQ", savings: null },
@@ -21,13 +21,13 @@ const plans = [
   },
   {
     product: "Pro",
-    description: "Best for growing franchise operations",
+    description: "Advanced automation with priority support",
     features: [
-      "Advanced royalty analytics",
-      "QuickBooks integration",
+      "Everything in Standard",
+      "Advanced analytics",
+      "SFTP file delivery",
       "Priority support",
-      "Real-time dashboards",
-      "Unlimited locations",
+      "Unlimited franchises",
       "Custom report builder",
       "API access",
     ],
@@ -45,13 +45,11 @@ export default function Pricing() {
   const [billingCycle, setBillingCycle] = useState("Monthly");
   const isAuthenticated = localStorage.getItem("access_token") && localStorage.getItem("realm_id");
 
-  const handleGetStarted = (priceId) => {
+  const handleGetStarted = () => {
     if (isAuthenticated) {
-      // If logged in, go to subscribe page
       navigate("/subscribe");
     } else {
-      // If not logged in, go to login page
-      navigate("/", { state: { redirectTo: "/subscribe" } });
+      navigate("/login");
     }
   };
 
@@ -64,19 +62,24 @@ export default function Pricing() {
       {/* Header */}
       <header style={styles.header}>
         <div style={styles.headerContent}>
-          <div style={styles.logo}>
-            <span style={styles.logoIcon}>📊</span>
-            <span style={styles.logoText}>CFO Worx</span>
+          <div style={styles.logo} onClick={() => navigate("/")}>
+            <div style={styles.logoIcon}>
+              <svg viewBox="0 0 24 24" fill="none" style={{ width: 18, height: 18 }}>
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <span style={styles.logoText}>RoyaltiesAgent</span>
           </div>
           <nav style={styles.nav}>
             <a href="/" style={styles.navLink}>Home</a>
-            <a href="/pricing" style={{ ...styles.navLink, ...styles.navLinkActive }}>Pricing</a>
+            <a href="/pricing" style={{ ...styles.navLink, color: '#2CA01C' }}>Pricing</a>
+            <a href="/contact" style={styles.navLink}>Contact</a>
             {isAuthenticated ? (
               <button onClick={() => navigate("/dashboard")} style={styles.navButton}>
                 Dashboard
               </button>
             ) : (
-              <button onClick={() => navigate("/")} style={styles.navButton}>
+              <button onClick={() => navigate("/login")} style={styles.navButton}>
                 Sign In
               </button>
             )}
@@ -130,7 +133,7 @@ export default function Pricing() {
                 <div style={styles.priceContainer}>
                   <span style={styles.priceAmount}>{variation.price}</span>
                   <span style={styles.pricePeriod}>{variation.period}</span>
-                  <span style={styles.perLicense}>per license</span>
+                  <span style={styles.perLicense}>per franchise</span>
                 </div>
 
                 {variation.savings && (
@@ -138,7 +141,7 @@ export default function Pricing() {
                 )}
 
                 <button
-                  onClick={() => handleGetStarted(variation.priceId)}
+                  onClick={handleGetStarted}
                   style={{
                     ...styles.ctaButton,
                     ...(plan.popular ? styles.ctaButtonPopular : {}),
@@ -150,7 +153,9 @@ export default function Pricing() {
                 <ul style={styles.featureList}>
                   {plan.features.map((feature, idx) => (
                     <li key={idx} style={styles.featureItem}>
-                      <span style={styles.checkIcon}>✓</span>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2CA01C" strokeWidth="2.5">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
                       {feature}
                     </li>
                   ))}
@@ -166,10 +171,10 @@ export default function Pricing() {
         <h2 style={styles.faqTitle}>Frequently Asked Questions</h2>
         <div style={styles.faqGrid}>
           <div style={styles.faqItem}>
-            <h4 style={styles.faqQuestion}>What is a license?</h4>
+            <h4 style={styles.faqQuestion}>What is a franchise license?</h4>
             <p style={styles.faqAnswer}>
-              A license represents one franchise location or department that you want to track royalties for. 
-              You pay per license you select during onboarding.
+              A license represents one franchise location that you want to track royalties for. 
+              You only pay for active franchises in your account.
             </p>
           </div>
           <div style={styles.faqItem}>
@@ -180,9 +185,10 @@ export default function Pricing() {
             </p>
           </div>
           <div style={styles.faqItem}>
-            <h4 style={styles.faqQuestion}>Is there a free trial?</h4>
+            <h4 style={styles.faqQuestion}>How does billing work when I add/remove franchises?</h4>
             <p style={styles.faqAnswer}>
-              Contact our sales team to discuss trial options for your specific needs.
+              Changes to your active franchise count will be reflected on your next billing cycle. 
+              We don't charge retroactively.
             </p>
           </div>
           <div style={styles.faqItem}>
@@ -201,15 +207,18 @@ export default function Pricing() {
         <p style={styles.ctaSectionSubtitle}>
           Connect your QuickBooks account and start managing royalties in minutes.
         </p>
-        <button onClick={() => navigate("/")} style={styles.ctaSectionButton}>
+        <button onClick={() => navigate("/login")} style={styles.ctaSectionButton}>
           Get Started Today
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
         </button>
       </section>
 
       {/* Footer */}
       <footer style={styles.footer}>
         <div style={styles.footerContent}>
-          <p style={styles.footerText}>© 2024 CFO Worx. All rights reserved.</p>
+          <p style={styles.footerText}>© 2024 RoyaltiesAgent by CFOWORX. All rights reserved.</p>
           <div style={styles.footerLinks}>
             <a href="/privacy" style={styles.footerLink}>Privacy Policy</a>
             <a href="/terms" style={styles.footerLink}>Terms of Service</a>
@@ -222,328 +231,326 @@ export default function Pricing() {
 
 const styles = {
   container: {
-    minHeight: "100vh",
-    backgroundColor: "#0f172a",
-    fontFamily: "'DM Sans', system-ui, -apple-system, sans-serif",
-    color: "#f8fafc",
+    minHeight: '100vh',
+    backgroundColor: '#fff',
+    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+    color: '#0F172A',
   },
+  
   // Header
   header: {
-    backgroundColor: "rgba(15, 23, 42, 0.95)",
-    backdropFilter: "blur(10px)",
-    borderBottom: "1px solid rgba(148, 163, 184, 0.1)",
-    position: "sticky",
+    backgroundColor: '#fff',
+    borderBottom: '1px solid #E2E8F0',
+    position: 'sticky',
     top: 0,
     zIndex: 100,
   },
   headerContent: {
-    maxWidth: "1200px",
-    margin: "0 auto",
-    padding: "16px 24px",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
+    maxWidth: '1200px',
+    margin: '0 auto',
+    padding: '16px 24px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   logo: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    cursor: 'pointer',
   },
   logoIcon: {
-    fontSize: "28px",
+    width: '40px',
+    height: '40px',
+    background: 'linear-gradient(135deg, #2CA01C 0%, #1E7A14 100%)',
+    borderRadius: '10px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   logoText: {
-    fontSize: "22px",
-    fontWeight: "700",
-    background: "linear-gradient(135deg, #38bdf8 0%, #818cf8 100%)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
+    fontSize: '20px',
+    fontWeight: '700',
+    color: '#0F172A',
   },
   nav: {
-    display: "flex",
-    alignItems: "center",
-    gap: "32px",
+    display: 'flex',
+    alignItems: 'center',
+    gap: '32px',
   },
   navLink: {
-    color: "#94a3b8",
-    textDecoration: "none",
-    fontSize: "15px",
-    fontWeight: "500",
-    transition: "color 0.2s",
-  },
-  navLinkActive: {
-    color: "#38bdf8",
+    color: '#64748B',
+    textDecoration: 'none',
+    fontSize: '15px',
+    fontWeight: '500',
   },
   navButton: {
-    backgroundColor: "#38bdf8",
-    color: "#0f172a",
-    border: "none",
-    padding: "10px 24px",
-    borderRadius: "8px",
-    fontSize: "15px",
-    fontWeight: "600",
-    cursor: "pointer",
-    transition: "all 0.2s",
+    backgroundColor: '#2CA01C',
+    color: '#fff',
+    border: 'none',
+    padding: '10px 24px',
+    borderRadius: '8px',
+    fontSize: '15px',
+    fontWeight: '600',
+    cursor: 'pointer',
   },
+  
   // Hero
   hero: {
-    textAlign: "center",
-    padding: "80px 24px 60px",
-    maxWidth: "800px",
-    margin: "0 auto",
+    textAlign: 'center',
+    padding: '80px 24px 60px',
+    background: 'linear-gradient(180deg, #F8FAFC 0%, #fff 100%)',
   },
   heroTitle: {
-    fontSize: "48px",
-    fontWeight: "800",
-    margin: "0 0 20px",
-    background: "linear-gradient(135deg, #f8fafc 0%, #cbd5e1 100%)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
+    fontSize: '48px',
+    fontWeight: '800',
+    margin: '0 0 20px',
+    color: '#0F172A',
   },
   heroSubtitle: {
-    fontSize: "20px",
-    color: "#94a3b8",
-    margin: "0 0 40px",
-    lineHeight: "1.6",
+    fontSize: '20px',
+    color: '#64748B',
+    margin: '0 0 40px',
+    lineHeight: '1.6',
   },
   billingToggle: {
-    display: "inline-flex",
-    backgroundColor: "rgba(30, 41, 59, 0.8)",
-    borderRadius: "12px",
-    padding: "6px",
-    gap: "4px",
+    display: 'inline-flex',
+    backgroundColor: '#F1F5F9',
+    borderRadius: '12px',
+    padding: '6px',
+    gap: '4px',
   },
   toggleButton: {
-    backgroundColor: "transparent",
-    color: "#94a3b8",
-    border: "none",
-    padding: "12px 24px",
-    borderRadius: "8px",
-    fontSize: "15px",
-    fontWeight: "500",
-    cursor: "pointer",
-    transition: "all 0.2s",
-    position: "relative",
+    backgroundColor: 'transparent',
+    color: '#64748B',
+    border: 'none',
+    padding: '12px 24px',
+    borderRadius: '8px',
+    fontSize: '15px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+    position: 'relative',
   },
   toggleButtonActive: {
-    backgroundColor: "#38bdf8",
-    color: "#0f172a",
+    backgroundColor: '#fff',
+    color: '#0F172A',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
   },
   bestValue: {
-    position: "absolute",
-    top: "-8px",
-    right: "-8px",
-    backgroundColor: "#22c55e",
-    color: "white",
-    fontSize: "10px",
-    fontWeight: "700",
-    padding: "2px 6px",
-    borderRadius: "4px",
+    position: 'absolute',
+    top: '-8px',
+    right: '-8px',
+    backgroundColor: '#2CA01C',
+    color: 'white',
+    fontSize: '10px',
+    fontWeight: '700',
+    padding: '2px 8px',
+    borderRadius: '10px',
   },
+  
   // Pricing Section
   pricingSection: {
-    padding: "0 24px 80px",
-    maxWidth: "1000px",
-    margin: "0 auto",
+    padding: '0 24px 80px',
+    maxWidth: '1000px',
+    margin: '0 auto',
   },
   pricingGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))",
-    gap: "32px",
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
+    gap: '32px',
   },
   pricingCard: {
-    backgroundColor: "rgba(30, 41, 59, 0.6)",
-    border: "1px solid rgba(148, 163, 184, 0.1)",
-    borderRadius: "20px",
-    padding: "40px 32px",
-    position: "relative",
-    transition: "all 0.3s",
+    backgroundColor: '#fff',
+    border: '1px solid #E2E8F0',
+    borderRadius: '20px',
+    padding: '40px 32px',
+    position: 'relative',
+    transition: 'all 0.3s',
   },
   pricingCardPopular: {
-    border: "2px solid #38bdf8",
-    transform: "scale(1.02)",
-    boxShadow: "0 0 60px rgba(56, 189, 248, 0.15)",
+    border: '2px solid #2CA01C',
+    boxShadow: '0 4px 20px rgba(44, 160, 28, 0.15)',
   },
   popularBadge: {
-    position: "absolute",
-    top: "-14px",
-    left: "50%",
-    transform: "translateX(-50%)",
-    backgroundColor: "#38bdf8",
-    color: "#0f172a",
-    fontSize: "13px",
-    fontWeight: "700",
-    padding: "6px 20px",
-    borderRadius: "20px",
+    position: 'absolute',
+    top: '-14px',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    backgroundColor: '#2CA01C',
+    color: '#fff',
+    fontSize: '13px',
+    fontWeight: '700',
+    padding: '6px 20px',
+    borderRadius: '20px',
   },
   planName: {
-    fontSize: "26px",
-    fontWeight: "700",
-    color: "#f8fafc",
-    margin: "0 0 8px",
+    fontSize: '26px',
+    fontWeight: '700',
+    color: '#0F172A',
+    margin: '0 0 8px',
   },
   planDescription: {
-    fontSize: "15px",
-    color: "#94a3b8",
-    margin: "0 0 28px",
+    fontSize: '15px',
+    color: '#64748B',
+    margin: '0 0 28px',
   },
   priceContainer: {
-    marginBottom: "8px",
+    marginBottom: '8px',
   },
   priceAmount: {
-    fontSize: "52px",
-    fontWeight: "800",
-    color: "#f8fafc",
+    fontSize: '48px',
+    fontWeight: '800',
+    color: '#0F172A',
   },
   pricePeriod: {
-    fontSize: "18px",
-    color: "#64748b",
-    marginLeft: "4px",
+    fontSize: '18px',
+    color: '#64748B',
+    marginLeft: '4px',
   },
   perLicense: {
-    display: "block",
-    fontSize: "14px",
-    color: "#64748b",
-    marginTop: "4px",
+    display: 'block',
+    fontSize: '14px',
+    color: '#64748B',
+    marginTop: '4px',
   },
   savingsBadge: {
-    display: "inline-block",
-    backgroundColor: "rgba(34, 197, 94, 0.15)",
-    color: "#22c55e",
-    fontSize: "13px",
-    fontWeight: "600",
-    padding: "4px 12px",
-    borderRadius: "6px",
-    marginBottom: "24px",
+    display: 'inline-block',
+    backgroundColor: '#ECFDF5',
+    color: '#065F46',
+    fontSize: '13px',
+    fontWeight: '600',
+    padding: '6px 14px',
+    borderRadius: '8px',
+    marginBottom: '24px',
   },
   ctaButton: {
-    width: "100%",
-    backgroundColor: "rgba(56, 189, 248, 0.15)",
-    color: "#38bdf8",
-    border: "2px solid #38bdf8",
-    padding: "16px 32px",
-    borderRadius: "12px",
-    fontSize: "16px",
-    fontWeight: "700",
-    cursor: "pointer",
-    transition: "all 0.2s",
-    marginBottom: "32px",
+    width: '100%',
+    backgroundColor: '#F1F5F9',
+    color: '#0F172A',
+    border: 'none',
+    padding: '16px 32px',
+    borderRadius: '12px',
+    fontSize: '16px',
+    fontWeight: '700',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+    marginBottom: '32px',
   },
   ctaButtonPopular: {
-    backgroundColor: "#38bdf8",
-    color: "#0f172a",
+    backgroundColor: '#2CA01C',
+    color: '#fff',
+    boxShadow: '0 4px 14px rgba(44, 160, 28, 0.3)',
   },
   featureList: {
-    listStyle: "none",
+    listStyle: 'none',
     padding: 0,
     margin: 0,
   },
   featureItem: {
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-    padding: "10px 0",
-    fontSize: "15px",
-    color: "#cbd5e1",
-    borderBottom: "1px solid rgba(148, 163, 184, 0.1)",
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    padding: '12px 0',
+    fontSize: '15px',
+    color: '#374151',
+    borderBottom: '1px solid #F1F5F9',
   },
-  checkIcon: {
-    color: "#22c55e",
-    fontWeight: "bold",
-    fontSize: "16px",
-  },
+  
   // FAQ Section
   faqSection: {
-    backgroundColor: "rgba(30, 41, 59, 0.4)",
-    padding: "80px 24px",
+    backgroundColor: '#F8FAFC',
+    padding: '80px 24px',
   },
   faqTitle: {
-    fontSize: "36px",
-    fontWeight: "700",
-    textAlign: "center",
-    color: "#f8fafc",
-    margin: "0 0 48px",
+    fontSize: '36px',
+    fontWeight: '700',
+    textAlign: 'center',
+    color: '#0F172A',
+    margin: '0 0 48px',
   },
   faqGrid: {
-    maxWidth: "900px",
-    margin: "0 auto",
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))",
-    gap: "32px",
+    maxWidth: '900px',
+    margin: '0 auto',
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))',
+    gap: '24px',
   },
   faqItem: {
-    backgroundColor: "rgba(30, 41, 59, 0.6)",
-    borderRadius: "12px",
-    padding: "24px",
-    border: "1px solid rgba(148, 163, 184, 0.1)",
+    backgroundColor: '#fff',
+    borderRadius: '14px',
+    padding: '28px',
+    border: '1px solid #E2E8F0',
   },
   faqQuestion: {
-    fontSize: "17px",
-    fontWeight: "600",
-    color: "#f8fafc",
-    margin: "0 0 12px",
+    fontSize: '16px',
+    fontWeight: '600',
+    color: '#0F172A',
+    margin: '0 0 12px',
   },
   faqAnswer: {
-    fontSize: "15px",
-    color: "#94a3b8",
+    fontSize: '15px',
+    color: '#64748B',
     margin: 0,
-    lineHeight: "1.6",
+    lineHeight: '1.6',
   },
+  
   // CTA Section
   ctaSection: {
-    textAlign: "center",
-    padding: "80px 24px",
-    background: "linear-gradient(180deg, transparent 0%, rgba(56, 189, 248, 0.05) 100%)",
+    textAlign: 'center',
+    padding: '80px 24px',
+    background: 'linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)',
   },
   ctaSectionTitle: {
-    fontSize: "36px",
-    fontWeight: "700",
-    color: "#f8fafc",
-    margin: "0 0 16px",
+    fontSize: '36px',
+    fontWeight: '700',
+    color: '#064E3B',
+    margin: '0 0 16px',
   },
   ctaSectionSubtitle: {
-    fontSize: "18px",
-    color: "#94a3b8",
-    margin: "0 0 32px",
+    fontSize: '18px',
+    color: '#047857',
+    margin: '0 0 32px',
   },
   ctaSectionButton: {
-    backgroundColor: "#38bdf8",
-    color: "#0f172a",
-    border: "none",
-    padding: "16px 48px",
-    borderRadius: "12px",
-    fontSize: "18px",
-    fontWeight: "700",
-    cursor: "pointer",
-    transition: "all 0.2s",
-    boxShadow: "0 4px 20px rgba(56, 189, 248, 0.3)",
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '10px',
+    backgroundColor: '#2CA01C',
+    color: '#fff',
+    border: 'none',
+    padding: '16px 36px',
+    borderRadius: '12px',
+    fontSize: '18px',
+    fontWeight: '700',
+    cursor: 'pointer',
+    boxShadow: '0 4px 20px rgba(44, 160, 28, 0.3)',
   },
+  
   // Footer
   footer: {
-    borderTop: "1px solid rgba(148, 163, 184, 0.1)",
-    padding: "32px 24px",
+    borderTop: '1px solid #E2E8F0',
+    padding: '32px 24px',
   },
   footerContent: {
-    maxWidth: "1200px",
-    margin: "0 auto",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
+    maxWidth: '1200px',
+    margin: '0 auto',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   footerText: {
-    color: "#64748b",
-    fontSize: "14px",
+    color: '#64748B',
+    fontSize: '14px',
     margin: 0,
   },
   footerLinks: {
-    display: "flex",
-    gap: "24px",
+    display: 'flex',
+    gap: '24px',
   },
   footerLink: {
-    color: "#64748b",
-    textDecoration: "none",
-    fontSize: "14px",
-    transition: "color 0.2s",
+    color: '#64748B',
+    textDecoration: 'none',
+    fontSize: '14px',
   },
 };
-

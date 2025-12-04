@@ -10,12 +10,16 @@ export default function AboutPage() {
       <nav style={styles.nav}>
         <div style={styles.navContent}>
           <div style={styles.logo} onClick={() => navigate("/")}>
-            <div style={styles.logoIcon}>⚡</div>
-            <span style={styles.logoText}>CFO Worx</span>
+            <div style={styles.logoIcon}>
+              <svg viewBox="0 0 24 24" fill="none" style={{ width: 18, height: 18 }}>
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <span style={styles.logoText}>RoyaltiesAgent</span>
           </div>
           <div style={styles.navLinks}>
             <a href="/" style={styles.navLink}>Home</a>
-            <a href="/about" style={{...styles.navLink, color: "#10b981"}}>About</a>
+            <a href="/about" style={{...styles.navLink, color: "#2CA01C"}}>About</a>
             <a href="/pricing" style={styles.navLink}>Pricing</a>
             <a href="/contact" style={styles.navLink}>Contact</a>
             <button onClick={() => navigate("/login")} style={styles.loginBtn}>
@@ -28,7 +32,7 @@ export default function AboutPage() {
       {/* Hero Section */}
       <section style={styles.hero}>
         <div style={styles.heroContent}>
-          <h1 style={styles.heroTitle}>About CFO Worx</h1>
+          <h1 style={styles.heroTitle}>About RoyaltiesAgent</h1>
           <p style={styles.heroSubtitle}>
             We're on a mission to simplify franchise financial management for business owners everywhere.
           </p>
@@ -41,12 +45,12 @@ export default function AboutPage() {
           <div style={styles.storyContent}>
             <h2 style={styles.storyTitle}>Our Story</h2>
             <p style={styles.storyText}>
-              CFO Worx was born from a simple observation: franchise owners spend too much time 
+              RoyaltiesAgent was born from a simple observation: franchise owners spend too much time 
               wrestling with spreadsheets and manual calculations instead of growing their business.
             </p>
             <p style={styles.storyText}>
               Founded by franchise operators who experienced these challenges firsthand, we built 
-              the tool we wished existed. Today, CFO Worx helps hundreds of franchise owners 
+              the tool we wished existed. Today, RoyaltiesAgent helps hundreds of franchise owners 
               automate their royalty calculations and financial reporting.
             </p>
             <p style={styles.storyText}>
@@ -85,7 +89,11 @@ export default function AboutPage() {
         </div>
         <div style={styles.valuesGrid}>
           <div style={styles.valueCard}>
-            <div style={styles.valueIcon}>🎯</div>
+            <div style={{...styles.valueIcon, background: '#ECFDF5'}}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2CA01C" strokeWidth="2">
+                <circle cx="12" cy="12" r="10"/><path d="M8 12l2 2 4-4"/>
+              </svg>
+            </div>
             <h3 style={styles.valueTitle}>Simplicity First</h3>
             <p style={styles.valueDesc}>
               Complex problems deserve simple solutions. We obsess over making our platform 
@@ -93,7 +101,12 @@ export default function AboutPage() {
             </p>
           </div>
           <div style={styles.valueCard}>
-            <div style={styles.valueIcon}>🤝</div>
+            <div style={{...styles.valueIcon, background: '#EFF6FF'}}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2">
+                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
+              </svg>
+            </div>
             <h3 style={styles.valueTitle}>Customer Success</h3>
             <p style={styles.valueDesc}>
               Your success is our success. We're not happy until you're saving time and 
@@ -101,7 +114,11 @@ export default function AboutPage() {
             </p>
           </div>
           <div style={styles.valueCard}>
-            <div style={styles.valueIcon}>🔒</div>
+            <div style={{...styles.valueIcon, background: '#FEE2E2'}}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+            </div>
             <h3 style={styles.valueTitle}>Trust & Security</h3>
             <p style={styles.valueDesc}>
               We handle your financial data with the utmost care. Enterprise-grade security 
@@ -109,39 +126,15 @@ export default function AboutPage() {
             </p>
           </div>
           <div style={styles.valueCard}>
-            <div style={styles.valueIcon}>🚀</div>
+            <div style={{...styles.valueIcon, background: '#F5F3FF'}}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+              </svg>
+            </div>
             <h3 style={styles.valueTitle}>Continuous Innovation</h3>
             <p style={styles.valueDesc}>
               We're always improving. Regular updates and new features based on user feedback.
             </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Team Section */}
-      <section style={styles.teamSection}>
-        <div style={styles.sectionHeader}>
-          <h2 style={styles.sectionTitle}>Leadership Team</h2>
-          <p style={styles.sectionSubtitle}>Meet the people behind CFO Worx</p>
-        </div>
-        <div style={styles.teamGrid}>
-          <div style={styles.teamCard}>
-            <div style={styles.teamAvatar}>👨‍💼</div>
-            <h3 style={styles.teamName}>John Smith</h3>
-            <p style={styles.teamRole}>CEO & Co-Founder</p>
-            <p style={styles.teamBio}>Former franchise owner with 15+ years in the industry.</p>
-          </div>
-          <div style={styles.teamCard}>
-            <div style={styles.teamAvatar}>👩‍💻</div>
-            <h3 style={styles.teamName}>Sarah Johnson</h3>
-            <p style={styles.teamRole}>CTO & Co-Founder</p>
-            <p style={styles.teamBio}>Tech veteran with experience at Fortune 500 companies.</p>
-          </div>
-          <div style={styles.teamCard}>
-            <div style={styles.teamAvatar}>👨‍🔬</div>
-            <h3 style={styles.teamName}>Michael Chen</h3>
-            <p style={styles.teamRole}>Head of Product</p>
-            <p style={styles.teamBio}>Product leader passionate about user experience.</p>
           </div>
         </div>
       </section>
@@ -151,10 +144,13 @@ export default function AboutPage() {
         <div style={styles.ctaContent}>
           <h2 style={styles.ctaTitle}>Ready to Get Started?</h2>
           <p style={styles.ctaSubtitle}>
-            Join hundreds of franchise owners who trust CFO Worx.
+            Join hundreds of franchise owners who trust RoyaltiesAgent.
           </p>
           <button onClick={() => navigate("/login")} style={styles.ctaBtn}>
-            Start Your Free Trial →
+            Start Your Free Trial
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
           </button>
         </div>
       </section>
@@ -164,8 +160,12 @@ export default function AboutPage() {
         <div style={styles.footerContent}>
           <div style={styles.footerBrand}>
             <div style={styles.logo}>
-              <div style={styles.logoIcon}>⚡</div>
-              <span style={styles.logoText}>CFO Worx</span>
+              <div style={styles.logoIcon}>
+                <svg viewBox="0 0 24 24" fill="none" style={{ width: 18, height: 18 }}>
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <span style={styles.logoText}>RoyaltiesAgent</span>
             </div>
             <p style={styles.footerTagline}>Royalty Management Made Simple</p>
           </div>
@@ -176,7 +176,7 @@ export default function AboutPage() {
           </div>
         </div>
         <div style={styles.footerBottom}>
-          <p>© 2024 CFO Worx. All rights reserved.</p>
+          <p>© 2024 RoyaltiesAgent by CFOWORX. All rights reserved.</p>
         </div>
       </footer>
     </div>
@@ -185,9 +185,9 @@ export default function AboutPage() {
 
 const styles = {
   container: {
-    fontFamily: "'Inter', 'Segoe UI', sans-serif",
-    backgroundColor: "#0f172a",
-    color: "#e2e8f0",
+    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+    backgroundColor: "#fff",
+    color: "#0F172A",
     minHeight: "100vh",
   },
   nav: {
@@ -195,9 +195,9 @@ const styles = {
     top: 0,
     left: 0,
     right: 0,
-    backgroundColor: "rgba(15, 23, 42, 0.9)",
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
     backdropFilter: "blur(10px)",
-    borderBottom: "1px solid rgba(255,255,255,0.1)",
+    borderBottom: "1px solid #E2E8F0",
     zIndex: 1000,
   },
   navContent: {
@@ -211,23 +211,23 @@ const styles = {
   logo: {
     display: "flex",
     alignItems: "center",
-    gap: "10px",
+    gap: "12px",
     cursor: "pointer",
+    textDecoration: "none",
   },
   logoIcon: {
     width: "40px",
     height: "40px",
-    background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+    background: "linear-gradient(135deg, #2CA01C 0%, #1E7A14 100%)",
     borderRadius: "10px",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: "20px",
   },
   logoText: {
-    fontSize: "22px",
+    fontSize: "20px",
     fontWeight: "700",
-    color: "#fff",
+    color: "#0F172A",
   },
   navLinks: {
     display: "flex",
@@ -235,13 +235,13 @@ const styles = {
     gap: "32px",
   },
   navLink: {
-    color: "#94a3b8",
+    color: "#64748B",
     textDecoration: "none",
     fontSize: "15px",
     fontWeight: "500",
   },
   loginBtn: {
-    backgroundColor: "#10b981",
+    backgroundColor: "#2CA01C",
     color: "#fff",
     border: "none",
     padding: "10px 24px",
@@ -253,26 +253,28 @@ const styles = {
   hero: {
     padding: "160px 24px 80px",
     textAlign: "center",
-    background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
+    background: "linear-gradient(180deg, #F8FAFC 0%, #fff 100%)",
   },
   heroContent: {
     maxWidth: "700px",
     margin: "0 auto",
   },
   heroTitle: {
-    fontSize: "52px",
+    fontSize: "48px",
     fontWeight: "800",
-    color: "#fff",
-    marginBottom: "24px",
+    color: "#0F172A",
+    marginBottom: "20px",
+    marginTop: 0,
   },
   heroSubtitle: {
     fontSize: "20px",
-    color: "#94a3b8",
+    color: "#64748B",
     lineHeight: "1.6",
+    margin: 0,
   },
   storySection: {
     padding: "100px 24px",
-    backgroundColor: "#1e293b",
+    backgroundColor: "#F8FAFC",
   },
   storyGrid: {
     maxWidth: "1200px",
@@ -286,41 +288,41 @@ const styles = {
   storyTitle: {
     fontSize: "36px",
     fontWeight: "800",
-    color: "#fff",
+    color: "#0F172A",
     marginBottom: "24px",
+    marginTop: 0,
   },
   storyText: {
     fontSize: "16px",
-    color: "#94a3b8",
+    color: "#64748B",
     lineHeight: "1.8",
     marginBottom: "20px",
   },
-  storyVisual: {},
   statsGrid: {
     display: "grid",
     gridTemplateColumns: "repeat(2, 1fr)",
     gap: "20px",
   },
   statCard: {
-    backgroundColor: "#0f172a",
+    backgroundColor: "#fff",
     borderRadius: "16px",
     padding: "32px",
     textAlign: "center",
-    border: "1px solid rgba(255,255,255,0.1)",
+    border: "1px solid #E2E8F0",
   },
   statValue: {
     fontSize: "36px",
     fontWeight: "800",
-    color: "#10b981",
+    color: "#2CA01C",
     marginBottom: "8px",
   },
   statLabel: {
     fontSize: "14px",
-    color: "#64748b",
+    color: "#64748B",
   },
   valuesSection: {
     padding: "100px 24px",
-    backgroundColor: "#0f172a",
+    backgroundColor: "#fff",
   },
   sectionHeader: {
     textAlign: "center",
@@ -330,12 +332,14 @@ const styles = {
   sectionTitle: {
     fontSize: "40px",
     fontWeight: "800",
-    color: "#fff",
+    color: "#0F172A",
     marginBottom: "16px",
+    marginTop: 0,
   },
   sectionSubtitle: {
     fontSize: "18px",
-    color: "#94a3b8",
+    color: "#64748B",
+    margin: 0,
   },
   valuesGrid: {
     maxWidth: "1200px",
@@ -345,75 +349,37 @@ const styles = {
     gap: "24px",
   },
   valueCard: {
-    backgroundColor: "#1e293b",
+    backgroundColor: "#F8FAFC",
     borderRadius: "16px",
     padding: "32px",
     textAlign: "center",
-    border: "1px solid rgba(255,255,255,0.05)",
+    border: "1px solid #E2E8F0",
   },
   valueIcon: {
-    fontSize: "40px",
-    marginBottom: "20px",
+    width: "56px",
+    height: "56px",
+    borderRadius: "14px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    margin: "0 auto 20px",
   },
   valueTitle: {
     fontSize: "18px",
     fontWeight: "700",
-    color: "#fff",
+    color: "#0F172A",
     marginBottom: "12px",
+    marginTop: 0,
   },
   valueDesc: {
     fontSize: "14px",
-    color: "#94a3b8",
+    color: "#64748B",
     lineHeight: "1.6",
-  },
-  teamSection: {
-    padding: "100px 24px",
-    backgroundColor: "#1e293b",
-  },
-  teamGrid: {
-    maxWidth: "900px",
-    margin: "0 auto",
-    display: "grid",
-    gridTemplateColumns: "repeat(3, 1fr)",
-    gap: "32px",
-  },
-  teamCard: {
-    backgroundColor: "#0f172a",
-    borderRadius: "16px",
-    padding: "40px 24px",
-    textAlign: "center",
-    border: "1px solid rgba(255,255,255,0.1)",
-  },
-  teamAvatar: {
-    width: "80px",
-    height: "80px",
-    backgroundColor: "#1e293b",
-    borderRadius: "50%",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "36px",
-    margin: "0 auto 20px",
-  },
-  teamName: {
-    fontSize: "20px",
-    fontWeight: "700",
-    color: "#fff",
-    marginBottom: "4px",
-  },
-  teamRole: {
-    fontSize: "14px",
-    color: "#10b981",
-    marginBottom: "12px",
-  },
-  teamBio: {
-    fontSize: "14px",
-    color: "#94a3b8",
-    lineHeight: "1.5",
+    margin: 0,
   },
   ctaSection: {
     padding: "100px 24px",
-    background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+    background: "linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)",
     textAlign: "center",
   },
   ctaContent: {
@@ -423,28 +389,33 @@ const styles = {
   ctaTitle: {
     fontSize: "40px",
     fontWeight: "800",
-    color: "#fff",
+    color: "#064E3B",
     marginBottom: "16px",
+    marginTop: 0,
   },
   ctaSubtitle: {
     fontSize: "18px",
-    color: "rgba(255,255,255,0.9)",
+    color: "#047857",
     marginBottom: "32px",
   },
   ctaBtn: {
-    backgroundColor: "#fff",
-    color: "#059669",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "10px",
+    backgroundColor: "#2CA01C",
+    color: "#fff",
     border: "none",
-    padding: "18px 40px",
+    padding: "18px 36px",
     borderRadius: "12px",
     fontSize: "18px",
     fontWeight: "700",
     cursor: "pointer",
+    boxShadow: "0 4px 20px rgba(44, 160, 28, 0.3)",
   },
   footer: {
-    backgroundColor: "#0f172a",
+    backgroundColor: "#fff",
     padding: "40px 24px 30px",
-    borderTop: "1px solid rgba(255,255,255,0.1)",
+    borderTop: "1px solid #E2E8F0",
   },
   footerContent: {
     maxWidth: "1200px",
@@ -456,7 +427,7 @@ const styles = {
   },
   footerBrand: {},
   footerTagline: {
-    color: "#64748b",
+    color: "#64748B",
     fontSize: "14px",
     marginTop: "8px",
   },
@@ -465,16 +436,15 @@ const styles = {
     gap: "32px",
   },
   footerLink: {
-    color: "#64748b",
+    color: "#64748B",
     textDecoration: "none",
     fontSize: "14px",
   },
   footerBottom: {
     textAlign: "center",
     paddingTop: "20px",
-    borderTop: "1px solid rgba(255,255,255,0.1)",
-    color: "#64748b",
+    borderTop: "1px solid #E2E8F0",
+    color: "#64748B",
     fontSize: "14px",
   },
 };
-

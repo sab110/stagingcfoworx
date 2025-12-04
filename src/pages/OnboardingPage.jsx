@@ -5,7 +5,7 @@ export default function OnboardingPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [companyInfo, setCompanyInfo] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [isManageMode, setIsManageMode] = useState(false);  // For managing existing licenses
+  const [isManageMode, setIsManageMode] = useState(false);
   const realmId = localStorage.getItem("realm_id");
   const backendURL = import.meta.env.VITE_BACKEND_URL;
 
@@ -15,7 +15,6 @@ export default function OnboardingPage() {
       return;
     }
     
-    // Check if user is in "manage" mode (coming from dashboard to manage licenses)
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get("manage") === "true") {
       setIsManageMode(true);
@@ -27,94 +26,69 @@ export default function OnboardingPage() {
   const fetchCompanyInfo = async () => {
     try {
       setLoading(true);
-      console.log("🔍 Fetching company info for realm_id:", realmId);
-      console.log("📡 Backend URL:", backendURL);
-      
       const response = await fetch(
         `${backendURL}/api/quickbooks/company-info/${realmId}`
       );
 
-      console.log("📥 Response status:", response.status);
-
       if (response.ok) {
         const data = await response.json();
-        console.log("✅ Company info fetched:", data);
         
-        // Check if onboarding is already completed for this company
-        // But allow re-managing licenses if in manage mode
         if (data.onboarding_completed === "true" && !isManageMode) {
-          console.log("✅ Company onboarding already completed, redirecting to dashboard");
           window.location.href = "/dashboard";
           return;
         }
         
         setCompanyInfo(data);
-        setLoading(false); // Stop loading
-        setCurrentStep(2); // Move to license selection
+        setLoading(false);
+        setCurrentStep(2);
       } else if (response.status === 404) {
-        // If company info doesn't exist, fetch it from QuickBooks
-        console.log("⚠️ Company info not found, fetching from QuickBooks...");
         const fetchResponse = await fetch(
           `${backendURL}/api/quickbooks/fetch-company-info/${realmId}`,
           { method: "POST" }
         );
         
-        console.log("📥 Fetch response status:", fetchResponse.status);
-        
         if (fetchResponse.ok) {
           const data = await fetchResponse.json();
-          console.log("✅ Company info fetched from QuickBooks:", data);
           setCompanyInfo(data.company_info);
-          setLoading(false); // Stop loading
+          setLoading(false);
           setCurrentStep(2);
         } else {
-          const errorText = await fetchResponse.text();
-          console.error("❌ Failed to fetch from QuickBooks:", errorText);
           setLoading(false);
-          throw new Error(`Failed to fetch company info: ${response.status}`);
+          throw new Error(`Failed to fetch company info`);
         }
       } else {
-        const errorText = await response.text();
-        console.error("❌ API Error:", errorText);
         setLoading(false);
-        throw new Error(`API Error: ${response.status} - ${errorText}`);
+        throw new Error(`API Error: ${response.status}`);
       }
     } catch (err) {
-      console.error("❌ Error fetching company info:", err);
+      console.error("Error fetching company info:", err);
       setLoading(false);
       
-      // Show user-friendly error with retry button
       const errorMessage = err.message.includes("Failed to fetch") 
-        ? "Cannot connect to the server. Please check your internet connection or try again later."
+        ? "Cannot connect to the server. Please check your internet connection."
         : `Failed to load company information: ${err.message}`;
       
       if (window.confirm(`${errorMessage}\n\nWould you like to retry?`)) {
         setLoading(true);
-        fetchCompanyInfo(); // Retry
+        fetchCompanyInfo();
       }
     }
   };
 
   const handleLicenseSelectionComplete = (data) => {
-    console.log("✅ License selection completed:", data);
-    
-    // Store onboarding completion flag
     if (data.onboarding_completed) {
       localStorage.setItem(`onboarding_completed_${realmId}`, "true");
     }
     
-    // If in manage mode, go directly back to dashboard
     if (isManageMode) {
       window.location.href = "/dashboard";
       return;
     }
     
-    // Move to final step for new onboarding
     setCurrentStep(3);
   };
 
   const handleCompletionRedirect = async () => {
-    // Check subscription status from backend
     try {
       const response = await fetch(
         `${backendURL}/api/subscriptions/company/${realmId}`
@@ -132,41 +106,89 @@ export default function OnboardingPage() {
       console.error("Error checking subscription:", err);
     }
     
-    // No active subscription - must subscribe first
     window.location.href = "/subscribe";
   };
 
   if (loading) {
     return (
-      <div style={styles.container}>
-        <div style={styles.loadingBox}>
-          <div style={styles.spinner}></div>
-          <p style={{ marginTop: "20px", fontSize: "16px", color: "#666" }}>
-            Setting up your account...
-          </p>
-        </div>
+      <div style={styles.loadingContainer}>
+        <div style={styles.spinner}></div>
+        <p style={styles.loadingText}>Setting up your account...</p>
+        <style>{keyframes}</style>
       </div>
     );
   }
 
   return (
     <div style={styles.container}>
+      <style>{keyframes}</style>
+      
       {/* Progress Steps */}
       <div style={styles.progressContainer}>
         <div style={styles.progressSteps}>
           <div style={{ ...styles.step, ...(currentStep >= 1 ? styles.stepActive : {}) }}>
-            <div style={styles.stepNumber}>1</div>
-            <div style={styles.stepLabel}>QuickBooks</div>
+            <div style={{
+              ...styles.stepNumber,
+              ...(currentStep >= 1 ? styles.stepNumberActive : {})
+            }}>
+              {currentStep > 1 ? (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              ) : '1'}
+            </div>
+            <div style={{
+              ...styles.stepLabel,
+              ...(currentStep >= 1 ? styles.stepLabelActive : {})
+            }}>QuickBooks</div>
           </div>
-          <div style={styles.stepLine}></div>
+          
+          <div style={styles.stepLine}>
+            <div style={{
+              ...styles.stepLineProgress,
+              width: currentStep > 1 ? '100%' : '0%'
+            }}></div>
+          </div>
+          
           <div style={{ ...styles.step, ...(currentStep >= 2 ? styles.stepActive : {}) }}>
-            <div style={styles.stepNumber}>2</div>
-            <div style={styles.stepLabel}>Select Licenses</div>
+            <div style={{
+              ...styles.stepNumber,
+              ...(currentStep >= 2 ? styles.stepNumberActive : {})
+            }}>
+              {currentStep > 2 ? (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              ) : '2'}
+            </div>
+            <div style={{
+              ...styles.stepLabel,
+              ...(currentStep >= 2 ? styles.stepLabelActive : {})
+            }}>Select Franchises</div>
           </div>
-          <div style={styles.stepLine}></div>
+          
+          <div style={styles.stepLine}>
+            <div style={{
+              ...styles.stepLineProgress,
+              width: currentStep > 2 ? '100%' : '0%'
+            }}></div>
+          </div>
+          
           <div style={{ ...styles.step, ...(currentStep >= 3 ? styles.stepActive : {}) }}>
-            <div style={styles.stepNumber}>3</div>
-            <div style={styles.stepLabel}>Complete</div>
+            <div style={{
+              ...styles.stepNumber,
+              ...(currentStep >= 3 ? styles.stepNumberActive : {})
+            }}>
+              {currentStep >= 3 ? (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              ) : '3'}
+            </div>
+            <div style={{
+              ...styles.stepLabel,
+              ...(currentStep >= 3 ? styles.stepLabelActive : {})
+            }}>Complete</div>
           </div>
         </div>
       </div>
@@ -174,7 +196,8 @@ export default function OnboardingPage() {
       {/* Step Content */}
       {currentStep === 1 && (
         <div style={styles.stepContent}>
-          <h2>Connecting to QuickBooks...</h2>
+          <div style={styles.spinner}></div>
+          <h2 style={styles.connectingTitle}>Connecting to QuickBooks...</h2>
         </div>
       )}
 
@@ -187,135 +210,223 @@ export default function OnboardingPage() {
       )}
 
       {currentStep === 3 && (
-        <div style={styles.completionCard}>
-          <div style={styles.successIcon}>✅</div>
-          <h2 style={styles.completionTitle}>Setup Complete!</h2>
-          <p style={styles.completionText}>
-            Your account has been successfully set up. Now let's activate your subscription to start managing your franchise royalties.
-          </p>
-          <button onClick={handleCompletionRedirect} style={styles.continueButton}>
-            Continue to Subscription
-          </button>
-          <p style={styles.subscriptionNote}>
-            A subscription is required to access the dashboard.
-          </p>
+        <div style={styles.completionContainer}>
+          <div style={styles.completionCard}>
+            <div style={styles.successIcon}>
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </div>
+            <h2 style={styles.completionTitle}>Setup Complete!</h2>
+            <p style={styles.completionText}>
+              Your account has been successfully set up. Now let's activate your subscription to start managing your franchise royalties.
+            </p>
+            <button onClick={handleCompletionRedirect} style={styles.continueButton}>
+              Continue to Subscription
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </button>
+            <p style={styles.subscriptionNote}>
+              A subscription is required to access the dashboard.
+            </p>
+          </div>
         </div>
       )}
     </div>
   );
 }
 
+const keyframes = `
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+`;
+
 const styles = {
   container: {
-    minHeight: "100vh",
-    backgroundColor: "#f9fafb",
-    fontFamily: "system-ui, -apple-system, sans-serif",
+    minHeight: '100vh',
+    backgroundColor: '#F8FAFC',
+    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
   },
+  
+  loadingContainer: {
+    minHeight: '100vh',
+    backgroundColor: '#F8FAFC',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  
+  spinner: {
+    width: '48px',
+    height: '48px',
+    border: '4px solid #E2E8F0',
+    borderTopColor: '#2CA01C',
+    borderRadius: '50%',
+    animation: 'spin 1s linear infinite',
+  },
+  
+  loadingText: {
+    marginTop: '20px',
+    fontSize: '16px',
+    color: '#64748B',
+  },
+  
   progressContainer: {
-    backgroundColor: "white",
-    padding: "30px 20px",
-    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+    backgroundColor: '#fff',
+    padding: '32px 24px',
+    borderBottom: '1px solid #E2E8F0',
   },
+  
   progressSteps: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    maxWidth: "600px",
-    margin: "0 auto",
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    maxWidth: '600px',
+    margin: '0 auto',
   },
+  
   step: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
     opacity: 0.4,
+    transition: 'opacity 0.3s',
   },
+  
   stepActive: {
     opacity: 1,
   },
+  
   stepNumber: {
-    width: "40px",
-    height: "40px",
-    borderRadius: "50%",
-    backgroundColor: "#e5e7eb",
-    color: "#6b7280",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "18px",
-    fontWeight: "700",
-    marginBottom: "8px",
+    width: '44px',
+    height: '44px',
+    borderRadius: '50%',
+    backgroundColor: '#E2E8F0',
+    color: '#64748B',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '16px',
+    fontWeight: '700',
+    marginBottom: '10px',
+    transition: 'all 0.3s',
   },
+  
+  stepNumberActive: {
+    backgroundColor: '#2CA01C',
+    color: '#fff',
+  },
+  
   stepLabel: {
-    fontSize: "13px",
-    fontWeight: "600",
-    color: "#6b7280",
-    textAlign: "center",
+    fontSize: '13px',
+    fontWeight: '600',
+    color: '#64748B',
+    textAlign: 'center',
+    transition: 'color 0.3s',
   },
+  
+  stepLabelActive: {
+    color: '#0F172A',
+  },
+  
   stepLine: {
     flex: 1,
-    height: "2px",
-    backgroundColor: "#e5e7eb",
-    margin: "0 15px",
+    height: '3px',
+    backgroundColor: '#E2E8F0',
+    margin: '0 20px',
+    marginBottom: '30px',
+    borderRadius: '2px',
+    overflow: 'hidden',
+    maxWidth: '100px',
   },
+  
+  stepLineProgress: {
+    height: '100%',
+    backgroundColor: '#2CA01C',
+    transition: 'width 0.5s ease',
+  },
+  
   stepContent: {
-    textAlign: "center",
-    padding: "60px 20px",
+    textAlign: 'center',
+    padding: '80px 24px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
   },
-  loadingBox: {
-    textAlign: "center",
-    padding: "60px 20px",
+  
+  connectingTitle: {
+    marginTop: '24px',
+    fontSize: '20px',
+    fontWeight: '600',
+    color: '#0F172A',
   },
-  spinner: {
-    width: "50px",
-    height: "50px",
-    border: "4px solid #e5e7eb",
-    borderTop: "4px solid #3b82f6",
-    borderRadius: "50%",
-    animation: "spin 1s linear infinite",
-    margin: "0 auto",
+  
+  completionContainer: {
+    display: 'flex',
+    justifyContent: 'center',
+    padding: '60px 24px',
   },
+  
   completionCard: {
-    maxWidth: "500px",
-    margin: "60px auto",
-    backgroundColor: "white",
-    borderRadius: "12px",
-    padding: "60px 40px",
-    textAlign: "center",
-    boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+    maxWidth: '500px',
+    backgroundColor: '#fff',
+    borderRadius: '20px',
+    padding: '60px 48px',
+    textAlign: 'center',
+    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
+    border: '1px solid #E2E8F0',
   },
+  
   successIcon: {
-    fontSize: "64px",
-    marginBottom: "20px",
+    width: '80px',
+    height: '80px',
+    backgroundColor: '#2CA01C',
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    margin: '0 auto 24px',
+    boxShadow: '0 4px 20px rgba(44, 160, 28, 0.3)',
   },
+  
   completionTitle: {
-    fontSize: "28px",
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: "15px",
+    fontSize: '28px',
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: '16px',
+    marginTop: 0,
   },
+  
   completionText: {
-    fontSize: "16px",
-    color: "#6b7280",
-    lineHeight: "1.6",
-    marginBottom: "30px",
+    fontSize: '16px',
+    color: '#64748B',
+    lineHeight: '1.6',
+    marginBottom: '32px',
   },
+  
   continueButton: {
-    padding: "15px 40px",
-    backgroundColor: "#10b981",
-    color: "white",
-    border: "none",
-    borderRadius: "8px",
-    fontSize: "16px",
-    fontWeight: "600",
-    cursor: "pointer",
-    transition: "all 0.2s",
-    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '10px',
+    padding: '16px 32px',
+    backgroundColor: '#2CA01C',
+    color: 'white',
+    border: 'none',
+    borderRadius: '12px',
+    fontSize: '16px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+    boxShadow: '0 4px 14px rgba(44, 160, 28, 0.3)',
   },
+  
   subscriptionNote: {
-    marginTop: "16px",
-    fontSize: "14px",
-    color: "#9ca3af",
-    fontStyle: "italic",
+    marginTop: '20px',
+    fontSize: '14px',
+    color: '#94A3B8',
+    fontStyle: 'italic',
   },
 };
-
