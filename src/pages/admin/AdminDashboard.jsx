@@ -6232,68 +6232,122 @@ function SettingsSection({ adminUsername }) {
   const [uploadError, setUploadError] = useState(null);
   const [csvPreview, setCsvPreview] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [validationErrors, setValidationErrors] = useState([]);
   const fileInputRef = useRef(null);
 
+  // Required columns for franchise CSV
+  const REQUIRED_COLUMNS = ['Franchise Number'];
+  const EXPECTED_COLUMNS = ['Franchise Number', 'Name', 'Owner', 'Address', 'City', 'State', 'Zip'];
+
   const parseCSV = (text) => {
-    // Handle different line endings (Windows \r\n, Mac \r, Unix \n)
-    const normalizedText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-    const lines = normalizedText.split('\n');
-    
-    // Filter out completely empty lines but keep lines with just whitespace for now
-    const nonEmptyLines = lines.filter(line => line.trim().length > 0);
-    
-    console.log('CSV Debug - Total lines:', lines.length, 'Non-empty lines:', nonEmptyLines.length);
-    
-    if (nonEmptyLines.length === 0) return { headers: [], rows: [], totalRows: 0 };
-    
-    // Parse CSV line handling quoted values with commas
-    const parseCSVLine = (line) => {
-      const result = [];
-      let current = '';
-      let inQuotes = false;
+    try {
+      // Handle different line endings (Windows \r\n, Mac \r, Unix \n)
+      const normalizedText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      const lines = normalizedText.split('\n');
       
-      for (let i = 0; i < line.length; i++) {
-        const char = line[i];
-        
-        if (char === '"') {
-          inQuotes = !inQuotes;
-        } else if (char === ',' && !inQuotes) {
-          result.push(current.trim().replace(/^"|"$/g, ''));
-          current = '';
-        } else {
-          current += char;
-        }
+      // Filter out completely empty lines
+      const nonEmptyLines = lines.filter(line => line.trim().length > 0);
+      
+      if (nonEmptyLines.length === 0) {
+        throw new Error('CSV file is empty');
       }
-      // Don't forget the last field
-      result.push(current.trim().replace(/^"|"$/g, ''));
-      return result;
-    };
-    
-    const headers = parseCSVLine(nonEmptyLines[0]);
-    console.log('CSV Debug - Headers:', headers);
-    
-    const rows = [];
-    
-    for (let i = 1; i < nonEmptyLines.length; i++) {
-      const line = nonEmptyLines[i];
-      const values = parseCSVLine(line);
       
-      console.log(`CSV Debug - Row ${i}:`, values);
+      // Parse CSV line handling quoted values with commas
+      const parseCSVLine = (line) => {
+        const result = [];
+        let current = '';
+        let inQuotes = false;
+        
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === ',' && !inQuotes) {
+            result.push(current.trim().replace(/^"|"$/g, ''));
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        result.push(current.trim().replace(/^"|"$/g, ''));
+        return result;
+      };
       
-      const row = {};
+      const headers = parseCSVLine(nonEmptyLines[0]);
       
-      // Map values to headers
-      headers.forEach((header, idx) => {
-        row[header] = values[idx] !== undefined ? values[idx] : '';
+      if (headers.length === 0) {
+        throw new Error('No headers found in CSV file');
+      }
+      
+      // Validate headers
+      const errors = [];
+      const normalizedHeaders = headers.map(h => h.toLowerCase().trim());
+      
+      // Check for required columns (case-insensitive)
+      REQUIRED_COLUMNS.forEach(col => {
+        const normalizedCol = col.toLowerCase();
+        const found = normalizedHeaders.some(h => 
+          h === normalizedCol || 
+          h === normalizedCol.replace(' ', '_') ||
+          h === normalizedCol.replace(' ', '')
+        );
+        if (!found) {
+          errors.push(`Missing required column: "${col}"`);
+        }
       });
       
-      rows.push(row);
+      // Check for expected columns and warn
+      const warnings = [];
+      EXPECTED_COLUMNS.forEach(col => {
+        const normalizedCol = col.toLowerCase();
+        const found = normalizedHeaders.some(h => 
+          h === normalizedCol || 
+          h === normalizedCol.replace(' ', '_') ||
+          h === normalizedCol.replace(' ', '')
+        );
+        if (!found && !REQUIRED_COLUMNS.includes(col)) {
+          warnings.push(`Optional column not found: "${col}"`);
+        }
+      });
+      
+      const rows = [];
+      
+      for (let i = 1; i < nonEmptyLines.length; i++) {
+        const line = nonEmptyLines[i];
+        const values = parseCSVLine(line);
+        
+        const row = {};
+        headers.forEach((header, idx) => {
+          row[header] = values[idx] !== undefined ? values[idx] : '';
+        });
+        
+        rows.push(row);
+      }
+      
+      if (rows.length === 0) {
+        throw new Error('No data rows found in CSV file');
+      }
+      
+      return { 
+        headers, 
+        rows, 
+        totalRows: rows.length, 
+        errors, 
+        warnings,
+        isValid: errors.length === 0 
+      };
+    } catch (err) {
+      return {
+        headers: [],
+        rows: [],
+        totalRows: 0,
+        errors: [err.message],
+        warnings: [],
+        isValid: false
+      };
     }
-    
-    console.log('CSV Debug - Total rows parsed:', rows.length);
-    console.log('CSV Debug - First row:', rows[0]);
-    
-    return { headers, rows, totalRows: rows.length };
   };
 
   const handleFileSelect = (e) => {
@@ -6301,20 +6355,41 @@ function SettingsSection({ adminUsername }) {
     if (!file) return;
 
     if (!file.name.endsWith('.csv')) {
-      setUploadError('Please select a CSV file');
+      setUploadError('Please select a CSV file (.csv extension required)');
+      return;
+    }
+
+    // Check file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError('File size exceeds 10MB limit');
       return;
     }
 
     setUploadError(null);
     setUploadResult(null);
+    setValidationErrors([]);
     setSelectedFile(file);
 
     // Read and preview the file
     const reader = new FileReader();
+    reader.onerror = () => {
+      setUploadError('Failed to read file. Please try again.');
+    };
     reader.onload = (event) => {
-      const text = event.target.result;
-      const preview = parseCSV(text);
-      setCsvPreview(preview);
+      try {
+        const text = event.target.result;
+        const preview = parseCSV(text);
+        setCsvPreview(preview);
+        
+        if (preview.errors.length > 0) {
+          setValidationErrors(preview.errors);
+        }
+        
+        // Open modal automatically after parsing
+        setShowPreviewModal(true);
+      } catch (err) {
+        setUploadError('Failed to parse CSV file: ' + err.message);
+      }
     };
     reader.readAsText(file);
   };
@@ -6324,13 +6399,24 @@ function SettingsSection({ adminUsername }) {
     setSelectedFile(null);
     setUploadError(null);
     setUploadResult(null);
+    setValidationErrors([]);
+    setShowPreviewModal(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
+  const handleCloseModal = () => {
+    setShowPreviewModal(false);
+  };
+
   const handleUpload = async () => {
     if (!selectedFile) return;
+    
+    if (validationErrors.length > 0) {
+      setUploadError('Please fix validation errors before uploading');
+      return;
+    }
 
     setUploading(true);
     setUploadError(null);
@@ -6355,6 +6441,7 @@ function SettingsSection({ adminUsername }) {
         setUploadResult(data);
         setCsvPreview(null);
         setSelectedFile(null);
+        setShowPreviewModal(false);
       } else {
         setUploadError(data.detail || 'Upload failed');
       }
@@ -6459,7 +6546,7 @@ function SettingsSection({ adminUsername }) {
                   style={{ display: 'none' }}
                   id="csv-upload"
                 />
-                {!csvPreview ? (
+                {!selectedFile ? (
                   <label
                     htmlFor="csv-upload"
                     style={{
@@ -6467,13 +6554,14 @@ function SettingsSection({ adminUsername }) {
                       alignItems: 'center',
                       gap: '8px',
                       padding: '10px 20px',
-                      background: '#059669',
+                      background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
                       color: '#fff',
                       borderRadius: '8px',
                       fontSize: '14px',
                       fontWeight: '600',
                       cursor: 'pointer',
-                      transition: 'all 0.15s',
+                      transition: 'all 0.2s',
+                      boxShadow: '0 2px 8px rgba(5, 150, 105, 0.25)',
                     }}
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -6501,6 +6589,27 @@ function SettingsSection({ adminUsername }) {
                       {selectedFile?.name}
                     </span>
                     <button
+                      onClick={() => setShowPreviewModal(true)}
+                      style={{
+                        padding: '8px 14px',
+                        background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                        border: 'none',
+                        borderRadius: '8px',
+                        color: '#fff',
+                        fontSize: '13px',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                      Preview
+                    </button>
+                    <button
                       onClick={handleClearPreview}
                       style={{
                         padding: '8px 14px',
@@ -6519,124 +6628,275 @@ function SettingsSection({ adminUsername }) {
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                       </svg>
-                      Cancel
+                      Clear
                     </button>
                   </div>
                 )}
                 
-                {!csvPreview && (
+                {!selectedFile && (
                   <span style={{ fontSize: '13px', color: '#94A3B8' }}>
-                    Required columns: franchise_number (name, owner, city, state, zip_code are optional)
+                    Required: Franchise Number • Optional: Name, Owner, Address, City, State, Zip
                   </span>
                 )}
               </div>
             </div>
           </div>
 
-          {/* CSV Preview */}
-          {csvPreview && (
+          {/* CSV Preview Modal */}
+          {showPreviewModal && csvPreview && (
             <div style={{
-              marginTop: '20px',
-              border: '1px solid #E2E8F0',
-              borderRadius: '12px',
-              overflow: 'hidden',
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(15, 23, 42, 0.6)',
+              backdropFilter: 'blur(8px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1000,
+              padding: '20px',
+              animation: 'fadeIn 0.2s ease',
             }}>
               <div style={{
-                padding: '16px 20px',
-                background: '#F8FAFC',
-                borderBottom: '1px solid #E2E8F0',
+                background: '#fff',
+                borderRadius: '20px',
+                width: '95%',
+                maxWidth: '1200px',
+                maxHeight: '90vh',
                 display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
+                flexDirection: 'column',
+                boxShadow: '0 25px 50px rgba(0, 0, 0, 0.25)',
+                overflow: 'hidden',
+                animation: 'scaleIn 0.2s ease',
               }}>
-                <div>
-                  <h5 style={{ margin: '0 0 4px', fontSize: '15px', fontWeight: '600', color: '#0F172A' }}>
-                    CSV Preview
-                  </h5>
-                  <p style={{ margin: 0, fontSize: '13px', color: '#64748B' }}>
-                    {csvPreview.totalRows} rows found • Showing first {Math.min(10, csvPreview.totalRows)} rows
-                  </p>
-                </div>
-                <button
-                  onClick={handleUpload}
-                  disabled={uploading}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '10px 24px',
-                    background: uploading ? '#94A3B8' : 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    cursor: uploading ? 'not-allowed' : 'pointer',
-                    boxShadow: '0 2px 4px rgba(5, 150, 105, 0.2)',
-                  }}
-                >
-                  {uploading ? (
-                    <>
-                      <span style={{
-                        width: '16px',
-                        height: '16px',
-                        border: '2px solid rgba(255,255,255,0.3)',
-                        borderTopColor: '#fff',
-                        borderRadius: '50%',
-                        animation: 'spin 1s linear infinite',
-                      }}></span>
-                      Uploading...
-                    </>
-                  ) : (
-                    <>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <polyline points="20 6 9 17 4 12"/>
+                {/* Modal Header */}
+                <div style={{
+                  padding: '24px 28px',
+                  background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      background: 'rgba(255, 255, 255, 0.2)',
+                      borderRadius: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
                       </svg>
-                      Proceed with Upload
-                    </>
-                  )}
-                </button>
-              </div>
-              
-              <div style={{ maxHeight: '400px', overflow: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                  <thead>
-                    <tr style={{ background: '#F1F5F9', position: 'sticky', top: 0 }}>
-                      <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: '600', color: '#475569', borderBottom: '1px solid #E2E8F0' }}>#</th>
-                      {csvPreview.headers.map((header, i) => (
-                        <th key={i} style={{ padding: '10px 16px', textAlign: 'left', fontWeight: '600', color: '#475569', borderBottom: '1px solid #E2E8F0' }}>
-                          {header}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {csvPreview.rows.slice(0, 10).map((row, rowIdx) => (
-                      <tr key={rowIdx} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                        <td style={{ padding: '10px 16px', color: '#94A3B8', fontWeight: '500' }}>{rowIdx + 1}</td>
-                        {csvPreview.headers.map((header, colIdx) => (
-                          <td key={colIdx} style={{ padding: '10px 16px', color: '#0F172A' }}>
-                            {row[header] || <span style={{ color: '#CBD5E1' }}>—</span>}
-                          </td>
+                    </div>
+                    <div>
+                      <h3 style={{ margin: '0 0 4px', fontSize: '20px', fontWeight: '700', color: '#fff' }}>
+                        CSV Preview
+                      </h3>
+                      <p style={{ margin: 0, fontSize: '14px', color: 'rgba(255, 255, 255, 0.8)' }}>
+                        {selectedFile?.name} • {csvPreview.totalRows.toLocaleString()} rows
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleCloseModal}
+                    style={{
+                      width: '40px',
+                      height: '40px',
+                      background: 'rgba(255, 255, 255, 0.2)',
+                      border: 'none',
+                      borderRadius: '10px',
+                      color: '#fff',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Validation Errors/Warnings */}
+                {(validationErrors.length > 0 || (csvPreview.warnings && csvPreview.warnings.length > 0)) && (
+                  <div style={{ padding: '16px 28px', background: '#FEF2F2', borderBottom: '1px solid #FECACA' }}>
+                    {validationErrors.map((err, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#DC2626', fontSize: '14px', marginBottom: validationErrors.length > 1 && i < validationErrors.length - 1 ? '8px' : 0 }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+                        </svg>
+                        <span style={{ fontWeight: '500' }}>{err}</span>
+                      </div>
+                    ))}
+                    {csvPreview.warnings && csvPreview.warnings.map((warn, i) => (
+                      <div key={`warn-${i}`} style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#D97706', fontSize: '14px', marginTop: validationErrors.length > 0 ? '8px' : 0 }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                        <span style={{ fontWeight: '500' }}>{warn}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Column Summary */}
+                <div style={{ padding: '16px 28px', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Detected Columns:</span>
+                  {csvPreview.headers.map((header, i) => (
+                    <span key={i} style={{
+                      padding: '4px 10px',
+                      background: EXPECTED_COLUMNS.some(ec => ec.toLowerCase() === header.toLowerCase() || ec.toLowerCase().replace(' ', '_') === header.toLowerCase()) ? '#ECFDF5' : '#F1F5F9',
+                      border: EXPECTED_COLUMNS.some(ec => ec.toLowerCase() === header.toLowerCase() || ec.toLowerCase().replace(' ', '_') === header.toLowerCase()) ? '1px solid #A7F3D0' : '1px solid #E2E8F0',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      fontWeight: '500',
+                      color: EXPECTED_COLUMNS.some(ec => ec.toLowerCase() === header.toLowerCase() || ec.toLowerCase().replace(' ', '_') === header.toLowerCase()) ? '#059669' : '#64748B',
+                    }}>
+                      {header}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Table Container */}
+                <div style={{ flex: 1, overflow: 'auto', padding: '0' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                    <thead>
+                      <tr style={{ background: '#F1F5F9', position: 'sticky', top: 0, zIndex: 10 }}>
+                        {csvPreview.headers.map((header, i) => (
+                          <th key={i} style={{ 
+                            padding: '14px 16px', 
+                            textAlign: 'left', 
+                            fontWeight: '600', 
+                            color: '#0F172A', 
+                            borderBottom: '2px solid #E2E8F0',
+                            background: '#F1F5F9',
+                            whiteSpace: 'nowrap',
+                          }}>
+                            {header}
+                          </th>
                         ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              
-              {csvPreview.totalRows > 10 && (
+                    </thead>
+                    <tbody>
+                      {csvPreview.rows.map((row, rowIdx) => (
+                        <tr key={rowIdx} style={{ 
+                          borderBottom: '1px solid #F1F5F9',
+                          background: rowIdx % 2 === 0 ? '#fff' : '#FAFAFA',
+                        }}>
+                          {csvPreview.headers.map((header, colIdx) => (
+                            <td key={colIdx} style={{ 
+                              padding: '12px 16px', 
+                              color: '#374151',
+                              maxWidth: '250px',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }} title={row[header] || ''}>
+                              {row[header] || <span style={{ color: '#CBD5E1', fontStyle: 'italic' }}>—</span>}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Modal Footer */}
                 <div style={{
-                  padding: '12px 20px',
+                  padding: '20px 28px',
                   background: '#F8FAFC',
                   borderTop: '1px solid #E2E8F0',
-                  textAlign: 'center',
-                  fontSize: '13px',
-                  color: '#64748B',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
                 }}>
-                  ... and {csvPreview.totalRows - 10} more rows
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <div style={{
+                      padding: '8px 14px',
+                      background: '#fff',
+                      border: '1px solid #E2E8F0',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      color: '#64748B',
+                    }}>
+                      <span style={{ fontWeight: '600', color: '#0F172A' }}>{csvPreview.totalRows.toLocaleString()}</span> total rows
+                    </div>
+                    <div style={{
+                      padding: '8px 14px',
+                      background: '#fff',
+                      border: '1px solid #E2E8F0',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      color: '#64748B',
+                    }}>
+                      <span style={{ fontWeight: '600', color: '#0F172A' }}>{csvPreview.headers.length}</span> columns
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <button
+                      onClick={handleCloseModal}
+                      style={{
+                        padding: '12px 24px',
+                        background: '#fff',
+                        border: '1px solid #E2E8F0',
+                        borderRadius: '10px',
+                        color: '#475569',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleUpload}
+                      disabled={uploading || validationErrors.length > 0}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '12px 28px',
+                        background: (uploading || validationErrors.length > 0) ? '#94A3B8' : 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '10px',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        cursor: (uploading || validationErrors.length > 0) ? 'not-allowed' : 'pointer',
+                        boxShadow: (uploading || validationErrors.length > 0) ? 'none' : '0 4px 12px rgba(5, 150, 105, 0.3)',
+                      }}
+                    >
+                      {uploading ? (
+                        <>
+                          <span style={{
+                            width: '18px',
+                            height: '18px',
+                            border: '2px solid rgba(255,255,255,0.3)',
+                            borderTopColor: '#fff',
+                            borderRadius: '50%',
+                            animation: 'spin 1s linear infinite',
+                          }}></span>
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polyline points="20 6 9 17 4 12"/>
+                          </svg>
+                          Upload {csvPreview.totalRows.toLocaleString()} Franchises
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
-              )}
+              </div>
             </div>
           )}
 
