@@ -2074,152 +2074,27 @@ function ErrorsSection({ failedPayments, webhookLogs, systemLogs, emailLogs, adm
 
       {/* Failed Payments Tab */}
       {activeTab === "payments" && (
-        <div style={styles.tableContainer}>
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th style={styles.th}>Company</th>
-                <th style={styles.th}>Email</th>
-                <th style={styles.th}>Amount</th>
-                <th style={styles.th}>Failure Reason</th>
-                <th style={styles.th}>Status</th>
-                <th style={styles.th}>Failed At</th>
-              </tr>
-            </thead>
-            <tbody>
-              {failedPayments.map((payment) => (
-                <tr key={payment.id} style={styles.tr}>
-                  <td style={styles.td}>{payment.company_name || "Unknown"}</td>
-                  <td style={styles.td}>{payment.customer_email || "—"}</td>
-                  <td style={styles.td}>{formatCurrency(payment.amount)}</td>
-                  <td style={styles.td}>
-                    <div style={styles.failureMessage}>{payment.failure_message}</div>
-                    {payment.failure_code && (
-                      <div style={styles.failureCode}>Code: {payment.failure_code}</div>
-                    )}
-                  </td>
-                  <td style={styles.td}>
-                    <StatusBadge status={payment.status} />
-                  </td>
-                  <td style={styles.td}>{formatDate(payment.failed_at)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {failedPayments.length === 0 && (
-            <EmptyState 
-              icon={<CheckCircleIcon />}
-              title="No failed payments"
-              description="All payments are processing correctly"
-            />
-          )}
-        </div>
+        <FailedPaymentsTab 
+          failedPayments={failedPayments}
+          formatDate={formatDate}
+          formatCurrency={formatCurrency}
+        />
       )}
 
       {/* Webhook Logs Tab */}
       {activeTab === "webhooks" && (
-        <div style={styles.tableContainer}>
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th style={styles.th}>Source</th>
-                <th style={styles.th}>Event Type</th>
-                <th style={styles.th}>Event ID</th>
-                <th style={styles.th}>Company</th>
-                <th style={styles.th}>Status</th>
-                <th style={styles.th}>Time (ms)</th>
-                <th style={styles.th}>Received</th>
-              </tr>
-            </thead>
-            <tbody>
-              {webhookLogs.map((log) => (
-                <tr key={log.id} style={styles.tr}>
-                  <td style={styles.td}>
-                    <span style={{
-                      padding: '4px 10px',
-                      borderRadius: '6px',
-                      fontSize: '11px',
-                      fontWeight: '600',
-                      textTransform: 'uppercase',
-                      background: log.source === 'stripe' ? '#EFF6FF' : '#F0FDF4',
-                      color: log.source === 'stripe' ? '#1B4DFF' : '#059669',
-                    }}>
-                      {log.source}
-                    </span>
-                  </td>
-                  <td style={styles.td}>
-                    <span style={{ fontFamily: 'monospace', fontSize: '12px' }}>{log.event_type}</span>
-                  </td>
-                  <td style={styles.td}>
-                    <span style={{ fontFamily: 'monospace', fontSize: '11px', color: '#64748B' }}>
-                      {log.event_id?.slice(0, 20)}...
-                    </span>
-                  </td>
-                  <td style={styles.td}>{log.company_name || "—"}</td>
-                  <td style={styles.td}>
-                    <StatusBadge status={log.status === 'processed' ? 'active' : log.status === 'failed' ? 'rejected' : 'pending_review'} />
-                  </td>
-                  <td style={styles.td}>{log.processing_time_ms || "—"}</td>
-                  <td style={styles.td}>{formatDateTime(log.created_at)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {webhookLogs.length === 0 && (
-            <EmptyState 
-              icon={<WebhookIcon />}
-              title="No webhook logs"
-              description="Webhook activity will appear here"
-            />
-          )}
-        </div>
+        <WebhookLogsTab 
+          webhookLogs={webhookLogs}
+          formatDateTime={formatDateTime}
+        />
       )}
 
       {/* System Logs Tab */}
       {activeTab === "system" && (
-        <div style={styles.tableContainer}>
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th style={styles.th}>Level</th>
-                <th style={styles.th}>Source</th>
-                <th style={styles.th}>Action</th>
-                <th style={styles.th}>Message</th>
-                <th style={styles.th}>Company</th>
-                <th style={styles.th}>Time</th>
-              </tr>
-            </thead>
-            <tbody>
-              {systemLogs.map((log) => (
-                <tr key={log.id} style={styles.tr}>
-                  <td style={styles.td}>
-                    <LogLevelBadge level={log.level} />
-                  </td>
-                  <td style={styles.td}>
-                    <span style={{ fontFamily: 'monospace', fontSize: '12px' }}>{log.source}</span>
-                  </td>
-                  <td style={styles.td}>
-                    <span style={{ fontFamily: 'monospace', fontSize: '12px' }}>{log.action}</span>
-                  </td>
-                  <td style={styles.td}>
-                    <div style={{ maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {log.message}
-                    </div>
-                  </td>
-                  <td style={styles.td}>{log.company_name || "—"}</td>
-                  <td style={styles.td}>{formatDateTime(log.created_at)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {systemLogs.length === 0 && (
-            <EmptyState 
-              icon={<FileTextIcon />}
-              title="No system logs"
-              description="System activity will appear here"
-            />
-          )}
-        </div>
+        <SystemLogsTab 
+          systemLogs={systemLogs}
+          formatDateTime={formatDateTime}
+        />
       )}
 
       {/* Email Logs Tab */}
@@ -2254,22 +2129,61 @@ function ErrorsSection({ failedPayments, webhookLogs, systemLogs, emailLogs, adm
 function AdminActivityTab({ adminLogs, formatDateTime }) {
   const [selectedLog, setSelectedLog] = useState(null);
   const [filterAction, setFilterAction] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
   
   const actions = [...new Set(adminLogs.map(l => l.action).filter(Boolean))];
   
-  const filteredLogs = filterAction === "all" 
-    ? adminLogs 
-    : adminLogs.filter(l => l.action === filterAction);
+  const filteredLogs = adminLogs.filter(l => {
+    const matchesAction = filterAction === "all" || l.action === filterAction;
+    const matchesSearch = !searchTerm ||
+      l.admin_username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      l.action?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      l.resource_type?.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesAction && matchesSearch;
+  });
+  
+  const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
+  const paginatedLogs = filteredLogs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <div>
       {/* Filter */}
-      <div style={{ marginBottom: '16px', display: 'flex', gap: '12px', alignItems: 'center' }}>
+      <div style={{
+        display: 'flex',
+        gap: '12px',
+        marginBottom: '16px',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        padding: '16px',
+        background: '#F8FAFC',
+        borderRadius: '10px',
+        border: '1px solid #E2E8F0',
+      }}>
+        <div style={{ position: 'relative', flex: '1', minWidth: '200px', maxWidth: '300px' }}>
+          <SearchIcon style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', width: '16px', height: '16px' }} />
+          <input
+            type="text"
+            placeholder="Search admin activity..."
+            value={searchTerm}
+            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+            style={{
+              width: '100%',
+              padding: '10px 12px 10px 38px',
+              border: '1px solid #E2E8F0',
+              borderRadius: '8px',
+              fontSize: '13px',
+              background: '#fff',
+              outline: 'none',
+            }}
+          />
+        </div>
         <select
           value={filterAction}
-          onChange={(e) => setFilterAction(e.target.value)}
+          onChange={(e) => { setFilterAction(e.target.value); setCurrentPage(1); }}
           style={{
-            padding: '8px 32px 8px 12px',
+            padding: '10px 32px 10px 12px',
             border: '1px solid #E2E8F0',
             borderRadius: '8px',
             fontSize: '13px',
@@ -2287,7 +2201,30 @@ function AdminActivityTab({ adminLogs, formatDateTime }) {
             <option key={action} value={action}>{action}</option>
           ))}
         </select>
-        <span style={{ color: '#64748B', fontSize: '13px' }}>
+        
+        {(searchTerm || filterAction !== "all") && (
+          <button
+            onClick={() => {
+              setSearchTerm("");
+              setFilterAction("all");
+              setCurrentPage(1);
+            }}
+            style={{
+              padding: '10px 16px',
+              background: '#FEF2F2',
+              border: '1px solid #FECACA',
+              borderRadius: '8px',
+              color: '#DC2626',
+              fontSize: '13px',
+              fontWeight: '500',
+              cursor: 'pointer',
+            }}
+          >
+            Clear
+          </button>
+        )}
+        
+        <span style={{ marginLeft: 'auto', color: '#64748B', fontSize: '13px' }}>
           {filteredLogs.length} entries
         </span>
       </div>
@@ -2301,11 +2238,11 @@ function AdminActivityTab({ adminLogs, formatDateTime }) {
               <th style={styles.th}>Resource</th>
               <th style={styles.th}>IP Address</th>
               <th style={styles.th}>Time</th>
-              <th style={styles.th}>Details</th>
+              <th style={styles.th}>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {filteredLogs.map((log) => (
+            {paginatedLogs.map((log) => (
               <tr key={log.id} style={styles.tr}>
                 <td style={styles.td}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -2348,25 +2285,12 @@ function AdminActivityTab({ adminLogs, formatDateTime }) {
                 </td>
                 <td style={styles.td}>{formatDateTime(log.created_at)}</td>
                 <td style={styles.td}>
-                  {log.details ? (
-                    <button 
-                      onClick={() => setSelectedLog(log)}
-                      style={{
-                        padding: '6px 12px',
-                        background: '#EFF6FF',
-                        border: '1px solid #BFDBFE',
-                        borderRadius: '6px',
-                        color: '#1B4DFF',
-                        fontSize: '12px',
-                        fontWeight: '500',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      View Details
-                    </button>
-                  ) : (
-                    <span style={{ color: '#94A3B8', fontSize: '12px' }}>No details</span>
-                  )}
+                  <button 
+                    onClick={() => setSelectedLog(log)}
+                    style={styles.viewBtn}
+                  >
+                    View
+                  </button>
                 </td>
               </tr>
             ))}
@@ -2380,6 +2304,17 @@ function AdminActivityTab({ adminLogs, formatDateTime }) {
           />
         )}
       </div>
+      
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <Pagination 
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          totalItems={filteredLogs.length}
+          itemsPerPage={itemsPerPage}
+        />
+      )}
 
       {/* Detail Modal */}
       {selectedLog && (
@@ -2542,6 +2477,8 @@ function EmailLogsTab({ emailLogs, formatDateTime }) {
   const [selectedEmail, setSelectedEmail] = useState(null);
   const [filterType, setFilterType] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
   
   const types = [...new Set(emailLogs.map(l => l.email_type).filter(Boolean))];
   
@@ -2553,6 +2490,9 @@ function EmailLogsTab({ emailLogs, formatDateTime }) {
       log.company_name?.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesType && matchesSearch;
   });
+  
+  const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
+  const paginatedLogs = filteredLogs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <div>
@@ -2570,7 +2510,7 @@ function EmailLogsTab({ emailLogs, formatDateTime }) {
             type="text"
             placeholder="Search emails..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
             style={{
               width: '100%',
               padding: '8px 12px 8px 38px',
@@ -2584,7 +2524,7 @@ function EmailLogsTab({ emailLogs, formatDateTime }) {
         </div>
         <select
           value={filterType}
-          onChange={(e) => setFilterType(e.target.value)}
+          onChange={(e) => { setFilterType(e.target.value); setCurrentPage(1); }}
           style={{
             padding: '8px 32px 8px 12px',
             border: '1px solid #E2E8F0',
@@ -2619,32 +2559,26 @@ function EmailLogsTab({ emailLogs, formatDateTime }) {
               <th style={styles.th}>Company</th>
               <th style={styles.th}>Status</th>
               <th style={styles.th}>Sent</th>
+              <th style={styles.th}>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {filteredLogs.map((log) => (
+            {paginatedLogs.map((log) => (
               <tr key={log.id} style={styles.tr}>
                 <td style={styles.td}>{log.recipient_email}</td>
                 <td style={styles.td}>
-                  <button
-                    onClick={() => setSelectedEmail(log)}
+                  <div
                     style={{
-                      background: 'none',
-                      border: 'none',
-                      padding: 0,
-                      cursor: 'pointer',
-                      textAlign: 'left',
                       maxWidth: '250px',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
-                      color: '#1B4DFF',
-                      fontWeight: '500',
-                      display: 'block',
+                      cursor: 'help',
                     }}
+                    title={log.subject}
                   >
                     {log.subject}
-                  </button>
+                  </div>
                 </td>
                 <td style={styles.td}>
                   <EmailTypeBadge type={log.email_type} />
@@ -2654,6 +2588,14 @@ function EmailLogsTab({ emailLogs, formatDateTime }) {
                   <StatusBadge status={log.status === 'sent' ? 'active' : log.status === 'failed' ? 'rejected' : 'pending_review'} />
                 </td>
                 <td style={styles.td}>{formatDateTime(log.sent_at)}</td>
+                <td style={styles.td}>
+                  <button 
+                    onClick={() => setSelectedEmail(log)}
+                    style={styles.viewBtn}
+                  >
+                    View
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -2666,6 +2608,17 @@ function EmailLogsTab({ emailLogs, formatDateTime }) {
           />
         )}
       </div>
+      
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <Pagination 
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          totalItems={filteredLogs.length}
+          itemsPerPage={itemsPerPage}
+        />
+      )}
 
       {/* Email Detail Modal */}
       {selectedEmail && (
@@ -2820,6 +2773,8 @@ function TenantActivityTab({ tenantLogs, tenantLogFilters, formatDateTime }) {
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterCompany, setFilterCompany] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
   
   const filteredLogs = tenantLogs.filter(log => {
     const matchesCategory = filterCategory === "all" || log.category === filterCategory;
@@ -2831,6 +2786,9 @@ function TenantActivityTab({ tenantLogs, tenantLogFilters, formatDateTime }) {
       log.description?.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesCategory && matchesCompany && matchesSearch;
   });
+  
+  const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
+  const paginatedLogs = filteredLogs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <div>
@@ -2948,12 +2906,13 @@ function TenantActivityTab({ tenantLogs, tenantLogFilters, formatDateTime }) {
               <th style={styles.th}>Action</th>
               <th style={styles.th}>Category</th>
               <th style={styles.th}>Description</th>
+              <th style={styles.th}>IP</th>
               <th style={styles.th}>Time</th>
-              <th style={styles.th}>Details</th>
+              <th style={styles.th}>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {filteredLogs.map((log) => (
+            {paginatedLogs.map((log) => (
               <tr key={log.id} style={styles.tr}>
                 <td style={styles.td}>
                   <div style={{ fontWeight: '500' }}>{log.company_name || "—"}</div>
@@ -2969,31 +2928,26 @@ function TenantActivityTab({ tenantLogs, tenantLogFilters, formatDateTime }) {
                   <CategoryBadge category={log.category} />
                 </td>
                 <td style={styles.td}>
-                  <div style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div 
+                    style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'help' }}
+                    title={log.description || "—"}
+                  >
                     {log.description || "—"}
                   </div>
                 </td>
+                <td style={styles.td}>
+                  <span style={{ fontFamily: 'monospace', fontSize: '11px', color: '#64748B' }}>
+                    {log.ip_address || "—"}
+                  </span>
+                </td>
                 <td style={styles.td}>{formatDateTime(log.created_at)}</td>
                 <td style={styles.td}>
-                  {log.details ? (
-                    <button 
-                      onClick={() => setSelectedLog(log)}
-                      style={{
-                        padding: '6px 12px',
-                        background: '#EFF6FF',
-                        border: '1px solid #BFDBFE',
-                        borderRadius: '6px',
-                        color: '#1B4DFF',
-                        fontSize: '12px',
-                        fontWeight: '500',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      View
-                    </button>
-                  ) : (
-                    <span style={{ color: '#94A3B8', fontSize: '12px' }}>—</span>
-                  )}
+                  <button 
+                    onClick={() => setSelectedLog(log)}
+                    style={styles.viewBtn}
+                  >
+                    View
+                  </button>
                 </td>
               </tr>
             ))}
@@ -3007,6 +2961,17 @@ function TenantActivityTab({ tenantLogs, tenantLogFilters, formatDateTime }) {
           />
         )}
       </div>
+      
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <Pagination 
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          totalItems={filteredLogs.length}
+          itemsPerPage={itemsPerPage}
+        />
+      )}
 
       {/* Detail Modal */}
       {selectedLog && (
@@ -3046,6 +3011,1038 @@ function CategoryBadge({ category }) {
     }}>
       {category}
     </span>
+  );
+}
+
+// Failed Payments Tab Component
+function FailedPaymentsTab({ failedPayments, formatDate, formatCurrency }) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
+  
+  const filteredPayments = failedPayments.filter(p => {
+    const matchesSearch = !searchTerm ||
+      p.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.customer_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.failure_message?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = filterStatus === "all" || p.status === filterStatus;
+    return matchesSearch && matchesStatus;
+  });
+  
+  const totalPages = Math.ceil(filteredPayments.length / itemsPerPage);
+  const paginatedPayments = filteredPayments.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  return (
+    <div>
+      {/* Filters */}
+      <div style={{
+        display: 'flex',
+        gap: '12px',
+        marginBottom: '16px',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        padding: '16px',
+        background: '#F8FAFC',
+        borderRadius: '10px',
+        border: '1px solid #E2E8F0',
+      }}>
+        <div style={{ position: 'relative', flex: '1', minWidth: '200px', maxWidth: '300px' }}>
+          <SearchIcon style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', width: '16px', height: '16px' }} />
+          <input
+            type="text"
+            placeholder="Search failed payments..."
+            value={searchTerm}
+            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+            style={{
+              width: '100%',
+              padding: '10px 12px 10px 38px',
+              border: '1px solid #E2E8F0',
+              borderRadius: '8px',
+              fontSize: '13px',
+              background: '#fff',
+              outline: 'none',
+            }}
+          />
+        </div>
+        
+        <select
+          value={filterStatus}
+          onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}
+          style={{
+            padding: '10px 32px 10px 12px',
+            border: '1px solid #E2E8F0',
+            borderRadius: '8px',
+            fontSize: '13px',
+            background: '#fff',
+            cursor: 'pointer',
+            outline: 'none',
+            appearance: 'none',
+            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'right 8px center',
+          }}
+        >
+          <option value="all">All Status</option>
+          <option value="unresolved">Unresolved</option>
+          <option value="resolved">Resolved</option>
+        </select>
+        
+        {(searchTerm || filterStatus !== "all") && (
+          <button
+            onClick={() => {
+              setSearchTerm("");
+              setFilterStatus("all");
+              setCurrentPage(1);
+            }}
+            style={{
+              padding: '10px 16px',
+              background: '#FEF2F2',
+              border: '1px solid #FECACA',
+              borderRadius: '8px',
+              color: '#DC2626',
+              fontSize: '13px',
+              fontWeight: '500',
+              cursor: 'pointer',
+            }}
+          >
+            Clear
+          </button>
+        )}
+
+        <span style={{ marginLeft: 'auto', color: '#64748B', fontSize: '13px' }}>
+          {filteredPayments.length} failed payments
+        </span>
+      </div>
+
+      <div style={styles.tableContainer}>
+        <table style={styles.table}>
+          <thead>
+            <tr>
+              <th style={styles.th}>Company</th>
+              <th style={styles.th}>Email</th>
+              <th style={styles.th}>Amount</th>
+              <th style={styles.th}>Failure Reason</th>
+              <th style={styles.th}>Status</th>
+              <th style={styles.th}>Failed At</th>
+            </tr>
+          </thead>
+          <tbody>
+            {paginatedPayments.map((payment) => (
+              <tr key={payment.id} style={styles.tr}>
+                <td style={styles.td}>{payment.company_name || "Unknown"}</td>
+                <td style={styles.td}>{payment.customer_email || "—"}</td>
+                <td style={styles.td}>{formatCurrency(payment.amount)}</td>
+                <td style={styles.td}>
+                  <div 
+                    style={{ ...styles.failureMessage, cursor: 'help' }}
+                    title={payment.failure_message}
+                  >
+                    {payment.failure_message}
+                  </div>
+                  {payment.failure_code && (
+                    <div style={styles.failureCode}>Code: {payment.failure_code}</div>
+                  )}
+                </td>
+                <td style={styles.td}>
+                  <StatusBadge status={payment.status} />
+                </td>
+                <td style={styles.td}>{formatDate(payment.failed_at)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {filteredPayments.length === 0 && (
+          <EmptyState 
+            icon={<CheckCircleIcon />}
+            title="No failed payments"
+            description="All payments are processing correctly"
+          />
+        )}
+      </div>
+      
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <Pagination 
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          totalItems={filteredPayments.length}
+          itemsPerPage={itemsPerPage}
+        />
+      )}
+    </div>
+  );
+}
+
+// Pagination Component
+function Pagination({ currentPage, totalPages, onPageChange, totalItems, itemsPerPage }) {
+  const pages = [];
+  const maxVisiblePages = 5;
+  
+  let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+  let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+  
+  if (endPage - startPage + 1 < maxVisiblePages) {
+    startPage = Math.max(1, endPage - maxVisiblePages + 1);
+  }
+  
+  for (let i = startPage; i <= endPage; i++) {
+    pages.push(i);
+  }
+  
+  const startItem = (currentPage - 1) * itemsPerPage + 1;
+  const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+
+  return (
+    <div style={{
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: '16px 0',
+      borderTop: '1px solid #E2E8F0',
+      marginTop: '16px',
+    }}>
+      <span style={{ fontSize: '13px', color: '#64748B' }}>
+        Showing {startItem} to {endItem} of {totalItems} entries
+      </span>
+      <div style={{ display: 'flex', gap: '4px' }}>
+        <button
+          onClick={() => onPageChange(1)}
+          disabled={currentPage === 1}
+          style={{
+            padding: '8px 12px',
+            border: '1px solid #E2E8F0',
+            borderRadius: '6px',
+            background: currentPage === 1 ? '#F8FAFC' : '#fff',
+            color: currentPage === 1 ? '#94A3B8' : '#374151',
+            cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+            fontSize: '13px',
+          }}
+        >
+          First
+        </button>
+        <button
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          style={{
+            padding: '8px 12px',
+            border: '1px solid #E2E8F0',
+            borderRadius: '6px',
+            background: currentPage === 1 ? '#F8FAFC' : '#fff',
+            color: currentPage === 1 ? '#94A3B8' : '#374151',
+            cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+            fontSize: '13px',
+          }}
+        >
+          Prev
+        </button>
+        {pages.map(page => (
+          <button
+            key={page}
+            onClick={() => onPageChange(page)}
+            style={{
+              padding: '8px 12px',
+              border: '1px solid',
+              borderColor: page === currentPage ? '#1B4DFF' : '#E2E8F0',
+              borderRadius: '6px',
+              background: page === currentPage ? '#1B4DFF' : '#fff',
+              color: page === currentPage ? '#fff' : '#374151',
+              cursor: 'pointer',
+              fontSize: '13px',
+              fontWeight: page === currentPage ? '600' : '400',
+            }}
+          >
+            {page}
+          </button>
+        ))}
+        <button
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          style={{
+            padding: '8px 12px',
+            border: '1px solid #E2E8F0',
+            borderRadius: '6px',
+            background: currentPage === totalPages ? '#F8FAFC' : '#fff',
+            color: currentPage === totalPages ? '#94A3B8' : '#374151',
+            cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+            fontSize: '13px',
+          }}
+        >
+          Next
+        </button>
+        <button
+          onClick={() => onPageChange(totalPages)}
+          disabled={currentPage === totalPages}
+          style={{
+            padding: '8px 12px',
+            border: '1px solid #E2E8F0',
+            borderRadius: '6px',
+            background: currentPage === totalPages ? '#F8FAFC' : '#fff',
+            color: currentPage === totalPages ? '#94A3B8' : '#374151',
+            cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+            fontSize: '13px',
+          }}
+        >
+          Last
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// System Logs Tab Component
+function SystemLogsTab({ systemLogs, formatDateTime }) {
+  const [selectedLog, setSelectedLog] = useState(null);
+  const [filterLevel, setFilterLevel] = useState("all");
+  const [filterSource, setFilterSource] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
+  
+  const levels = [...new Set(systemLogs.map(l => l.level).filter(Boolean))];
+  const sources = [...new Set(systemLogs.map(l => l.source).filter(Boolean))];
+  
+  const filteredLogs = systemLogs.filter(log => {
+    const matchesLevel = filterLevel === "all" || log.level === filterLevel;
+    const matchesSource = filterSource === "all" || log.source === filterSource;
+    const matchesSearch = !searchTerm || 
+      log.message?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      log.action?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      log.company_name?.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesLevel && matchesSource && matchesSearch;
+  });
+  
+  const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
+  const paginatedLogs = filteredLogs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  return (
+    <div>
+      {/* Filters */}
+      <div style={{
+        display: 'flex',
+        gap: '12px',
+        marginBottom: '16px',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        padding: '16px',
+        background: '#F8FAFC',
+        borderRadius: '10px',
+        border: '1px solid #E2E8F0',
+      }}>
+        <div style={{ position: 'relative', flex: '1', minWidth: '200px', maxWidth: '300px' }}>
+          <SearchIcon style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', width: '16px', height: '16px' }} />
+          <input
+            type="text"
+            placeholder="Search logs..."
+            value={searchTerm}
+            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+            style={{
+              width: '100%',
+              padding: '10px 12px 10px 38px',
+              border: '1px solid #E2E8F0',
+              borderRadius: '8px',
+              fontSize: '13px',
+              background: '#fff',
+              outline: 'none',
+            }}
+          />
+        </div>
+        
+        <select
+          value={filterLevel}
+          onChange={(e) => { setFilterLevel(e.target.value); setCurrentPage(1); }}
+          style={{
+            padding: '10px 32px 10px 12px',
+            border: '1px solid #E2E8F0',
+            borderRadius: '8px',
+            fontSize: '13px',
+            background: '#fff',
+            cursor: 'pointer',
+            outline: 'none',
+            appearance: 'none',
+            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'right 8px center',
+          }}
+        >
+          <option value="all">All Levels</option>
+          {levels.map(level => (
+            <option key={level} value={level}>{level}</option>
+          ))}
+        </select>
+
+        <select
+          value={filterSource}
+          onChange={(e) => { setFilterSource(e.target.value); setCurrentPage(1); }}
+          style={{
+            padding: '10px 32px 10px 12px',
+            border: '1px solid #E2E8F0',
+            borderRadius: '8px',
+            fontSize: '13px',
+            background: '#fff',
+            cursor: 'pointer',
+            outline: 'none',
+            appearance: 'none',
+            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'right 8px center',
+          }}
+        >
+          <option value="all">All Sources</option>
+          {sources.map(source => (
+            <option key={source} value={source}>{source}</option>
+          ))}
+        </select>
+
+        {(searchTerm || filterLevel !== "all" || filterSource !== "all") && (
+          <button
+            onClick={() => {
+              setSearchTerm("");
+              setFilterLevel("all");
+              setFilterSource("all");
+              setCurrentPage(1);
+            }}
+            style={{
+              padding: '10px 16px',
+              background: '#FEF2F2',
+              border: '1px solid #FECACA',
+              borderRadius: '8px',
+              color: '#DC2626',
+              fontSize: '13px',
+              fontWeight: '500',
+              cursor: 'pointer',
+            }}
+          >
+            Clear
+          </button>
+        )}
+
+        <span style={{ marginLeft: 'auto', color: '#64748B', fontSize: '13px' }}>
+          {filteredLogs.length} logs
+        </span>
+      </div>
+
+      <div style={styles.tableContainer}>
+        <table style={styles.table}>
+          <thead>
+            <tr>
+              <th style={styles.th}>Level</th>
+              <th style={styles.th}>Source</th>
+              <th style={styles.th}>Action</th>
+              <th style={styles.th}>Message</th>
+              <th style={styles.th}>Company</th>
+              <th style={styles.th}>Time</th>
+              <th style={styles.th}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {paginatedLogs.map((log) => (
+              <tr key={log.id} style={styles.tr}>
+                <td style={styles.td}>
+                  <LogLevelBadge level={log.level} />
+                </td>
+                <td style={styles.td}>
+                  <span style={{ fontFamily: 'monospace', fontSize: '12px' }}>{log.source}</span>
+                </td>
+                <td style={styles.td}>
+                  <span style={{ fontFamily: 'monospace', fontSize: '12px' }}>{log.action}</span>
+                </td>
+                <td style={styles.td}>
+                  <div 
+                    style={{ maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'help' }}
+                    title={log.message}
+                  >
+                    {log.message}
+                  </div>
+                </td>
+                <td style={styles.td}>{log.company_name || "—"}</td>
+                <td style={styles.td}>{formatDateTime(log.created_at)}</td>
+                <td style={styles.td}>
+                  <button 
+                    onClick={() => setSelectedLog(log)}
+                    style={styles.viewBtn}
+                  >
+                    View
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {filteredLogs.length === 0 && (
+          <EmptyState 
+            icon={<FileTextIcon />}
+            title="No system logs"
+            description="System activity will appear here"
+          />
+        )}
+      </div>
+      
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <Pagination 
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          totalItems={filteredLogs.length}
+          itemsPerPage={itemsPerPage}
+        />
+      )}
+
+      {/* Detail Modal */}
+      {selectedLog && (
+        <SystemLogDetailModal 
+          log={selectedLog}
+          onClose={() => setSelectedLog(null)}
+          formatDateTime={formatDateTime}
+        />
+      )}
+    </div>
+  );
+}
+
+// System Log Detail Modal
+function SystemLogDetailModal({ log, onClose, formatDateTime }) {
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(0,0,0,0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000,
+    }} onClick={onClose}>
+      <div style={{
+        background: '#fff',
+        borderRadius: '16px',
+        width: '90%',
+        maxWidth: '700px',
+        maxHeight: '80vh',
+        overflow: 'auto',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+      }} onClick={e => e.stopPropagation()}>
+        <div style={{
+          padding: '24px',
+          borderBottom: '1px solid #E2E8F0',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+        }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+              <LogLevelBadge level={log.level} />
+              <span style={{ fontFamily: 'monospace', fontSize: '12px', color: '#64748B' }}>{log.source}</span>
+            </div>
+            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#0F172A' }}>
+              System Log Details
+            </h3>
+            <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#64748B' }}>
+              {formatDateTime(log.created_at)}
+            </p>
+          </div>
+          <button onClick={onClose} style={{
+            width: '36px',
+            height: '36px',
+            borderRadius: '8px',
+            border: 'none',
+            background: '#F1F5F9',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#64748B',
+          }}>
+            <XCircleIcon />
+          </button>
+        </div>
+        
+        <div style={{ padding: '24px' }}>
+          <div style={{ marginBottom: '20px' }}>
+            <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Log Information
+            </h4>
+            <div style={{ background: '#F8FAFC', borderRadius: '10px', padding: '16px' }}>
+              <InfoRowCompact label="Level" value={log.level} />
+              <InfoRowCompact label="Source" value={log.source} mono />
+              <InfoRowCompact label="Action" value={log.action} mono />
+              <InfoRowCompact label="Company" value={log.company_name || "—"} />
+              {log.duration_ms && <InfoRowCompact label="Duration" value={`${log.duration_ms}ms`} />}
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '20px' }}>
+            <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Message
+            </h4>
+            <div style={{
+              background: '#F8FAFC',
+              borderRadius: '10px',
+              padding: '16px',
+              fontSize: '14px',
+              color: '#0F172A',
+              lineHeight: '1.6',
+              wordBreak: 'break-word',
+            }}>
+              {log.message}
+            </div>
+          </div>
+
+          {log.details && (
+            <div style={{ marginBottom: '20px' }}>
+              <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Details (JSON)
+              </h4>
+              <div style={{
+                background: '#0F172A',
+                borderRadius: '10px',
+                padding: '16px',
+                overflow: 'auto',
+                maxHeight: '200px',
+              }}>
+                <pre style={{
+                  margin: 0,
+                  fontFamily: 'monospace',
+                  fontSize: '12px',
+                  color: '#E2E8F0',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                }}>
+                  {JSON.stringify(log.details, null, 2)}
+                </pre>
+              </div>
+            </div>
+          )}
+
+          {log.error_traceback && (
+            <div>
+              <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#DC2626', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Error Traceback
+              </h4>
+              <div style={{
+                background: '#FEF2F2',
+                borderRadius: '10px',
+                padding: '16px',
+                overflow: 'auto',
+                maxHeight: '200px',
+              }}>
+                <pre style={{
+                  margin: 0,
+                  fontFamily: 'monospace',
+                  fontSize: '11px',
+                  color: '#DC2626',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                }}>
+                  {log.error_traceback}
+                </pre>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Webhook Logs Tab Component
+function WebhookLogsTab({ webhookLogs, formatDateTime }) {
+  const [selectedLog, setSelectedLog] = useState(null);
+  const [filterSource, setFilterSource] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
+  
+  const sources = [...new Set(webhookLogs.map(l => l.source).filter(Boolean))];
+  
+  const filteredLogs = webhookLogs.filter(log => {
+    const matchesSource = filterSource === "all" || log.source === filterSource;
+    const matchesStatus = filterStatus === "all" || log.status === filterStatus;
+    const matchesSearch = !searchTerm || 
+      log.event_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      log.event_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      log.company_name?.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSource && matchesStatus && matchesSearch;
+  });
+  
+  const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
+  const paginatedLogs = filteredLogs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  return (
+    <div>
+      {/* Filters */}
+      <div style={{
+        display: 'flex',
+        gap: '12px',
+        marginBottom: '16px',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        padding: '16px',
+        background: '#F8FAFC',
+        borderRadius: '10px',
+        border: '1px solid #E2E8F0',
+      }}>
+        <div style={{ position: 'relative', flex: '1', minWidth: '200px', maxWidth: '300px' }}>
+          <SearchIcon style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', width: '16px', height: '16px' }} />
+          <input
+            type="text"
+            placeholder="Search webhooks..."
+            value={searchTerm}
+            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+            style={{
+              width: '100%',
+              padding: '10px 12px 10px 38px',
+              border: '1px solid #E2E8F0',
+              borderRadius: '8px',
+              fontSize: '13px',
+              background: '#fff',
+              outline: 'none',
+            }}
+          />
+        </div>
+        
+        <select
+          value={filterSource}
+          onChange={(e) => { setFilterSource(e.target.value); setCurrentPage(1); }}
+          style={{
+            padding: '10px 32px 10px 12px',
+            border: '1px solid #E2E8F0',
+            borderRadius: '8px',
+            fontSize: '13px',
+            background: '#fff',
+            cursor: 'pointer',
+            outline: 'none',
+            appearance: 'none',
+            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'right 8px center',
+          }}
+        >
+          <option value="all">All Sources</option>
+          {sources.map(source => (
+            <option key={source} value={source}>{source}</option>
+          ))}
+        </select>
+
+        <select
+          value={filterStatus}
+          onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}
+          style={{
+            padding: '10px 32px 10px 12px',
+            border: '1px solid #E2E8F0',
+            borderRadius: '8px',
+            fontSize: '13px',
+            background: '#fff',
+            cursor: 'pointer',
+            outline: 'none',
+            appearance: 'none',
+            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'right 8px center',
+          }}
+        >
+          <option value="all">All Status</option>
+          <option value="processed">Processed</option>
+          <option value="received">Received</option>
+          <option value="failed">Failed</option>
+        </select>
+
+        {(searchTerm || filterSource !== "all" || filterStatus !== "all") && (
+          <button
+            onClick={() => {
+              setSearchTerm("");
+              setFilterSource("all");
+              setFilterStatus("all");
+              setCurrentPage(1);
+            }}
+            style={{
+              padding: '10px 16px',
+              background: '#FEF2F2',
+              border: '1px solid #FECACA',
+              borderRadius: '8px',
+              color: '#DC2626',
+              fontSize: '13px',
+              fontWeight: '500',
+              cursor: 'pointer',
+            }}
+          >
+            Clear
+          </button>
+        )}
+
+        <span style={{ marginLeft: 'auto', color: '#64748B', fontSize: '13px' }}>
+          {filteredLogs.length} webhooks
+        </span>
+      </div>
+
+      <div style={styles.tableContainer}>
+        <table style={styles.table}>
+          <thead>
+            <tr>
+              <th style={styles.th}>Source</th>
+              <th style={styles.th}>Event Type</th>
+              <th style={styles.th}>Event ID</th>
+              <th style={styles.th}>Company</th>
+              <th style={styles.th}>Status</th>
+              <th style={styles.th}>Time (ms)</th>
+              <th style={styles.th}>Received</th>
+              <th style={styles.th}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {paginatedLogs.map((log) => (
+              <tr key={log.id} style={styles.tr}>
+                <td style={styles.td}>
+                  <span style={{
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    fontSize: '11px',
+                    fontWeight: '600',
+                    textTransform: 'uppercase',
+                    background: log.source === 'stripe' ? '#EFF6FF' : '#F0FDF4',
+                    color: log.source === 'stripe' ? '#1B4DFF' : '#059669',
+                  }}>
+                    {log.source}
+                  </span>
+                </td>
+                <td style={styles.td}>
+                  <span 
+                    style={{ fontFamily: 'monospace', fontSize: '12px', cursor: 'help' }}
+                    title={log.event_type}
+                  >
+                    {log.event_type}
+                  </span>
+                </td>
+                <td style={styles.td}>
+                  <span 
+                    style={{ fontFamily: 'monospace', fontSize: '11px', color: '#64748B', cursor: 'help' }}
+                    title={log.event_id}
+                  >
+                    {log.event_id?.slice(0, 20)}...
+                  </span>
+                </td>
+                <td style={styles.td}>{log.company_name || "—"}</td>
+                <td style={styles.td}>
+                  <StatusBadge status={log.status === 'processed' ? 'active' : log.status === 'failed' ? 'rejected' : 'pending_review'} />
+                </td>
+                <td style={styles.td}>{log.processing_time_ms || "—"}</td>
+                <td style={styles.td}>{formatDateTime(log.created_at)}</td>
+                <td style={styles.td}>
+                  <button 
+                    onClick={() => setSelectedLog(log)}
+                    style={styles.viewBtn}
+                  >
+                    View
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {filteredLogs.length === 0 && (
+          <EmptyState 
+            icon={<WebhookIcon />}
+            title="No webhook logs"
+            description="Webhook activity will appear here"
+          />
+        )}
+      </div>
+      
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <Pagination 
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          totalItems={filteredLogs.length}
+          itemsPerPage={itemsPerPage}
+        />
+      )}
+
+      {/* Detail Modal */}
+      {selectedLog && (
+        <WebhookLogDetailModal 
+          log={selectedLog}
+          onClose={() => setSelectedLog(null)}
+          formatDateTime={formatDateTime}
+        />
+      )}
+    </div>
+  );
+}
+
+// Webhook Log Detail Modal
+function WebhookLogDetailModal({ log, onClose, formatDateTime }) {
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+  };
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(0,0,0,0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000,
+    }} onClick={onClose}>
+      <div style={{
+        background: '#fff',
+        borderRadius: '16px',
+        width: '90%',
+        maxWidth: '700px',
+        maxHeight: '80vh',
+        overflow: 'auto',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+      }} onClick={e => e.stopPropagation()}>
+        <div style={{
+          padding: '24px',
+          borderBottom: '1px solid #E2E8F0',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+        }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+              <span style={{
+                padding: '4px 10px',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: '600',
+                textTransform: 'uppercase',
+                background: log.source === 'stripe' ? '#EFF6FF' : '#F0FDF4',
+                color: log.source === 'stripe' ? '#1B4DFF' : '#059669',
+              }}>
+                {log.source}
+              </span>
+              <StatusBadge status={log.status === 'processed' ? 'active' : log.status === 'failed' ? 'rejected' : 'pending_review'} />
+            </div>
+            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#0F172A' }}>
+              {log.event_type}
+            </h3>
+            <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#64748B' }}>
+              {formatDateTime(log.created_at)}
+            </p>
+          </div>
+          <button onClick={onClose} style={{
+            width: '36px',
+            height: '36px',
+            borderRadius: '8px',
+            border: 'none',
+            background: '#F1F5F9',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#64748B',
+          }}>
+            <XCircleIcon />
+          </button>
+        </div>
+        
+        <div style={{ padding: '24px' }}>
+          <div style={{ marginBottom: '20px' }}>
+            <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Webhook Information
+            </h4>
+            <div style={{ background: '#F8FAFC', borderRadius: '10px', padding: '16px' }}>
+              <InfoRowCompact label="Source" value={log.source} />
+              <InfoRowCompact label="Event Type" value={log.event_type} mono />
+              <InfoRowCompact label="Status" value={log.status} status={log.status === 'processed' ? 'active' : 'inactive'} />
+              <InfoRowCompact label="Processing Time" value={log.processing_time_ms ? `${log.processing_time_ms}ms` : "—"} />
+              <InfoRowCompact label="Company" value={log.company_name || "—"} />
+              <InfoRowCompact label="Realm ID" value={log.realm_id || "—"} mono />
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '20px' }}>
+            <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Event ID
+            </h4>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{
+                background: '#F8FAFC',
+                borderRadius: '10px',
+                padding: '12px 16px',
+                fontFamily: 'monospace',
+                fontSize: '13px',
+                flex: 1,
+                wordBreak: 'break-all',
+              }}>
+                {log.event_id}
+              </div>
+              <button
+                onClick={() => copyToClipboard(log.event_id)}
+                style={{
+                  padding: '12px 16px',
+                  background: '#EFF6FF',
+                  border: '1px solid #BFDBFE',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  color: '#1B4DFF',
+                  fontWeight: '500',
+                }}
+              >
+                Copy
+              </button>
+            </div>
+          </div>
+
+          {log.payload && (
+            <div style={{ marginBottom: '20px' }}>
+              <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Payload (JSON)
+              </h4>
+              <div style={{
+                background: '#0F172A',
+                borderRadius: '10px',
+                padding: '16px',
+                overflow: 'auto',
+                maxHeight: '200px',
+              }}>
+                <pre style={{
+                  margin: 0,
+                  fontFamily: 'monospace',
+                  fontSize: '12px',
+                  color: '#E2E8F0',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                }}>
+                  {JSON.stringify(log.payload, null, 2)}
+                </pre>
+              </div>
+            </div>
+          )}
+
+          {log.error_message && (
+            <div>
+              <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#DC2626', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Error Message
+              </h4>
+              <div style={{
+                background: '#FEF2F2',
+                borderRadius: '10px',
+                padding: '16px',
+                fontSize: '13px',
+                color: '#DC2626',
+              }}>
+                {log.error_message}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
