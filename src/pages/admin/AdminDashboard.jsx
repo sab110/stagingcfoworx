@@ -761,7 +761,7 @@ function ClientsSection({ clients, onViewClient, formatDate }) {
                 <td style={styles.td}>{client.subscription?.plan_name ? <span style={styles.planBadge}>{client.subscription.plan_name}</span> : <span style={styles.noPlan}>No plan</span>}</td>
                 <td style={styles.td}><StatusBadge status={client.subscription?.status || "none"} /></td>
                 <td style={styles.td}>{formatDate(client.created_at)}</td>
-                <td style={styles.td}><button onClick={() => onViewClient(client)} style={styles.viewBtn}>View</button></td>
+                <td style={styles.td}><button onClick={() => onViewClient(client)} style={styles.viewBtn}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>View</button></td>
               </tr>
             ))}
           </tbody>
@@ -1051,6 +1051,7 @@ function ClientDetailSection({ client, clientDetail, clientLicenses, loadingDeta
                               onClick={() => setSelectedLicense(lic)}
                               style={styles.viewBtn}
                             >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                               View
                             </button>
                           </td>
@@ -1772,7 +1773,8 @@ function MappingRulesSection({ licenseMappings, formatDate }) {
                     onClick={() => setSelectedMapping(mapping)}
                     style={styles.viewBtn}
                   >
-                    View Details
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    View
                   </button>
                 </td>
                     </tr>
@@ -2174,6 +2176,7 @@ function BillingSection({ subscriptions, formatDate }) {
                     onClick={() => setSelectedSubscription(sub)}
                     style={styles.viewBtn}
                   >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                     View
                   </button>
                       </td>
@@ -2736,10 +2739,10 @@ function AdminActivityTab({ adminLogs, formatDateTime }) {
         </div>
       </div>
 
-      <div style={styles.tableContainer}>
-        <table style={styles.table}>
-          <thead>
-            <tr>
+            <div style={styles.tableContainer}>
+              <table style={styles.table}>
+                <thead>
+                  <tr>
               <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('admin_username')}><div style={{ display: 'flex', alignItems: 'center' }}>Admin<SortIndicator field="admin_username" /></div></th>
               <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('action')}><div style={{ display: 'flex', alignItems: 'center' }}>Action<SortIndicator field="action" /></div></th>
               <th style={styles.th}>Resource</th>
@@ -2796,6 +2799,7 @@ function AdminActivityTab({ adminLogs, formatDateTime }) {
                     onClick={() => setSelectedLog(log)}
                     style={styles.viewBtn}
                   >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                     View
                   </button>
                 </td>
@@ -3105,7 +3109,7 @@ function EmailLogsTab({ emailLogs, formatDateTime }) {
               <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('recipient_email')}><div style={{ display: 'flex', alignItems: 'center' }}>Recipient<SortIndicator field="recipient_email" /></div></th>
               <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('subject')}><div style={{ display: 'flex', alignItems: 'center' }}>Subject<SortIndicator field="subject" /></div></th>
               <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('email_type')}><div style={{ display: 'flex', alignItems: 'center' }}>Type<SortIndicator field="email_type" /></div></th>
-              <th style={styles.th}>Company</th>
+                    <th style={styles.th}>Company</th>
               <th style={styles.th}>Status</th>
               <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('sent_at')}><div style={{ display: 'flex', alignItems: 'center' }}>Sent<SortIndicator field="sent_at" /></div></th>
               <th style={styles.th}>Actions</th>
@@ -3142,6 +3146,7 @@ function EmailLogsTab({ emailLogs, formatDateTime }) {
                     onClick={() => setSelectedEmail(log)}
                     style={styles.viewBtn}
                   >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                     View
                   </button>
                 </td>
@@ -3538,6 +3543,7 @@ function TenantActivityTab({ tenantLogs, tenantLogFilters, formatDateTime }) {
                     onClick={() => setSelectedLog(log)}
                     style={styles.viewBtn}
                   >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                     View
                   </button>
                 </td>
@@ -4137,6 +4143,7 @@ function SystemLogsTab({ systemLogs, formatDateTime }) {
                     onClick={() => setSelectedLog(log)}
                     style={styles.viewBtn}
                   >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                     View
                   </button>
                 </td>
@@ -4553,6 +4560,7 @@ function WebhookLogsTab({ webhookLogs, formatDateTime }) {
                     onClick={() => setSelectedLog(log)}
                     style={styles.viewBtn}
                   >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                     View
                   </button>
                 </td>
@@ -7040,14 +7048,19 @@ const styles = {
     fontSize: '13px',
   },
   viewBtn: {
-    background: '#F8FAFC',
-    border: '1px solid #E2E8F0',
-    padding: '6px 14px',
-    borderRadius: '6px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '8px 16px',
+    background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '8px',
     fontSize: '13px',
-    fontWeight: '500',
-    color: '#0F172A',
+    fontWeight: '600',
     cursor: 'pointer',
+    transition: 'all 0.2s',
+    boxShadow: '0 2px 4px rgba(5, 150, 105, 0.2)',
   },
   primaryBtn: {
     display: 'inline-flex',
