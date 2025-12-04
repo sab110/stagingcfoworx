@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
 // ============================================================
@@ -1862,8 +1862,44 @@ function BillingSection({ subscriptions, formatDate }) {
 
 // Subscription Detail Modal
 function SubscriptionDetailModal({ subscription, onClose, formatDate }) {
+  const backendURL = import.meta.env.VITE_BACKEND_URL;
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState(null);
+
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
+  };
+
+  const handleSyncQuantity = async () => {
+    if (!window.confirm(`Sync subscription quantity for ${subscription.company_name}? This will update billing based on their active licenses.`)) {
+      return;
+    }
+    
+    setSyncing(true);
+    setSyncResult(null);
+    
+    try {
+      const token = localStorage.getItem('adminToken');
+      const response = await fetch(`${backendURL}/admin/subscriptions/${subscription.realm_id}/sync-quantity`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        setSyncResult({ success: true, ...data });
+      } else {
+        setSyncResult({ success: false, error: data.detail || 'Sync failed' });
+      }
+    } catch (err) {
+      setSyncResult({ success: false, error: err.message });
+    } finally {
+      setSyncing(false);
+    }
   };
 
   return (
@@ -2005,7 +2041,73 @@ function SubscriptionDetailModal({ subscription, onClose, formatDate }) {
             </div>
           </div>
 
-          <div style={{ marginTop: '20px', display: 'flex', gap: '12px' }}>
+          {/* Sync Result */}
+          {syncResult && (
+            <div style={{
+              marginTop: '20px',
+              padding: '12px 16px',
+              background: syncResult.success ? '#ECFDF5' : '#FEF2F2',
+              border: `1px solid ${syncResult.success ? '#A7F3D0' : '#FECACA'}`,
+              borderRadius: '8px',
+              fontSize: '14px',
+            }}>
+              {syncResult.success ? (
+                <div style={{ color: '#059669' }}>
+                  {syncResult.no_change ? (
+                    <span>Already synced: {syncResult.quantity} licenses</span>
+                  ) : (
+                    <span>Updated: {syncResult.old_quantity} → {syncResult.new_quantity} licenses</span>
+                  )}
+                </div>
+              ) : (
+                <div style={{ color: '#DC2626' }}>{syncResult.error}</div>
+              )}
+            </div>
+          )}
+
+          <div style={{ marginTop: '20px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            {subscription.status === 'active' && (
+              <button
+                onClick={handleSyncQuantity}
+                disabled={syncing}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  background: syncing ? '#94A3B8' : '#D97706',
+                  color: '#fff',
+                  borderRadius: '8px',
+                  border: 'none',
+                  cursor: syncing ? 'not-allowed' : 'pointer',
+                  fontWeight: '600',
+                  fontSize: '13px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                }}
+              >
+                {syncing ? (
+                  <>
+                    <span style={{
+                      width: '14px',
+                      height: '14px',
+                      border: '2px solid rgba(255,255,255,0.3)',
+                      borderTopColor: '#fff',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite',
+                    }}></span>
+                    Syncing...
+                  </>
+                ) : (
+                  <>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+                    </svg>
+                    Sync Quantity
+                  </>
+                )}
+              </button>
+            )}
             <a
               href={`https://dashboard.stripe.com/subscriptions/${subscription.stripe_subscription_id}`}
               target="_blank"
@@ -4189,6 +4291,84 @@ function LogLevelBadge({ level }) {
 
 // Settings Section
 function SettingsSection({ adminUsername }) {
+  const backendURL = import.meta.env.VITE_BACKEND_URL;
+  const [uploading, setUploading] = useState(false);
+  const [uploadResult, setUploadResult] = useState(null);
+  const [uploadError, setUploadError] = useState(null);
+  const [syncingAll, setSyncingAll] = useState(false);
+  const [syncResult, setSyncResult] = useState(null);
+  const fileInputRef = useRef(null);
+
+  const handleFileSelect = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.csv')) {
+      setUploadError('Please select a CSV file');
+      return;
+    }
+
+    setUploading(true);
+    setUploadError(null);
+    setUploadResult(null);
+
+    try {
+      const token = localStorage.getItem('adminToken');
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch(`${backendURL}/admin/licenses/upload-csv`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setUploadResult(data);
+      } else {
+        setUploadError(data.detail || 'Upload failed');
+      }
+    } catch (err) {
+      setUploadError('Error uploading file: ' + err.message);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleSyncAllSubscriptions = async () => {
+    if (!window.confirm('This will update ALL active subscriptions to match their active license counts. Billing may be affected. Continue?')) {
+      return;
+    }
+
+    setSyncingAll(true);
+    setSyncResult(null);
+
+    try {
+      const token = localStorage.getItem('adminToken');
+      const response = await fetch(`${backendURL}/admin/subscriptions/sync-all-quantities`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+      setSyncResult(data);
+    } catch (err) {
+      setSyncResult({ success: false, error: err.message });
+    } finally {
+      setSyncingAll(false);
+    }
+  };
+
   return (
     <div>
       <div style={styles.sectionHeader}>
@@ -4234,6 +4414,312 @@ function SettingsSection({ adminUsername }) {
             <span style={styles.infoLabel}>ServproNET SFTP</span>
             <span style={{ ...styles.infoValue, color: '#10B981' }}>Connected</span>
           </div>
+        </div>
+      </div>
+
+      {/* Franchise CSV Upload Section */}
+      <div style={{ marginTop: '32px' }}>
+        <div style={styles.sectionHeader}>
+          <h3 style={styles.sectionTitle}>Update ServPro Franchises</h3>
+        </div>
+        
+        <div style={{
+          ...styles.settingsCard,
+          marginTop: '16px',
+          maxWidth: '800px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '24px' }}>
+            <div style={{
+              width: '56px',
+              height: '56px',
+              background: '#EFF6FF',
+              borderRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1B4DFF" strokeWidth="2">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+              </svg>
+            </div>
+            <div style={{ flex: 1 }}>
+              <h4 style={{ margin: '0 0 8px', fontSize: '16px', fontWeight: '600', color: '#0F172A' }}>
+                Upload Franchise CSV
+              </h4>
+              <p style={{ margin: '0 0 16px', fontSize: '14px', color: '#64748B', lineHeight: '1.5' }}>
+                Upload a CSV file to update the franchise/license database. Existing franchises will be updated, new ones will be created.
+              </p>
+              
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv"
+                  onChange={handleFileSelect}
+                  style={{ display: 'none' }}
+                  id="csv-upload"
+                />
+                <label
+                  htmlFor="csv-upload"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '10px 20px',
+                    background: uploading ? '#94A3B8' : '#1B4DFF',
+                    color: '#fff',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: uploading ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {uploading ? (
+                    <>
+                      <span style={{
+                        width: '16px',
+                        height: '16px',
+                        border: '2px solid rgba(255,255,255,0.3)',
+                        borderTopColor: '#fff',
+                        borderRadius: '50%',
+                        animation: 'spin 1s linear infinite',
+                      }}></span>
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                      </svg>
+                      Select CSV File
+                    </>
+                  )}
+                </label>
+                
+                <span style={{ fontSize: '13px', color: '#94A3B8' }}>
+                  Required columns: franchise_number (name, owner, city, state, zip_code are optional)
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Upload Error */}
+          {uploadError && (
+            <div style={{
+              marginTop: '16px',
+              padding: '12px 16px',
+              background: '#FEF2F2',
+              border: '1px solid #FECACA',
+              borderRadius: '8px',
+              color: '#DC2626',
+              fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+              </svg>
+              {uploadError}
+            </div>
+          )}
+
+          {/* Upload Success */}
+          {uploadResult && uploadResult.success && (
+            <div style={{
+              marginTop: '16px',
+              padding: '16px',
+              background: '#ECFDF5',
+              border: '1px solid #A7F3D0',
+              borderRadius: '8px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                <span style={{ fontSize: '15px', fontWeight: '600', color: '#059669' }}>
+                  CSV Processed Successfully
+                </span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+                <div style={{ padding: '12px', background: '#fff', borderRadius: '6px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '20px', fontWeight: '700', color: '#0F172A' }}>{uploadResult.summary.total_rows}</div>
+                  <div style={{ fontSize: '12px', color: '#64748B' }}>Total Rows</div>
+                </div>
+                <div style={{ padding: '12px', background: '#fff', borderRadius: '6px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '20px', fontWeight: '700', color: '#059669' }}>{uploadResult.summary.created}</div>
+                  <div style={{ fontSize: '12px', color: '#64748B' }}>Created</div>
+                </div>
+                <div style={{ padding: '12px', background: '#fff', borderRadius: '6px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '20px', fontWeight: '700', color: '#1B4DFF' }}>{uploadResult.summary.updated}</div>
+                  <div style={{ fontSize: '12px', color: '#64748B' }}>Updated</div>
+                </div>
+                <div style={{ padding: '12px', background: '#fff', borderRadius: '6px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '20px', fontWeight: '700', color: uploadResult.summary.errors > 0 ? '#DC2626' : '#94A3B8' }}>{uploadResult.summary.errors}</div>
+                  <div style={{ fontSize: '12px', color: '#64748B' }}>Errors</div>
+                </div>
+              </div>
+              {uploadResult.errors && uploadResult.errors.length > 0 && (
+                <div style={{ marginTop: '12px', padding: '12px', background: '#FEF2F2', borderRadius: '6px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: '600', color: '#DC2626', marginBottom: '8px' }}>Errors:</div>
+                  {uploadResult.errors.slice(0, 5).map((err, i) => (
+                    <div key={i} style={{ fontSize: '12px', color: '#991B1B', marginBottom: '4px' }}>
+                      Row {err.row}: {err.error || err.reason}
+                    </div>
+                  ))}
+                  {uploadResult.errors.length > 5 && (
+                    <div style={{ fontSize: '12px', color: '#94A3B8', fontStyle: 'italic' }}>
+                      ...and {uploadResult.errors.length - 5} more errors
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Subscription Sync Section */}
+      <div style={{ marginTop: '32px' }}>
+        <div style={styles.sectionHeader}>
+          <h3 style={styles.sectionTitle}>Subscription Management</h3>
+        </div>
+        
+        <div style={{
+          ...styles.settingsCard,
+          marginTop: '16px',
+          maxWidth: '800px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '24px' }}>
+            <div style={{
+              width: '56px',
+              height: '56px',
+              background: '#FEF3C7',
+              borderRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2">
+                <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+              </svg>
+            </div>
+            <div style={{ flex: 1 }}>
+              <h4 style={{ margin: '0 0 8px', fontSize: '16px', fontWeight: '600', color: '#0F172A' }}>
+                Sync Subscription Quantities
+              </h4>
+              <p style={{ margin: '0 0 16px', fontSize: '14px', color: '#64748B', lineHeight: '1.5' }}>
+                Update all Stripe subscriptions to match their current active license count. This will adjust billing for all companies based on their active franchises.
+              </p>
+              
+              <button
+                onClick={handleSyncAllSubscriptions}
+                disabled={syncingAll}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '10px 20px',
+                  background: syncingAll ? '#94A3B8' : '#D97706',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: syncingAll ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.15s',
+                }}
+              >
+                {syncingAll ? (
+                  <>
+                    <span style={{
+                      width: '16px',
+                      height: '16px',
+                      border: '2px solid rgba(255,255,255,0.3)',
+                      borderTopColor: '#fff',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite',
+                    }}></span>
+                    Syncing...
+                  </>
+                ) : (
+                  <>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+                    </svg>
+                    Sync All Subscriptions
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Sync Result */}
+          {syncResult && (
+            <div style={{
+              marginTop: '16px',
+              padding: '16px',
+              background: syncResult.success ? '#ECFDF5' : '#FEF2F2',
+              border: `1px solid ${syncResult.success ? '#A7F3D0' : '#FECACA'}`,
+              borderRadius: '8px',
+            }}>
+              {syncResult.success ? (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2">
+                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                    <span style={{ fontSize: '15px', fontWeight: '600', color: '#059669' }}>
+                      Sync Completed
+                    </span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+                    <div style={{ padding: '12px', background: '#fff', borderRadius: '6px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '20px', fontWeight: '700', color: '#0F172A' }}>{syncResult.summary?.total_active_subscriptions || 0}</div>
+                      <div style={{ fontSize: '12px', color: '#64748B' }}>Total</div>
+                    </div>
+                    <div style={{ padding: '12px', background: '#fff', borderRadius: '6px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '20px', fontWeight: '700', color: '#059669' }}>{syncResult.summary?.synced || 0}</div>
+                      <div style={{ fontSize: '12px', color: '#64748B' }}>Updated</div>
+                    </div>
+                    <div style={{ padding: '12px', background: '#fff', borderRadius: '6px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '20px', fontWeight: '700', color: '#1B4DFF' }}>{syncResult.summary?.already_synced || 0}</div>
+                      <div style={{ fontSize: '12px', color: '#64748B' }}>Already Synced</div>
+                    </div>
+                    <div style={{ padding: '12px', background: '#fff', borderRadius: '6px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '20px', fontWeight: '700', color: syncResult.summary?.errors > 0 ? '#DC2626' : '#94A3B8' }}>{syncResult.summary?.errors || 0}</div>
+                      <div style={{ fontSize: '12px', color: '#64748B' }}>Errors</div>
+                    </div>
+                  </div>
+                  {syncResult.details?.synced && syncResult.details.synced.length > 0 && (
+                    <div style={{ marginTop: '12px', padding: '12px', background: '#fff', borderRadius: '6px' }}>
+                      <div style={{ fontSize: '13px', fontWeight: '600', color: '#059669', marginBottom: '8px' }}>Updated Subscriptions:</div>
+                      {syncResult.details.synced.slice(0, 5).map((item, i) => (
+                        <div key={i} style={{ fontSize: '12px', color: '#374151', marginBottom: '4px' }}>
+                          {item.company_name}: {item.old_quantity} → {item.new_quantity} licenses
+                        </div>
+                      ))}
+                      {syncResult.details.synced.length > 5 && (
+                        <div style={{ fontSize: '12px', color: '#94A3B8', fontStyle: 'italic' }}>
+                          ...and {syncResult.details.synced.length - 5} more
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#DC2626' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+                  </svg>
+                  Error: {syncResult.error || 'Sync failed'}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
