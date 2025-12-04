@@ -614,75 +614,184 @@ function DashboardSection({ dashboard, onViewFailedPayments }) {
 
 // Clients Section
 function ClientsSection({ clients, onViewClient, formatDate }) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterPlan, setFilterPlan] = useState("all");
+  const [sortConfig, setSortConfig] = useState({ field: 'created_at', direction: 'desc' });
+  const [pagination, setPagination] = useState({ page: 1, limit: 10 });
+
+  // Get unique plans
+  const plans = [...new Set(clients.map(c => c.subscription?.plan_name).filter(Boolean))];
+
+  // Filter and sort
+  const filteredClients = clients
+    .filter(c => {
+      const matchesSearch = !searchTerm ||
+        c.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.realm_id?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = filterStatus === "all" || c.subscription?.status === filterStatus || (filterStatus === "none" && !c.subscription?.status);
+      const matchesPlan = filterPlan === "all" || c.subscription?.plan_name === filterPlan || (filterPlan === "none" && !c.subscription?.plan_name);
+      return matchesSearch && matchesStatus && matchesPlan;
+    })
+    .sort((a, b) => {
+      const getValue = (obj) => {
+        switch (sortConfig.field) {
+          case 'company_name': return obj.company_name || '';
+          case 'license_count': return obj.license_count || 0;
+          case 'created_at': return new Date(obj.created_at || 0);
+          case 'status': return obj.subscription?.status || '';
+          default: return '';
+        }
+      };
+      const aVal = getValue(a);
+      const bVal = getValue(b);
+      if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+  const totalPages = Math.ceil(filteredClients.length / pagination.limit);
+  const paginatedClients = filteredClients.slice((pagination.page - 1) * pagination.limit, pagination.page * pagination.limit);
+
+  const handleSort = (field) => {
+    setSortConfig(prev => ({
+      field,
+      direction: prev.field === field && prev.direction === 'desc' ? 'asc' : 'desc',
+    }));
+    setPagination(p => ({ ...p, page: 1 }));
+  };
+
+  const SortIndicator = ({ field }) => {
+    const isActive = sortConfig.field === field;
+    return (
+      <span style={{ marginLeft: '6px', opacity: isActive ? 1 : 0.3, display: 'inline-flex', flexDirection: 'column' }}>
+        <svg width="8" height="5" viewBox="0 0 8 5" style={{ marginBottom: '-1px' }}>
+          <path d="M4 0L7 4H1L4 0Z" fill={isActive && sortConfig.direction === 'asc' ? '#059669' : '#94A3B8'} />
+        </svg>
+        <svg width="8" height="5" viewBox="0 0 8 5">
+          <path d="M4 5L1 1H7L4 5Z" fill={isActive && sortConfig.direction === 'desc' ? '#059669' : '#94A3B8'} />
+        </svg>
+      </span>
+    );
+  };
+
   return (
     <div>
-      <div style={styles.sectionHeader}>
-        <h3 style={styles.sectionTitle}>All Clients</h3>
-        <span style={styles.resultCount}>{clients.length} clients</span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+        <div>
+          <h2 style={{ margin: '0 0 8px', fontSize: '24px', fontWeight: '700', color: '#0F172A' }}>All Clients</h2>
+          <p style={{ margin: 0, fontSize: '14px', color: '#64748B' }}>Manage all client companies and their subscriptions</p>
                   </div>
+        <span style={styles.resultCount}>{filteredClients.length} of {clients.length} clients</span>
+      </div>
+
+      {/* Filters */}
+      <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center', padding: '16px 20px', background: '#F8FAFC', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+        <div style={{ position: 'relative', flex: '1', minWidth: '220px', maxWidth: '320px' }}>
+          <SearchIcon style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', width: '16px', height: '16px' }} />
+          <input
+            type="text"
+            placeholder="Search by company, email, or realm..."
+            value={searchTerm}
+            onChange={(e) => { setSearchTerm(e.target.value); setPagination(p => ({ ...p, page: 1 })); }}
+            style={{ width: '100%', padding: '10px 12px 10px 38px', border: '1px solid #E2E8F0', borderRadius: '8px', fontSize: '14px', background: '#fff', outline: 'none' }}
+          />
+        </div>
+        <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setPagination(p => ({ ...p, page: 1 })); }} style={{ padding: '10px 32px 10px 12px', border: '1px solid #E2E8F0', borderRadius: '8px', fontSize: '14px', background: '#fff', cursor: 'pointer', outline: 'none', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center' }}>
+          <option value="all">All Status</option>
+          <option value="active">Active</option>
+          <option value="canceled">Canceled</option>
+          <option value="none">No Subscription</option>
+        </select>
+        <select value={filterPlan} onChange={(e) => { setFilterPlan(e.target.value); setPagination(p => ({ ...p, page: 1 })); }} style={{ padding: '10px 32px 10px 12px', border: '1px solid #E2E8F0', borderRadius: '8px', fontSize: '14px', background: '#fff', cursor: 'pointer', outline: 'none', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center' }}>
+          <option value="all">All Plans</option>
+          {plans.map(p => <option key={p} value={p}>{p}</option>)}
+          <option value="none">No Plan</option>
+        </select>
+        {(searchTerm || filterStatus !== "all" || filterPlan !== "all") && (
+          <button onClick={() => { setSearchTerm(""); setFilterStatus("all"); setFilterPlan("all"); setPagination(p => ({ ...p, page: 1 })); }} style={{ padding: '10px 16px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '8px', color: '#DC2626', fontSize: '13px', fontWeight: '500', cursor: 'pointer' }}>Clear</button>
+        )}
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '13px', color: '#64748B' }}>Show</span>
+          <select value={pagination.limit} onChange={(e) => setPagination({ page: 1, limit: parseInt(e.target.value) })} style={{ padding: '6px 24px 6px 10px', border: '1px solid #E2E8F0', borderRadius: '6px', fontSize: '13px', background: '#fff', cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg width='10' height='10' viewBox='0 0 10 10' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2.5 4L5 6.5L7.5 4' stroke='%2364748B' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center' }}>
+            <option value="10">10</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+                </div>
+              </div>
 
       <div style={styles.tableContainer}>
         <table style={styles.table}>
           <thead>
             <tr>
-              <th style={styles.th}>Company</th>
+              <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('company_name')}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>Company<SortIndicator field="company_name" /></div>
+              </th>
               <th style={styles.th}>Email</th>
-              <th style={styles.th}>Franchises</th>
+              <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('license_count')}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>Franchises<SortIndicator field="license_count" /></div>
+              </th>
               <th style={styles.th}>Plan</th>
-              <th style={styles.th}>Status</th>
-              <th style={styles.th}>Created</th>
+              <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('status')}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>Status<SortIndicator field="status" /></div>
+              </th>
+              <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('created_at')}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>Created<SortIndicator field="created_at" /></div>
+              </th>
               <th style={styles.th}>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {clients.map((client) => (
+            {paginatedClients.map((client) => (
               <tr key={client.realm_id} style={styles.tr}>
                 <td style={styles.td}>
                   <div style={styles.companyCell}>
-                    <div style={styles.companyAvatar}>
-                      {(client.company_name || "?").charAt(0).toUpperCase()}
-                </div>
+                    <div style={styles.companyAvatar}>{(client.company_name || "?").charAt(0).toUpperCase()}</div>
                     <div>
                       <div style={styles.companyName}>{client.company_name || "Unknown"}</div>
                       <div style={styles.realmId}>{client.realm_id}</div>
-              </div>
+                </div>
                   </div>
                 </td>
                 <td style={styles.td}>{client.email || "—"}</td>
-                <td style={styles.td}>
-                  <span style={styles.licenseCount}>{client.license_count || 0}</span>
-                </td>
-                <td style={styles.td}>
-                  {client.subscription?.plan_name ? (
-                    <span style={styles.planBadge}>{client.subscription.plan_name}</span>
-                  ) : (
-                    <span style={styles.noPlan}>No plan</span>
-                  )}
-                </td>
-                <td style={styles.td}>
-                  <StatusBadge status={client.subscription?.status || "none"} />
-                </td>
+                <td style={styles.td}><span style={styles.licenseCount}>{client.license_count || 0}</span></td>
+                <td style={styles.td}>{client.subscription?.plan_name ? <span style={styles.planBadge}>{client.subscription.plan_name}</span> : <span style={styles.noPlan}>No plan</span>}</td>
+                <td style={styles.td}><StatusBadge status={client.subscription?.status || "none"} /></td>
                 <td style={styles.td}>{formatDate(client.created_at)}</td>
-                <td style={styles.td}>
-                  <button 
-                    onClick={() => onViewClient(client)}
-                    style={styles.viewBtn}
-                  >
-                    View
-                  </button>
-                </td>
+                <td style={styles.td}><button onClick={() => onViewClient(client)} style={styles.viewBtn}>View</button></td>
               </tr>
             ))}
           </tbody>
         </table>
-        {clients.length === 0 && (
-          <EmptyState 
-            icon={<UsersIcon />}
-            title="No clients found"
-            description="Try adjusting your search or filters"
-          />
-        )}
-      </div>
+        {paginatedClients.length === 0 && <EmptyState icon={<UsersIcon />} title="No clients found" description="Try adjusting your search or filters" />}
+              </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', padding: '12px 16px', background: '#F8FAFC', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
+          <span style={{ fontSize: '13px', color: '#64748B' }}>Page {pagination.page} of {totalPages}</span>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <button onClick={() => setPagination(p => ({ ...p, page: 1 }))} disabled={pagination.page === 1} style={{ padding: '8px 12px', background: pagination.page === 1 ? '#F1F5F9' : '#fff', border: '1px solid #E2E8F0', borderRadius: '6px', color: pagination.page === 1 ? '#94A3B8' : '#475569', fontSize: '13px', cursor: pagination.page === 1 ? 'not-allowed' : 'pointer' }}>First</button>
+            <button onClick={() => setPagination(p => ({ ...p, page: p.page - 1 }))} disabled={pagination.page === 1} style={{ padding: '8px 12px', background: pagination.page === 1 ? '#F1F5F9' : '#fff', border: '1px solid #E2E8F0', borderRadius: '6px', color: pagination.page === 1 ? '#94A3B8' : '#475569', fontSize: '13px', cursor: pagination.page === 1 ? 'not-allowed' : 'pointer' }}>Prev</button>
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              let pageNum;
+              if (totalPages <= 5) pageNum = i + 1;
+              else if (pagination.page <= 3) pageNum = i + 1;
+              else if (pagination.page >= totalPages - 2) pageNum = totalPages - 4 + i;
+              else pageNum = pagination.page - 2 + i;
+              return (
+                <button key={pageNum} onClick={() => setPagination(p => ({ ...p, page: pageNum }))} style={{ width: '36px', height: '36px', background: pagination.page === pageNum ? '#059669' : '#fff', border: pagination.page === pageNum ? 'none' : '1px solid #E2E8F0', borderRadius: '6px', color: pagination.page === pageNum ? '#fff' : '#475569', fontSize: '13px', fontWeight: pagination.page === pageNum ? '600' : '400', cursor: 'pointer' }}>{pageNum}</button>
+              );
+            })}
+            <button onClick={() => setPagination(p => ({ ...p, page: p.page + 1 }))} disabled={pagination.page === totalPages} style={{ padding: '8px 12px', background: pagination.page === totalPages ? '#F1F5F9' : '#fff', border: '1px solid #E2E8F0', borderRadius: '6px', color: pagination.page === totalPages ? '#94A3B8' : '#475569', fontSize: '13px', cursor: pagination.page === totalPages ? 'not-allowed' : 'pointer' }}>Next</button>
+            <button onClick={() => setPagination(p => ({ ...p, page: totalPages }))} disabled={pagination.page === totalPages} style={{ padding: '8px 12px', background: pagination.page === totalPages ? '#F1F5F9' : '#fff', border: '1px solid #E2E8F0', borderRadius: '6px', color: pagination.page === totalPages ? '#94A3B8' : '#475569', fontSize: '13px', cursor: pagination.page === totalPages ? 'not-allowed' : 'pointer' }}>Last</button>
+          </div>
+          <span style={{ fontSize: '13px', color: '#64748B' }}>{filteredClients.length} total</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -1176,56 +1285,168 @@ function InfoRowCompact({ label, value, highlight, mono, status }) {
 
 // Runs Section
 function RunsSection({ submissions, formatDate, formatCurrency }) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterType, setFilterType] = useState("all");
+  const [sortConfig, setSortConfig] = useState({ field: 'submitted_at', direction: 'desc' });
+  const [pagination, setPagination] = useState({ page: 1, limit: 10 });
+
+  const types = [...new Set(submissions.map(s => s.submission_type).filter(Boolean))];
+
+  const filteredSubmissions = submissions
+    .filter(s => {
+      const matchesSearch = !searchTerm || s.company_name?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = filterStatus === "all" || s.status === filterStatus;
+      const matchesType = filterType === "all" || s.submission_type === filterType;
+      return matchesSearch && matchesStatus && matchesType;
+    })
+    .sort((a, b) => {
+      const getValue = (obj) => {
+        switch (sortConfig.field) {
+          case 'company_name': return obj.company_name || '';
+          case 'gross_sales': return obj.gross_sales || 0;
+          case 'royalty_amount': return obj.royalty_amount || 0;
+          case 'submitted_at': return new Date(obj.submitted_at || 0);
+          default: return '';
+        }
+      };
+      const aVal = getValue(a);
+      const bVal = getValue(b);
+      if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+  const totalPages = Math.ceil(filteredSubmissions.length / pagination.limit);
+  const paginatedSubmissions = filteredSubmissions.slice((pagination.page - 1) * pagination.limit, pagination.page * pagination.limit);
+
+  const handleSort = (field) => {
+    setSortConfig(prev => ({ field, direction: prev.field === field && prev.direction === 'desc' ? 'asc' : 'desc' }));
+    setPagination(p => ({ ...p, page: 1 }));
+  };
+
+  const SortIndicator = ({ field }) => {
+    const isActive = sortConfig.field === field;
+    return (
+      <span style={{ marginLeft: '6px', opacity: isActive ? 1 : 0.3, display: 'inline-flex', flexDirection: 'column' }}>
+        <svg width="8" height="5" viewBox="0 0 8 5" style={{ marginBottom: '-1px' }}><path d="M4 0L7 4H1L4 0Z" fill={isActive && sortConfig.direction === 'asc' ? '#059669' : '#94A3B8'} /></svg>
+        <svg width="8" height="5" viewBox="0 0 8 5"><path d="M4 5L1 1H7L4 5Z" fill={isActive && sortConfig.direction === 'desc' ? '#059669' : '#94A3B8'} /></svg>
+      </span>
+    );
+  };
+
+  const totalGrossSales = submissions.reduce((acc, s) => acc + (s.gross_sales || 0), 0);
+  const totalRoyalties = submissions.reduce((acc, s) => acc + (s.royalty_amount || 0), 0);
+
   return (
     <div>
-      <div style={styles.sectionHeader}>
-        <h3 style={styles.sectionTitle}>Run History</h3>
-        <button style={styles.primaryBtn}>
-          <PlayCircleIcon /> Trigger Manual Run
-        </button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+        <div>
+          <h2 style={{ margin: '0 0 8px', fontSize: '24px', fontWeight: '700', color: '#0F172A' }}>Run History</h2>
+          <p style={{ margin: 0, fontSize: '14px', color: '#64748B' }}>View all royalty submission runs</p>
+        </div>
+        <button style={styles.primaryBtn}><PlayCircleIcon /> Trigger Manual Run</button>
+      </div>
+
+      {/* Stats */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+              <div style={styles.statCard}>
+          <div style={{ ...styles.statIcon, color: '#059669', background: '#ECFDF5' }}><PlayCircleIcon /></div>
+          <div style={styles.statContent}><div style={{ ...styles.statValue, color: '#059669' }}>{submissions.length}</div><div style={styles.statLabel}>Total Runs</div></div>
+        </div>
+        <div style={styles.statCard}>
+          <div style={{ ...styles.statIcon, color: '#3B82F6', background: '#EFF6FF' }}><DollarSignIcon /></div>
+          <div style={styles.statContent}><div style={{ ...styles.statValue, color: '#3B82F6' }}>{formatCurrency(totalGrossSales)}</div><div style={styles.statLabel}>Total Gross Sales</div></div>
+        </div>
+        <div style={styles.statCard}>
+          <div style={{ ...styles.statIcon, color: '#8B5CF6', background: '#F3E8FF' }}><CreditCardIcon /></div>
+          <div style={styles.statContent}><div style={{ ...styles.statValue, color: '#8B5CF6' }}>{formatCurrency(totalRoyalties)}</div><div style={styles.statLabel}>Total Royalties</div></div>
+                </div>
+              </div>
+
+      {/* Filters */}
+      <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center', padding: '16px 20px', background: '#F8FAFC', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+        <div style={{ position: 'relative', flex: '1', minWidth: '200px', maxWidth: '300px' }}>
+          <SearchIcon style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', width: '16px', height: '16px' }} />
+          <input type="text" placeholder="Search by company..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setPagination(p => ({ ...p, page: 1 })); }} style={{ width: '100%', padding: '10px 12px 10px 38px', border: '1px solid #E2E8F0', borderRadius: '8px', fontSize: '14px', background: '#fff', outline: 'none' }} />
+        </div>
+        <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setPagination(p => ({ ...p, page: 1 })); }} style={{ padding: '10px 32px 10px 12px', border: '1px solid #E2E8F0', borderRadius: '8px', fontSize: '14px', background: '#fff', cursor: 'pointer', outline: 'none', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center' }}>
+          <option value="all">All Status</option>
+          <option value="completed">Completed</option>
+          <option value="pending">Pending</option>
+          <option value="failed">Failed</option>
+        </select>
+        {types.length > 0 && (
+          <select value={filterType} onChange={(e) => { setFilterType(e.target.value); setPagination(p => ({ ...p, page: 1 })); }} style={{ padding: '10px 32px 10px 12px', border: '1px solid #E2E8F0', borderRadius: '8px', fontSize: '14px', background: '#fff', cursor: 'pointer', outline: 'none', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center' }}>
+            <option value="all">All Types</option>
+            {types.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+        )}
+        {(searchTerm || filterStatus !== "all" || filterType !== "all") && (
+          <button onClick={() => { setSearchTerm(""); setFilterStatus("all"); setFilterType("all"); setPagination(p => ({ ...p, page: 1 })); }} style={{ padding: '10px 16px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '8px', color: '#DC2626', fontSize: '13px', fontWeight: '500', cursor: 'pointer' }}>Clear</button>
+        )}
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '13px', color: '#64748B' }}>Show</span>
+          <select value={pagination.limit} onChange={(e) => setPagination({ page: 1, limit: parseInt(e.target.value) })} style={{ padding: '6px 24px 6px 10px', border: '1px solid #E2E8F0', borderRadius: '6px', fontSize: '13px', background: '#fff', cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg width='10' height='10' viewBox='0 0 10 10' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2.5 4L5 6.5L7.5 4' stroke='%2364748B' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center' }}>
+            <option value="10">10</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+        </div>
       </div>
 
       <div style={styles.tableContainer}>
         <table style={styles.table}>
           <thead>
             <tr>
-              <th style={styles.th}>Company</th>
+              <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('company_name')}><div style={{ display: 'flex', alignItems: 'center' }}>Company<SortIndicator field="company_name" /></div></th>
               <th style={styles.th}>Type</th>
               <th style={styles.th}>Period</th>
-              <th style={styles.th}>Gross Sales</th>
-              <th style={styles.th}>Royalty</th>
+              <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('gross_sales')}><div style={{ display: 'flex', alignItems: 'center' }}>Gross Sales<SortIndicator field="gross_sales" /></div></th>
+              <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('royalty_amount')}><div style={{ display: 'flex', alignItems: 'center' }}>Royalty<SortIndicator field="royalty_amount" /></div></th>
               <th style={styles.th}>Status</th>
-              <th style={styles.th}>Submitted</th>
+              <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('submitted_at')}><div style={{ display: 'flex', alignItems: 'center' }}>Submitted<SortIndicator field="submitted_at" /></div></th>
             </tr>
           </thead>
           <tbody>
-            {submissions.map((sub) => (
+            {paginatedSubmissions.map((sub) => (
               <tr key={sub.id} style={styles.tr}>
                 <td style={styles.td}>{sub.company_name}</td>
                 <td style={styles.td}>{sub.submission_type || "—"}</td>
-                <td style={styles.td}>
-                  {sub.period_start && sub.period_end
-                    ? `${formatDate(sub.period_start)} - ${formatDate(sub.period_end)}`
-                    : "—"}
-                </td>
+                <td style={styles.td}>{sub.period_start && sub.period_end ? `${formatDate(sub.period_start)} - ${formatDate(sub.period_end)}` : "—"}</td>
                 <td style={styles.td}>{formatCurrency(sub.gross_sales)}</td>
                 <td style={styles.td}>{formatCurrency(sub.royalty_amount)}</td>
-                <td style={styles.td}>
-                  <StatusBadge status={sub.status} />
-                </td>
+                <td style={styles.td}><StatusBadge status={sub.status} /></td>
                 <td style={styles.td}>{formatDate(sub.submitted_at)}</td>
               </tr>
             ))}
           </tbody>
         </table>
-        {submissions.length === 0 && (
-          <EmptyState 
-            icon={<PlayCircleIcon />}
-            title="No run history"
-            description="Run history will appear here after the first royalty run"
-          />
-        )}
+        {paginatedSubmissions.length === 0 && <EmptyState icon={<PlayCircleIcon />} title="No run history" description="Run history will appear here after the first royalty run" />}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', padding: '12px 16px', background: '#F8FAFC', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
+          <span style={{ fontSize: '13px', color: '#64748B' }}>Page {pagination.page} of {totalPages}</span>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <button onClick={() => setPagination(p => ({ ...p, page: 1 }))} disabled={pagination.page === 1} style={{ padding: '8px 12px', background: pagination.page === 1 ? '#F1F5F9' : '#fff', border: '1px solid #E2E8F0', borderRadius: '6px', color: pagination.page === 1 ? '#94A3B8' : '#475569', fontSize: '13px', cursor: pagination.page === 1 ? 'not-allowed' : 'pointer' }}>First</button>
+            <button onClick={() => setPagination(p => ({ ...p, page: p.page - 1 }))} disabled={pagination.page === 1} style={{ padding: '8px 12px', background: pagination.page === 1 ? '#F1F5F9' : '#fff', border: '1px solid #E2E8F0', borderRadius: '6px', color: pagination.page === 1 ? '#94A3B8' : '#475569', fontSize: '13px', cursor: pagination.page === 1 ? 'not-allowed' : 'pointer' }}>Prev</button>
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              let pageNum;
+              if (totalPages <= 5) pageNum = i + 1;
+              else if (pagination.page <= 3) pageNum = i + 1;
+              else if (pagination.page >= totalPages - 2) pageNum = totalPages - 4 + i;
+              else pageNum = pagination.page - 2 + i;
+              return <button key={pageNum} onClick={() => setPagination(p => ({ ...p, page: pageNum }))} style={{ width: '36px', height: '36px', background: pagination.page === pageNum ? '#059669' : '#fff', border: pagination.page === pageNum ? 'none' : '1px solid #E2E8F0', borderRadius: '6px', color: pagination.page === pageNum ? '#fff' : '#475569', fontSize: '13px', fontWeight: pagination.page === pageNum ? '600' : '400', cursor: 'pointer' }}>{pageNum}</button>;
+            })}
+            <button onClick={() => setPagination(p => ({ ...p, page: p.page + 1 }))} disabled={pagination.page === totalPages} style={{ padding: '8px 12px', background: pagination.page === totalPages ? '#F1F5F9' : '#fff', border: '1px solid #E2E8F0', borderRadius: '6px', color: pagination.page === totalPages ? '#94A3B8' : '#475569', fontSize: '13px', cursor: pagination.page === totalPages ? 'not-allowed' : 'pointer' }}>Next</button>
+            <button onClick={() => setPagination(p => ({ ...p, page: totalPages }))} disabled={pagination.page === totalPages} style={{ padding: '8px 12px', background: pagination.page === totalPages ? '#F1F5F9' : '#fff', border: '1px solid #E2E8F0', borderRadius: '6px', color: pagination.page === totalPages ? '#94A3B8' : '#475569', fontSize: '13px', cursor: pagination.page === totalPages ? 'not-allowed' : 'pointer' }}>Last</button>
+          </div>
+          <span style={{ fontSize: '13px', color: '#64748B' }}>{filteredSubmissions.length} total</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -1276,26 +1497,63 @@ function MappingRulesSection({ licenseMappings, formatDate }) {
   const [filterCompany, setFilterCompany] = useState("all");
   const [selectedMapping, setSelectedMapping] = useState(null);
   const [hoveredMapping, setHoveredMapping] = useState(null);
+  const [sortConfig, setSortConfig] = useState({ field: 'franchise_number', direction: 'asc' });
+  const [pagination, setPagination] = useState({ page: 1, limit: 25 });
 
   // Get unique companies for filter
   const companies = [...new Set(licenseMappings.map(m => m.company_name).filter(Boolean))];
   
-  // Apply filters
-  const filteredMappings = licenseMappings.filter(m => {
-    const matchesSearch = !searchTerm || 
-      m.franchise_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      m.license_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      m.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      m.license_city?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = filterStatus === "all" || 
-      (filterStatus === "active" && m.is_active === "true") ||
-      (filterStatus === "inactive" && m.is_active !== "true");
-    
-    const matchesCompany = filterCompany === "all" || m.company_name === filterCompany;
-    
-    return matchesSearch && matchesStatus && matchesCompany;
-  });
+  // Apply filters and sort
+  const filteredMappings = licenseMappings
+    .filter(m => {
+      const matchesSearch = !searchTerm || 
+        m.franchise_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        m.license_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        m.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        m.license_city?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesStatus = filterStatus === "all" || 
+        (filterStatus === "active" && m.is_active === "true") ||
+        (filterStatus === "inactive" && m.is_active !== "true");
+      
+      const matchesCompany = filterCompany === "all" || m.company_name === filterCompany;
+      
+      return matchesSearch && matchesStatus && matchesCompany;
+    })
+    .sort((a, b) => {
+      const getValue = (obj) => {
+        switch (sortConfig.field) {
+          case 'franchise_number': return obj.franchise_number || '';
+          case 'license_name': return obj.license_name || '';
+          case 'company_name': return obj.company_name || '';
+          case 'license_city': return obj.license_city || '';
+          default: return '';
+        }
+      };
+      const aVal = getValue(a);
+      const bVal = getValue(b);
+      if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+  const totalPages = Math.ceil(filteredMappings.length / pagination.limit);
+  const paginatedMappings = filteredMappings.slice((pagination.page - 1) * pagination.limit, pagination.page * pagination.limit);
+
+  const handleSort = (field) => {
+    setSortConfig(prev => ({ field, direction: prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc' }));
+    setPagination(p => ({ ...p, page: 1 }));
+  };
+
+  const SortIndicator = ({ field }) => {
+    const isActive = sortConfig.field === field;
+    return (
+      <span style={{ marginLeft: '6px', opacity: isActive ? 1 : 0.3, display: 'inline-flex', flexDirection: 'column' }}>
+        <svg width="8" height="5" viewBox="0 0 8 5" style={{ marginBottom: '-1px' }}><path d="M4 0L7 4H1L4 0Z" fill={isActive && sortConfig.direction === 'asc' ? '#059669' : '#94A3B8'} /></svg>
+        <svg width="8" height="5" viewBox="0 0 8 5"><path d="M4 5L1 1H7L4 5Z" fill={isActive && sortConfig.direction === 'desc' ? '#059669' : '#94A3B8'} /></svg>
+      </span>
+    );
+  };
 
   const activeMappings = licenseMappings.filter(m => m.is_active === "true");
   const inactiveMappings = licenseMappings.filter(m => m.is_active !== "true");
@@ -1445,9 +1703,18 @@ function MappingRulesSection({ licenseMappings, formatDate }) {
           </button>
         )}
 
-        <span style={{ marginLeft: 'auto', color: '#64748B', fontSize: '13px' }}>
-          Showing {filteredMappings.length} of {licenseMappings.length}
-        </span>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <span style={{ color: '#64748B', fontSize: '13px' }}>Showing {filteredMappings.length} of {licenseMappings.length}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '13px', color: '#64748B' }}>Show</span>
+            <select value={pagination.limit} onChange={(e) => setPagination({ page: 1, limit: parseInt(e.target.value) })} style={{ padding: '6px 24px 6px 10px', border: '1px solid #E2E8F0', borderRadius: '6px', fontSize: '13px', background: '#fff', cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg width='10' height='10' viewBox='0 0 10 10' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2.5 4L5 6.5L7.5 4' stroke='%2364748B' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center' }}>
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       {/* Table */}
@@ -1455,17 +1722,17 @@ function MappingRulesSection({ licenseMappings, formatDate }) {
               <table style={styles.table}>
                 <thead>
                   <tr>
-                    <th style={styles.th}>Company</th>
-              <th style={styles.th}>Franchise #</th>
-              <th style={styles.th}>License Name</th>
-              <th style={styles.th}>Location</th>
+                    <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('company_name')}><div style={{ display: 'flex', alignItems: 'center' }}>Company<SortIndicator field="company_name" /></div></th>
+              <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('franchise_number')}><div style={{ display: 'flex', alignItems: 'center' }}>Franchise #<SortIndicator field="franchise_number" /></div></th>
+              <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('license_name')}><div style={{ display: 'flex', alignItems: 'center' }}>License Name<SortIndicator field="license_name" /></div></th>
+              <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('license_city')}><div style={{ display: 'flex', alignItems: 'center' }}>Location<SortIndicator field="license_city" /></div></th>
               <th style={styles.th}>QB Department</th>
                     <th style={styles.th}>Status</th>
               <th style={styles.th}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-            {filteredMappings.map((mapping) => (
+            {paginatedMappings.map((mapping) => (
               <tr 
                 key={mapping.id} 
                 style={{
@@ -1512,7 +1779,7 @@ function MappingRulesSection({ licenseMappings, formatDate }) {
                   ))}
                 </tbody>
               </table>
-        {filteredMappings.length === 0 && (
+        {paginatedMappings.length === 0 && (
           <EmptyState 
             icon={<GitBranchIcon />}
             title={searchTerm || filterStatus !== "all" || filterCompany !== "all" ? "No matching results" : "No license mappings"}
@@ -1520,6 +1787,28 @@ function MappingRulesSection({ licenseMappings, formatDate }) {
           />
               )}
             </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', padding: '12px 16px', background: '#F8FAFC', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
+          <span style={{ fontSize: '13px', color: '#64748B' }}>Page {pagination.page} of {totalPages}</span>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <button onClick={() => setPagination(p => ({ ...p, page: 1 }))} disabled={pagination.page === 1} style={{ padding: '8px 12px', background: pagination.page === 1 ? '#F1F5F9' : '#fff', border: '1px solid #E2E8F0', borderRadius: '6px', color: pagination.page === 1 ? '#94A3B8' : '#475569', fontSize: '13px', cursor: pagination.page === 1 ? 'not-allowed' : 'pointer' }}>First</button>
+            <button onClick={() => setPagination(p => ({ ...p, page: p.page - 1 }))} disabled={pagination.page === 1} style={{ padding: '8px 12px', background: pagination.page === 1 ? '#F1F5F9' : '#fff', border: '1px solid #E2E8F0', borderRadius: '6px', color: pagination.page === 1 ? '#94A3B8' : '#475569', fontSize: '13px', cursor: pagination.page === 1 ? 'not-allowed' : 'pointer' }}>Prev</button>
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              let pageNum;
+              if (totalPages <= 5) pageNum = i + 1;
+              else if (pagination.page <= 3) pageNum = i + 1;
+              else if (pagination.page >= totalPages - 2) pageNum = totalPages - 4 + i;
+              else pageNum = pagination.page - 2 + i;
+              return <button key={pageNum} onClick={() => setPagination(p => ({ ...p, page: pageNum }))} style={{ width: '36px', height: '36px', background: pagination.page === pageNum ? '#059669' : '#fff', border: pagination.page === pageNum ? 'none' : '1px solid #E2E8F0', borderRadius: '6px', color: pagination.page === pageNum ? '#fff' : '#475569', fontSize: '13px', fontWeight: pagination.page === pageNum ? '600' : '400', cursor: 'pointer' }}>{pageNum}</button>;
+            })}
+            <button onClick={() => setPagination(p => ({ ...p, page: p.page + 1 }))} disabled={pagination.page === totalPages} style={{ padding: '8px 12px', background: pagination.page === totalPages ? '#F1F5F9' : '#fff', border: '1px solid #E2E8F0', borderRadius: '6px', color: pagination.page === totalPages ? '#94A3B8' : '#475569', fontSize: '13px', cursor: pagination.page === totalPages ? 'not-allowed' : 'pointer' }}>Next</button>
+            <button onClick={() => setPagination(p => ({ ...p, page: totalPages }))} disabled={pagination.page === totalPages} style={{ padding: '8px 12px', background: pagination.page === totalPages ? '#F1F5F9' : '#fff', border: '1px solid #E2E8F0', borderRadius: '6px', color: pagination.page === totalPages ? '#94A3B8' : '#475569', fontSize: '13px', cursor: pagination.page === totalPages ? 'not-allowed' : 'pointer' }}>Last</button>
+          </div>
+          <span style={{ fontSize: '13px', color: '#64748B' }}>{filteredMappings.length} total</span>
+          </div>
+        )}
 
       {/* Mapping Detail Modal */}
       {selectedMapping && (
@@ -1650,18 +1939,55 @@ function BillingSection({ subscriptions, formatDate }) {
   const [filterStatus, setFilterStatus] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSubscription, setSelectedSubscription] = useState(null);
+  const [sortConfig, setSortConfig] = useState({ field: 'end_date', direction: 'desc' });
+  const [pagination, setPagination] = useState({ page: 1, limit: 10 });
   
   const activeCount = subscriptions.filter(s => s.status === "active").length;
   const canceledCount = subscriptions.filter(s => s.status === "canceled").length;
   const totalLicenses = subscriptions.reduce((acc, s) => acc + (s.quantity || 0), 0);
   
-  const filteredSubscriptions = subscriptions.filter(s => {
-    const matchesSearch = !searchTerm || 
-      s.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.company_email?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === "all" || s.status === filterStatus;
-    return matchesSearch && matchesStatus;
-  });
+  const filteredSubscriptions = subscriptions
+    .filter(s => {
+      const matchesSearch = !searchTerm || 
+        s.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.company_email?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = filterStatus === "all" || s.status === filterStatus;
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => {
+      const getValue = (obj) => {
+        switch (sortConfig.field) {
+          case 'company_name': return obj.company_name || '';
+          case 'quantity': return obj.quantity || 0;
+          case 'end_date': return new Date(obj.end_date || 0);
+          case 'status': return obj.status || '';
+          default: return '';
+        }
+      };
+      const aVal = getValue(a);
+      const bVal = getValue(b);
+      if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+  const totalPages = Math.ceil(filteredSubscriptions.length / pagination.limit);
+  const paginatedSubscriptions = filteredSubscriptions.slice((pagination.page - 1) * pagination.limit, pagination.page * pagination.limit);
+
+  const handleSort = (field) => {
+    setSortConfig(prev => ({ field, direction: prev.field === field && prev.direction === 'desc' ? 'asc' : 'desc' }));
+    setPagination(p => ({ ...p, page: 1 }));
+  };
+
+  const SortIndicator = ({ field }) => {
+    const isActive = sortConfig.field === field;
+    return (
+      <span style={{ marginLeft: '6px', opacity: isActive ? 1 : 0.3, display: 'inline-flex', flexDirection: 'column' }}>
+        <svg width="8" height="5" viewBox="0 0 8 5" style={{ marginBottom: '-1px' }}><path d="M4 0L7 4H1L4 0Z" fill={isActive && sortConfig.direction === 'asc' ? '#059669' : '#94A3B8'} /></svg>
+        <svg width="8" height="5" viewBox="0 0 8 5"><path d="M4 5L1 1H7L4 5Z" fill={isActive && sortConfig.direction === 'desc' ? '#059669' : '#94A3B8'} /></svg>
+      </span>
+    );
+  };
 
   return (
     <div>
@@ -1759,9 +2085,18 @@ function BillingSection({ subscriptions, formatDate }) {
           <option value="past_due">Past Due</option>
         </select>
 
-        <span style={{ marginLeft: 'auto', color: '#64748B', fontSize: '13px' }}>
-          Showing {filteredSubscriptions.length} of {subscriptions.length}
-        </span>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <span style={{ color: '#64748B', fontSize: '13px' }}>Showing {filteredSubscriptions.length} of {subscriptions.length}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '13px', color: '#64748B' }}>Show</span>
+            <select value={pagination.limit} onChange={(e) => setPagination({ page: 1, limit: parseInt(e.target.value) })} style={{ padding: '6px 24px 6px 10px', border: '1px solid #E2E8F0', borderRadius: '6px', fontSize: '13px', background: '#fff', cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg width='10' height='10' viewBox='0 0 10 10' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2.5 4L5 6.5L7.5 4' stroke='%2364748B' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center' }}>
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       {/* Table */}
@@ -1769,17 +2104,17 @@ function BillingSection({ subscriptions, formatDate }) {
               <table style={styles.table}>
                 <thead>
                   <tr>
-                    <th style={styles.th}>Company</th>
+                    <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('company_name')}><div style={{ display: 'flex', alignItems: 'center' }}>Company<SortIndicator field="company_name" /></div></th>
                     <th style={styles.th}>Plan</th>
-                    <th style={styles.th}>Licenses</th>
-                    <th style={styles.th}>Status</th>
-                    <th style={styles.th}>Next Billing</th>
+                    <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('quantity')}><div style={{ display: 'flex', alignItems: 'center' }}>Licenses<SortIndicator field="quantity" /></div></th>
+                    <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('status')}><div style={{ display: 'flex', alignItems: 'center' }}>Status<SortIndicator field="status" /></div></th>
+                    <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('end_date')}><div style={{ display: 'flex', alignItems: 'center' }}>Next Billing<SortIndicator field="end_date" /></div></th>
                     <th style={styles.th}>Stripe ID</th>
               <th style={styles.th}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-            {filteredSubscriptions.map((sub) => (
+            {paginatedSubscriptions.map((sub) => (
                     <tr key={sub.id} style={styles.tr}>
                       <td style={styles.td}>
                         <div style={styles.companyName}>{sub.company_name}</div>
@@ -1815,7 +2150,7 @@ function BillingSection({ subscriptions, formatDate }) {
                       </td>
                 <td style={styles.td}>
                   <StatusBadge status={sub.status} />
-                </td>
+                      </td>
                       <td style={styles.td}>{formatDate(sub.end_date)}</td>
                       <td style={styles.td}>
                   <button
@@ -1846,7 +2181,7 @@ function BillingSection({ subscriptions, formatDate }) {
                   ))}
                 </tbody>
               </table>
-        {filteredSubscriptions.length === 0 && (
+        {paginatedSubscriptions.length === 0 && (
           <EmptyState 
             icon={<CreditCardIcon />}
             title={searchTerm || filterStatus !== "all" ? "No matching subscriptions" : "No subscriptions"}
@@ -1854,6 +2189,28 @@ function BillingSection({ subscriptions, formatDate }) {
           />
               )}
             </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', padding: '12px 16px', background: '#F8FAFC', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
+          <span style={{ fontSize: '13px', color: '#64748B' }}>Page {pagination.page} of {totalPages}</span>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <button onClick={() => setPagination(p => ({ ...p, page: 1 }))} disabled={pagination.page === 1} style={{ padding: '8px 12px', background: pagination.page === 1 ? '#F1F5F9' : '#fff', border: '1px solid #E2E8F0', borderRadius: '6px', color: pagination.page === 1 ? '#94A3B8' : '#475569', fontSize: '13px', cursor: pagination.page === 1 ? 'not-allowed' : 'pointer' }}>First</button>
+            <button onClick={() => setPagination(p => ({ ...p, page: p.page - 1 }))} disabled={pagination.page === 1} style={{ padding: '8px 12px', background: pagination.page === 1 ? '#F1F5F9' : '#fff', border: '1px solid #E2E8F0', borderRadius: '6px', color: pagination.page === 1 ? '#94A3B8' : '#475569', fontSize: '13px', cursor: pagination.page === 1 ? 'not-allowed' : 'pointer' }}>Prev</button>
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              let pageNum;
+              if (totalPages <= 5) pageNum = i + 1;
+              else if (pagination.page <= 3) pageNum = i + 1;
+              else if (pagination.page >= totalPages - 2) pageNum = totalPages - 4 + i;
+              else pageNum = pagination.page - 2 + i;
+              return <button key={pageNum} onClick={() => setPagination(p => ({ ...p, page: pageNum }))} style={{ width: '36px', height: '36px', background: pagination.page === pageNum ? '#059669' : '#fff', border: pagination.page === pageNum ? 'none' : '1px solid #E2E8F0', borderRadius: '6px', color: pagination.page === pageNum ? '#fff' : '#475569', fontSize: '13px', fontWeight: pagination.page === pageNum ? '600' : '400', cursor: 'pointer' }}>{pageNum}</button>;
+            })}
+            <button onClick={() => setPagination(p => ({ ...p, page: p.page + 1 }))} disabled={pagination.page === totalPages} style={{ padding: '8px 12px', background: pagination.page === totalPages ? '#F1F5F9' : '#fff', border: '1px solid #E2E8F0', borderRadius: '6px', color: pagination.page === totalPages ? '#94A3B8' : '#475569', fontSize: '13px', cursor: pagination.page === totalPages ? 'not-allowed' : 'pointer' }}>Next</button>
+            <button onClick={() => setPagination(p => ({ ...p, page: totalPages }))} disabled={pagination.page === totalPages} style={{ padding: '8px 12px', background: pagination.page === totalPages ? '#F1F5F9' : '#fff', border: '1px solid #E2E8F0', borderRadius: '6px', color: pagination.page === totalPages ? '#94A3B8' : '#475569', fontSize: '13px', cursor: pagination.page === totalPages ? 'not-allowed' : 'pointer' }}>Last</button>
+          </div>
+          <span style={{ fontSize: '13px', color: '#64748B' }}>{filteredSubscriptions.length} total</span>
+          </div>
+        )}
 
       {/* Subscription Detail Modal */}
       {selectedSubscription && (
@@ -2240,18 +2597,50 @@ function AdminActivityTab({ adminLogs, formatDateTime }) {
   const [filterAction, setFilterAction] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20;
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [sortConfig, setSortConfig] = useState({ field: 'created_at', direction: 'desc' });
   
   const actions = [...new Set(adminLogs.map(l => l.action).filter(Boolean))];
+
+  const handleSort = (field) => {
+    setSortConfig(prev => ({ field, direction: prev.field === field && prev.direction === 'desc' ? 'asc' : 'desc' }));
+    setCurrentPage(1);
+  };
+
+  const SortIndicator = ({ field }) => {
+    const isActive = sortConfig.field === field;
+    return (
+      <span style={{ marginLeft: '6px', opacity: isActive ? 1 : 0.3, display: 'inline-flex', flexDirection: 'column' }}>
+        <svg width="8" height="5" viewBox="0 0 8 5" style={{ marginBottom: '-1px' }}><path d="M4 0L7 4H1L4 0Z" fill={isActive && sortConfig.direction === 'asc' ? '#059669' : '#94A3B8'} /></svg>
+        <svg width="8" height="5" viewBox="0 0 8 5"><path d="M4 5L1 1H7L4 5Z" fill={isActive && sortConfig.direction === 'desc' ? '#059669' : '#94A3B8'} /></svg>
+      </span>
+    );
+  };
   
-  const filteredLogs = adminLogs.filter(l => {
-    const matchesAction = filterAction === "all" || l.action === filterAction;
-    const matchesSearch = !searchTerm ||
-      l.admin_username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      l.action?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      l.resource_type?.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesAction && matchesSearch;
-  });
+  const filteredLogs = adminLogs
+    .filter(l => {
+      const matchesAction = filterAction === "all" || l.action === filterAction;
+      const matchesSearch = !searchTerm ||
+        l.admin_username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        l.action?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        l.resource_type?.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesAction && matchesSearch;
+    })
+    .sort((a, b) => {
+      const getValue = (obj) => {
+        switch (sortConfig.field) {
+          case 'admin_username': return obj.admin_username || '';
+          case 'action': return obj.action || '';
+          case 'created_at': return new Date(obj.created_at || 0);
+          default: return '';
+        }
+      };
+      const aVal = getValue(a);
+      const bVal = getValue(b);
+      if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
   
   const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
   const paginatedLogs = filteredLogs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -2333,20 +2722,29 @@ function AdminActivityTab({ adminLogs, formatDateTime }) {
           </button>
         )}
         
-        <span style={{ marginLeft: 'auto', color: '#64748B', fontSize: '13px' }}>
-          {filteredLogs.length} entries
-        </span>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <span style={{ color: '#64748B', fontSize: '13px' }}>{filteredLogs.length} entries</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '12px', color: '#64748B' }}>Show</span>
+            <select value={itemsPerPage} onChange={(e) => { setItemsPerPage(parseInt(e.target.value)); setCurrentPage(1); }} style={{ padding: '6px 24px 6px 8px', border: '1px solid #E2E8F0', borderRadius: '6px', fontSize: '12px', background: '#fff', cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg width='10' height='10' viewBox='0 0 10 10' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2.5 4L5 6.5L7.5 4' stroke='%2364748B' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center' }}>
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       <div style={styles.tableContainer}>
         <table style={styles.table}>
           <thead>
             <tr>
-              <th style={styles.th}>Admin</th>
-              <th style={styles.th}>Action</th>
+              <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('admin_username')}><div style={{ display: 'flex', alignItems: 'center' }}>Admin<SortIndicator field="admin_username" /></div></th>
+              <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('action')}><div style={{ display: 'flex', alignItems: 'center' }}>Action<SortIndicator field="action" /></div></th>
               <th style={styles.th}>Resource</th>
               <th style={styles.th}>IP Address</th>
-              <th style={styles.th}>Time</th>
+              <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('created_at')}><div style={{ display: 'flex', alignItems: 'center' }}>Time<SortIndicator field="created_at" /></div></th>
               <th style={styles.th}>Actions</th>
             </tr>
           </thead>
@@ -2587,18 +2985,51 @@ function EmailLogsTab({ emailLogs, formatDateTime }) {
   const [filterType, setFilterType] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20;
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [sortConfig, setSortConfig] = useState({ field: 'sent_at', direction: 'desc' });
   
   const types = [...new Set(emailLogs.map(l => l.email_type).filter(Boolean))];
+
+  const handleSort = (field) => {
+    setSortConfig(prev => ({ field, direction: prev.field === field && prev.direction === 'desc' ? 'asc' : 'desc' }));
+    setCurrentPage(1);
+  };
+
+  const SortIndicator = ({ field }) => {
+    const isActive = sortConfig.field === field;
+    return (
+      <span style={{ marginLeft: '6px', opacity: isActive ? 1 : 0.3, display: 'inline-flex', flexDirection: 'column' }}>
+        <svg width="8" height="5" viewBox="0 0 8 5" style={{ marginBottom: '-1px' }}><path d="M4 0L7 4H1L4 0Z" fill={isActive && sortConfig.direction === 'asc' ? '#059669' : '#94A3B8'} /></svg>
+        <svg width="8" height="5" viewBox="0 0 8 5"><path d="M4 5L1 1H7L4 5Z" fill={isActive && sortConfig.direction === 'desc' ? '#059669' : '#94A3B8'} /></svg>
+      </span>
+    );
+  };
   
-  const filteredLogs = emailLogs.filter(log => {
-    const matchesType = filterType === "all" || log.email_type === filterType;
-    const matchesSearch = !searchTerm || 
-      log.recipient_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.company_name?.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesType && matchesSearch;
-  });
+  const filteredLogs = emailLogs
+    .filter(log => {
+      const matchesType = filterType === "all" || log.email_type === filterType;
+      const matchesSearch = !searchTerm || 
+        log.recipient_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        log.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        log.company_name?.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesType && matchesSearch;
+    })
+    .sort((a, b) => {
+      const getValue = (obj) => {
+        switch (sortConfig.field) {
+          case 'recipient_email': return obj.recipient_email || '';
+          case 'subject': return obj.subject || '';
+          case 'email_type': return obj.email_type || '';
+          case 'sent_at': return new Date(obj.sent_at || 0);
+          default: return '';
+        }
+      };
+      const aVal = getValue(a);
+      const bVal = getValue(b);
+      if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
   
   const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
   const paginatedLogs = filteredLogs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -2653,21 +3084,30 @@ function EmailLogsTab({ emailLogs, formatDateTime }) {
             <option key={type} value={type}>{type}</option>
           ))}
         </select>
-        <span style={{ color: '#64748B', fontSize: '13px' }}>
-          {filteredLogs.length} emails
-        </span>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <span style={{ color: '#64748B', fontSize: '13px' }}>{filteredLogs.length} emails</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '12px', color: '#64748B' }}>Show</span>
+            <select value={itemsPerPage} onChange={(e) => { setItemsPerPage(parseInt(e.target.value)); setCurrentPage(1); }} style={{ padding: '6px 24px 6px 8px', border: '1px solid #E2E8F0', borderRadius: '6px', fontSize: '12px', background: '#fff', cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg width='10' height='10' viewBox='0 0 10 10' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2.5 4L5 6.5L7.5 4' stroke='%2364748B' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center' }}>
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       <div style={styles.tableContainer}>
         <table style={styles.table}>
           <thead>
             <tr>
-              <th style={styles.th}>Recipient</th>
-              <th style={styles.th}>Subject</th>
-              <th style={styles.th}>Type</th>
+              <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('recipient_email')}><div style={{ display: 'flex', alignItems: 'center' }}>Recipient<SortIndicator field="recipient_email" /></div></th>
+              <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('subject')}><div style={{ display: 'flex', alignItems: 'center' }}>Subject<SortIndicator field="subject" /></div></th>
+              <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('email_type')}><div style={{ display: 'flex', alignItems: 'center' }}>Type<SortIndicator field="email_type" /></div></th>
               <th style={styles.th}>Company</th>
               <th style={styles.th}>Status</th>
-              <th style={styles.th}>Sent</th>
+              <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('sent_at')}><div style={{ display: 'flex', alignItems: 'center' }}>Sent<SortIndicator field="sent_at" /></div></th>
               <th style={styles.th}>Actions</th>
             </tr>
           </thead>
@@ -2883,18 +3323,52 @@ function TenantActivityTab({ tenantLogs, tenantLogFilters, formatDateTime }) {
   const [filterCompany, setFilterCompany] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20;
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [sortConfig, setSortConfig] = useState({ field: 'created_at', direction: 'desc' });
+
+  const handleSort = (field) => {
+    setSortConfig(prev => ({ field, direction: prev.field === field && prev.direction === 'desc' ? 'asc' : 'desc' }));
+    setCurrentPage(1);
+  };
+
+  const SortIndicator = ({ field }) => {
+    const isActive = sortConfig.field === field;
+    return (
+      <span style={{ marginLeft: '6px', opacity: isActive ? 1 : 0.3, display: 'inline-flex', flexDirection: 'column' }}>
+        <svg width="8" height="5" viewBox="0 0 8 5" style={{ marginBottom: '-1px' }}><path d="M4 0L7 4H1L4 0Z" fill={isActive && sortConfig.direction === 'asc' ? '#059669' : '#94A3B8'} /></svg>
+        <svg width="8" height="5" viewBox="0 0 8 5"><path d="M4 5L1 1H7L4 5Z" fill={isActive && sortConfig.direction === 'desc' ? '#059669' : '#94A3B8'} /></svg>
+      </span>
+    );
+  };
   
-  const filteredLogs = tenantLogs.filter(log => {
-    const matchesCategory = filterCategory === "all" || log.category === filterCategory;
-    const matchesCompany = filterCompany === "all" || log.realm_id === filterCompany;
-    const matchesSearch = !searchTerm || 
-      log.user_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.action?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesCategory && matchesCompany && matchesSearch;
-  });
+  const filteredLogs = tenantLogs
+    .filter(log => {
+      const matchesCategory = filterCategory === "all" || log.category === filterCategory;
+      const matchesCompany = filterCompany === "all" || log.realm_id === filterCompany;
+      const matchesSearch = !searchTerm || 
+        log.user_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        log.action?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        log.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        log.description?.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesCategory && matchesCompany && matchesSearch;
+    })
+    .sort((a, b) => {
+      const getValue = (obj) => {
+        switch (sortConfig.field) {
+          case 'company_name': return obj.company_name || '';
+          case 'user_email': return obj.user_email || '';
+          case 'action': return obj.action || '';
+          case 'category': return obj.category || '';
+          case 'created_at': return new Date(obj.created_at || 0);
+          default: return '';
+        }
+      };
+      const aVal = getValue(a);
+      const bVal = getValue(b);
+      if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
   
   const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
   const paginatedLogs = filteredLogs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -3001,22 +3475,31 @@ function TenantActivityTab({ tenantLogs, tenantLogFilters, formatDateTime }) {
           </button>
         )}
 
-        <span style={{ marginLeft: 'auto', color: '#64748B', fontSize: '13px' }}>
-          {filteredLogs.length} logs
-        </span>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <span style={{ color: '#64748B', fontSize: '13px' }}>{filteredLogs.length} logs</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '12px', color: '#64748B' }}>Show</span>
+            <select value={itemsPerPage} onChange={(e) => { setItemsPerPage(parseInt(e.target.value)); setCurrentPage(1); }} style={{ padding: '6px 24px 6px 8px', border: '1px solid #E2E8F0', borderRadius: '6px', fontSize: '12px', background: '#fff', cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg width='10' height='10' viewBox='0 0 10 10' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2.5 4L5 6.5L7.5 4' stroke='%2364748B' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center' }}>
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       <div style={styles.tableContainer}>
         <table style={styles.table}>
           <thead>
             <tr>
-              <th style={styles.th}>Company</th>
-              <th style={styles.th}>User</th>
-              <th style={styles.th}>Action</th>
-              <th style={styles.th}>Category</th>
+              <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('company_name')}><div style={{ display: 'flex', alignItems: 'center' }}>Company<SortIndicator field="company_name" /></div></th>
+              <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('user_email')}><div style={{ display: 'flex', alignItems: 'center' }}>User<SortIndicator field="user_email" /></div></th>
+              <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('action')}><div style={{ display: 'flex', alignItems: 'center' }}>Action<SortIndicator field="action" /></div></th>
+              <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('category')}><div style={{ display: 'flex', alignItems: 'center' }}>Category<SortIndicator field="category" /></div></th>
               <th style={styles.th}>Description</th>
               <th style={styles.th}>IP</th>
-              <th style={styles.th}>Time</th>
+              <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('created_at')}><div style={{ display: 'flex', alignItems: 'center' }}>Time<SortIndicator field="created_at" /></div></th>
               <th style={styles.th}>Actions</th>
             </tr>
           </thead>
@@ -3128,19 +3611,51 @@ function FailedPaymentsTab({ failedPayments, formatDate, formatCurrency }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20;
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [sortConfig, setSortConfig] = useState({ field: 'failed_at', direction: 'desc' });
   
-  const filteredPayments = failedPayments.filter(p => {
-    const matchesSearch = !searchTerm ||
-      p.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.customer_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.failure_message?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === "all" || p.status === filterStatus;
-    return matchesSearch && matchesStatus;
-  });
+  const filteredPayments = failedPayments
+    .filter(p => {
+      const matchesSearch = !searchTerm ||
+        p.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.customer_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.failure_message?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = filterStatus === "all" || p.status === filterStatus;
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => {
+      const getValue = (obj) => {
+        switch (sortConfig.field) {
+          case 'company_name': return obj.company_name || '';
+          case 'amount': return obj.amount || 0;
+          case 'failed_at': return new Date(obj.failed_at || 0);
+          default: return '';
+        }
+      };
+      const aVal = getValue(a);
+      const bVal = getValue(b);
+      if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
   
   const totalPages = Math.ceil(filteredPayments.length / itemsPerPage);
   const paginatedPayments = filteredPayments.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const handleSort = (field) => {
+    setSortConfig(prev => ({ field, direction: prev.field === field && prev.direction === 'desc' ? 'asc' : 'desc' }));
+    setCurrentPage(1);
+  };
+
+  const SortIndicator = ({ field }) => {
+    const isActive = sortConfig.field === field;
+    return (
+      <span style={{ marginLeft: '6px', opacity: isActive ? 1 : 0.3, display: 'inline-flex', flexDirection: 'column' }}>
+        <svg width="8" height="5" viewBox="0 0 8 5" style={{ marginBottom: '-1px' }}><path d="M4 0L7 4H1L4 0Z" fill={isActive && sortConfig.direction === 'asc' ? '#059669' : '#94A3B8'} /></svg>
+        <svg width="8" height="5" viewBox="0 0 8 5"><path d="M4 5L1 1H7L4 5Z" fill={isActive && sortConfig.direction === 'desc' ? '#059669' : '#94A3B8'} /></svg>
+      </span>
+    );
+  };
 
   return (
     <div>
@@ -3219,21 +3734,30 @@ function FailedPaymentsTab({ failedPayments, formatDate, formatCurrency }) {
           </button>
         )}
 
-        <span style={{ marginLeft: 'auto', color: '#64748B', fontSize: '13px' }}>
-          {filteredPayments.length} failed payments
-        </span>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <span style={{ color: '#64748B', fontSize: '13px' }}>{filteredPayments.length} failed payments</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '12px', color: '#64748B' }}>Show</span>
+            <select value={itemsPerPage} onChange={(e) => { setItemsPerPage(parseInt(e.target.value)); setCurrentPage(1); }} style={{ padding: '6px 24px 6px 8px', border: '1px solid #E2E8F0', borderRadius: '6px', fontSize: '12px', background: '#fff', cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg width='10' height='10' viewBox='0 0 10 10' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2.5 4L5 6.5L7.5 4' stroke='%2364748B' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center' }}>
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </div>
+        </div>
       </div>
 
             <div style={styles.tableContainer}>
               <table style={styles.table}>
                 <thead>
                   <tr>
-                    <th style={styles.th}>Company</th>
+                    <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('company_name')}><div style={{ display: 'flex', alignItems: 'center' }}>Company<SortIndicator field="company_name" /></div></th>
                     <th style={styles.th}>Email</th>
-                    <th style={styles.th}>Amount</th>
+                    <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('amount')}><div style={{ display: 'flex', alignItems: 'center' }}>Amount<SortIndicator field="amount" /></div></th>
                     <th style={styles.th}>Failure Reason</th>
                     <th style={styles.th}>Status</th>
-                    <th style={styles.th}>Failed At</th>
+                    <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('failed_at')}><div style={{ display: 'flex', alignItems: 'center' }}>Failed At<SortIndicator field="failed_at" /></div></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -3407,20 +3931,52 @@ function SystemLogsTab({ systemLogs, formatDateTime }) {
   const [filterSource, setFilterSource] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20;
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [sortConfig, setSortConfig] = useState({ field: 'created_at', direction: 'desc' });
   
   const levels = [...new Set(systemLogs.map(l => l.level).filter(Boolean))];
   const sources = [...new Set(systemLogs.map(l => l.source).filter(Boolean))];
   
-  const filteredLogs = systemLogs.filter(log => {
-    const matchesLevel = filterLevel === "all" || log.level === filterLevel;
-    const matchesSource = filterSource === "all" || log.source === filterSource;
-    const matchesSearch = !searchTerm || 
-      log.message?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.action?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.company_name?.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesLevel && matchesSource && matchesSearch;
-  });
+  const handleSort = (field) => {
+    setSortConfig(prev => ({ field, direction: prev.field === field && prev.direction === 'desc' ? 'asc' : 'desc' }));
+    setCurrentPage(1);
+  };
+
+  const SortIndicator = ({ field }) => {
+    const isActive = sortConfig.field === field;
+    return (
+      <span style={{ marginLeft: '6px', opacity: isActive ? 1 : 0.3, display: 'inline-flex', flexDirection: 'column' }}>
+        <svg width="8" height="5" viewBox="0 0 8 5" style={{ marginBottom: '-1px' }}><path d="M4 0L7 4H1L4 0Z" fill={isActive && sortConfig.direction === 'asc' ? '#059669' : '#94A3B8'} /></svg>
+        <svg width="8" height="5" viewBox="0 0 8 5"><path d="M4 5L1 1H7L4 5Z" fill={isActive && sortConfig.direction === 'desc' ? '#059669' : '#94A3B8'} /></svg>
+      </span>
+    );
+  };
+  
+  const filteredLogs = systemLogs
+    .filter(log => {
+      const matchesLevel = filterLevel === "all" || log.level === filterLevel;
+      const matchesSource = filterSource === "all" || log.source === filterSource;
+      const matchesSearch = !searchTerm || 
+        log.message?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        log.action?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        log.company_name?.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesLevel && matchesSource && matchesSearch;
+    })
+    .sort((a, b) => {
+      const getValue = (obj) => {
+        switch (sortConfig.field) {
+          case 'level': return obj.level || '';
+          case 'source': return obj.source || '';
+          case 'created_at': return new Date(obj.created_at || 0);
+          default: return '';
+        }
+      };
+      const aVal = getValue(a);
+      const bVal = getValue(b);
+      if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
   
   const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
   const paginatedLogs = filteredLogs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -3527,21 +4083,30 @@ function SystemLogsTab({ systemLogs, formatDateTime }) {
           </button>
         )}
 
-        <span style={{ marginLeft: 'auto', color: '#64748B', fontSize: '13px' }}>
-          {filteredLogs.length} logs
-        </span>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <span style={{ color: '#64748B', fontSize: '13px' }}>{filteredLogs.length} logs</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '12px', color: '#64748B' }}>Show</span>
+            <select value={itemsPerPage} onChange={(e) => { setItemsPerPage(parseInt(e.target.value)); setCurrentPage(1); }} style={{ padding: '6px 24px 6px 8px', border: '1px solid #E2E8F0', borderRadius: '6px', fontSize: '12px', background: '#fff', cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg width='10' height='10' viewBox='0 0 10 10' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2.5 4L5 6.5L7.5 4' stroke='%2364748B' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center' }}>
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       <div style={styles.tableContainer}>
         <table style={styles.table}>
           <thead>
             <tr>
-              <th style={styles.th}>Level</th>
-              <th style={styles.th}>Source</th>
+              <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('level')}><div style={{ display: 'flex', alignItems: 'center' }}>Level<SortIndicator field="level" /></div></th>
+              <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('source')}><div style={{ display: 'flex', alignItems: 'center' }}>Source<SortIndicator field="source" /></div></th>
               <th style={styles.th}>Action</th>
               <th style={styles.th}>Message</th>
               <th style={styles.th}>Company</th>
-              <th style={styles.th}>Time</th>
+              <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('created_at')}><div style={{ display: 'flex', alignItems: 'center' }}>Time<SortIndicator field="created_at" /></div></th>
               <th style={styles.th}>Actions</th>
             </tr>
           </thead>
@@ -3765,19 +4330,52 @@ function WebhookLogsTab({ webhookLogs, formatDateTime }) {
   const [filterStatus, setFilterStatus] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20;
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [sortConfig, setSortConfig] = useState({ field: 'created_at', direction: 'desc' });
   
   const sources = [...new Set(webhookLogs.map(l => l.source).filter(Boolean))];
+
+  const handleSort = (field) => {
+    setSortConfig(prev => ({ field, direction: prev.field === field && prev.direction === 'desc' ? 'asc' : 'desc' }));
+    setCurrentPage(1);
+  };
+
+  const SortIndicator = ({ field }) => {
+    const isActive = sortConfig.field === field;
+    return (
+      <span style={{ marginLeft: '6px', opacity: isActive ? 1 : 0.3, display: 'inline-flex', flexDirection: 'column' }}>
+        <svg width="8" height="5" viewBox="0 0 8 5" style={{ marginBottom: '-1px' }}><path d="M4 0L7 4H1L4 0Z" fill={isActive && sortConfig.direction === 'asc' ? '#059669' : '#94A3B8'} /></svg>
+        <svg width="8" height="5" viewBox="0 0 8 5"><path d="M4 5L1 1H7L4 5Z" fill={isActive && sortConfig.direction === 'desc' ? '#059669' : '#94A3B8'} /></svg>
+      </span>
+    );
+  };
   
-  const filteredLogs = webhookLogs.filter(log => {
-    const matchesSource = filterSource === "all" || log.source === filterSource;
-    const matchesStatus = filterStatus === "all" || log.status === filterStatus;
-    const matchesSearch = !searchTerm || 
-      log.event_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.event_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.company_name?.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSource && matchesStatus && matchesSearch;
-  });
+  const filteredLogs = webhookLogs
+    .filter(log => {
+      const matchesSource = filterSource === "all" || log.source === filterSource;
+      const matchesStatus = filterStatus === "all" || log.status === filterStatus;
+      const matchesSearch = !searchTerm || 
+        log.event_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        log.event_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        log.company_name?.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesSource && matchesStatus && matchesSearch;
+    })
+    .sort((a, b) => {
+      const getValue = (obj) => {
+        switch (sortConfig.field) {
+          case 'source': return obj.source || '';
+          case 'event_type': return obj.event_type || '';
+          case 'status': return obj.status || '';
+          case 'created_at': return new Date(obj.created_at || 0);
+          default: return '';
+        }
+      };
+      const aVal = getValue(a);
+      const bVal = getValue(b);
+      if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
   
   const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
   const paginatedLogs = filteredLogs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -3884,22 +4482,31 @@ function WebhookLogsTab({ webhookLogs, formatDateTime }) {
           </button>
         )}
 
-        <span style={{ marginLeft: 'auto', color: '#64748B', fontSize: '13px' }}>
-          {filteredLogs.length} webhooks
-        </span>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <span style={{ color: '#64748B', fontSize: '13px' }}>{filteredLogs.length} webhooks</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '12px', color: '#64748B' }}>Show</span>
+            <select value={itemsPerPage} onChange={(e) => { setItemsPerPage(parseInt(e.target.value)); setCurrentPage(1); }} style={{ padding: '6px 24px 6px 8px', border: '1px solid #E2E8F0', borderRadius: '6px', fontSize: '12px', background: '#fff', cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg width='10' height='10' viewBox='0 0 10 10' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2.5 4L5 6.5L7.5 4' stroke='%2364748B' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center' }}>
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </div>
+        </div>
       </div>
 
             <div style={styles.tableContainer}>
               <table style={styles.table}>
                 <thead>
                   <tr>
-              <th style={styles.th}>Source</th>
-              <th style={styles.th}>Event Type</th>
+              <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('source')}><div style={{ display: 'flex', alignItems: 'center' }}>Source<SortIndicator field="source" /></div></th>
+              <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('event_type')}><div style={{ display: 'flex', alignItems: 'center' }}>Event Type<SortIndicator field="event_type" /></div></th>
               <th style={styles.th}>Event ID</th>
                     <th style={styles.th}>Company</th>
-                    <th style={styles.th}>Status</th>
+                    <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('status')}><div style={{ display: 'flex', alignItems: 'center' }}>Status<SortIndicator field="status" /></div></th>
               <th style={styles.th}>Time (ms)</th>
-              <th style={styles.th}>Received</th>
+              <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('created_at')}><div style={{ display: 'flex', alignItems: 'center' }}>Received<SortIndicator field="created_at" /></div></th>
               <th style={styles.th}>Actions</th>
                   </tr>
                 </thead>
@@ -3919,7 +4526,7 @@ function WebhookLogsTab({ webhookLogs, formatDateTime }) {
                     {log.source}
                         </span>
                       </td>
-                <td style={styles.td}>
+                      <td style={styles.td}>
                   <span 
                     style={{ fontFamily: 'monospace', fontSize: '12px', cursor: 'help' }}
                     title={log.event_type}
@@ -4022,7 +4629,7 @@ function WebhookLogDetailModal({ log, onClose, formatDateTime }) {
         }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-              <span style={{
+                        <span style={{
                 padding: '4px 10px',
                 borderRadius: '6px',
                 fontSize: '11px',
@@ -4032,7 +4639,7 @@ function WebhookLogDetailModal({ log, onClose, formatDateTime }) {
                 color: log.source === 'stripe' ? '#059669' : '#059669',
               }}>
                 {log.source}
-              </span>
+                        </span>
               <StatusBadge status={log.status === 'processed' ? 'active' : log.status === 'failed' ? 'rejected' : 'pending_review'} />
             </div>
             <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#0F172A' }}>
@@ -4308,6 +4915,7 @@ function UserQueriesSection({ getAuthHeaders, formatDate, formatDateTime }) {
     subject: '',
     search: '',
   });
+  const [sortConfig, setSortConfig] = useState({ field: 'created_at', direction: 'desc' });
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
@@ -4318,7 +4926,7 @@ function UserQueriesSection({ getAuthHeaders, formatDate, formatDateTime }) {
   useEffect(() => {
     fetchQueries();
     fetchStats();
-  }, [filters, pagination.page]);
+  }, [filters, pagination.page, pagination.limit, sortConfig]);
 
   const fetchQueries = async () => {
     setLoading(true);
@@ -4326,6 +4934,8 @@ function UserQueriesSection({ getAuthHeaders, formatDate, formatDateTime }) {
       const params = new URLSearchParams({
         page: pagination.page,
         limit: pagination.limit,
+        sort_by: sortConfig.field,
+        sort_dir: sortConfig.direction,
       });
       if (filters.status) params.append('status', filters.status);
       if (filters.subject) params.append('subject', filters.subject);
@@ -4375,6 +4985,34 @@ function UserQueriesSection({ getAuthHeaders, formatDate, formatDateTime }) {
     }
   };
 
+  const handleSort = (field) => {
+    setSortConfig((prev) => ({
+      field,
+      direction: prev.field === field && prev.direction === 'desc' ? 'asc' : 'desc',
+    }));
+    setPagination((prev) => ({ ...prev, page: 1 }));
+  };
+
+  const SortIcon = ({ field }) => {
+    const isActive = sortConfig.field === field;
+    return (
+      <span style={{ 
+        display: 'inline-flex', 
+        flexDirection: 'column', 
+        marginLeft: '6px', 
+        opacity: isActive ? 1 : 0.3,
+        transition: 'opacity 0.2s'
+      }}>
+        <svg width="8" height="8" viewBox="0 0 8 8" fill="none" style={{ marginBottom: '-2px' }}>
+          <path d="M4 0L7 4H1L4 0Z" fill={isActive && sortConfig.direction === 'asc' ? '#059669' : '#94A3B8'} />
+        </svg>
+        <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+          <path d="M4 8L1 4H7L4 8Z" fill={isActive && sortConfig.direction === 'desc' ? '#059669' : '#94A3B8'} />
+        </svg>
+      </span>
+    );
+  };
+
   const getStatusStyle = (status) => {
     const statusStyles = {
       new: { bg: '#DBEAFE', color: '#1D4ED8' },
@@ -4396,156 +5034,453 @@ function UserQueriesSection({ getAuthHeaders, formatDate, formatDateTime }) {
     return labels[subject] || subject;
   };
 
+  const getSubjectIcon = (subject) => {
+    const icons = {
+      general: '💬',
+      support: '🔧',
+      billing: '💳',
+      partnership: '🤝',
+      feedback: '📝',
+    };
+    return icons[subject] || '💬';
+  };
+
+  const handlePageSizeChange = (newLimit) => {
+    setPagination({ ...pagination, page: 1, limit: parseInt(newLimit) });
+  };
+
+  const getTimeSince = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diff = Math.floor((now - date) / 1000);
+    
+    if (diff < 60) return 'Just now';
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+    return formatDate(dateStr);
+  };
+
   return (
     <div>
-      <div style={styles.sectionHeader}>
-        <h3 style={styles.sectionTitle}>User Queries</h3>
-        <span style={styles.resultCount}>{pagination.total} total queries</span>
+      {/* Page Header */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: '32px',
+      }}>
+        <div>
+          <h2 style={{ margin: '0 0 8px', fontSize: '24px', fontWeight: '700', color: '#0F172A' }}>User Queries</h2>
+          <p style={{ margin: 0, fontSize: '14px', color: '#64748B' }}>
+            Manage and respond to customer support requests
+          </p>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button
+            onClick={() => { fetchQueries(); fetchStats(); }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 16px',
+              background: '#F8FAFC',
+              border: '1px solid #E2E8F0',
+              borderRadius: '10px',
+              color: '#475569',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+            }}
+          >
+            <RefreshCwIcon />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}
       {stats && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '32px' }}>
-          <StatCard
-            icon={<MessageSquareIcon />}
-            value={stats.by_status?.new || 0}
-            label="New Queries"
-            color="#1D4ED8"
-            alert={stats.by_status?.new > 0}
-          />
-          <StatCard
-            icon={<ClockIcon />}
-            value={stats.by_status?.in_progress || 0}
-            label="In Progress"
-            color="#D97706"
-          />
-          <StatCard
-            icon={<CheckCircleIcon />}
-            value={stats.by_status?.resolved || 0}
-            label="Resolved"
-            color="#059669"
-          />
-          <StatCard
-            icon={<FileTextIcon />}
-            value={stats.total || 0}
-            label="Total Queries"
-            color="#64748B"
-          />
+          <div style={{
+            background: 'linear-gradient(135deg, #DBEAFE 0%, #EFF6FF 100%)',
+            borderRadius: '16px',
+            padding: '24px',
+            border: '1px solid #BFDBFE',
+            position: 'relative',
+            overflow: 'hidden',
+          }}>
+            {stats.by_status?.new > 0 && (
+              <span style={{
+                position: 'absolute',
+                top: '12px',
+                right: '12px',
+                width: '10px',
+                height: '10px',
+                background: '#DC2626',
+                borderRadius: '50%',
+                animation: 'pulse 2s ease-in-out infinite',
+              }}></span>
+            )}
+            <div style={{ width: '48px', height: '48px', background: '#1D4ED8', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+            </div>
+            <div style={{ fontSize: '32px', fontWeight: '700', color: '#1E40AF', marginBottom: '4px' }}>{stats.by_status?.new || 0}</div>
+            <div style={{ fontSize: '14px', fontWeight: '500', color: '#3B82F6' }}>New Queries</div>
+          </div>
+
+          <div style={{
+            background: 'linear-gradient(135deg, #FEF3C7 0%, #FFFBEB 100%)',
+            borderRadius: '16px',
+            padding: '24px',
+            border: '1px solid #FDE68A',
+          }}>
+            <div style={{ width: '48px', height: '48px', background: '#D97706', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            </div>
+            <div style={{ fontSize: '32px', fontWeight: '700', color: '#92400E', marginBottom: '4px' }}>{stats.by_status?.in_progress || 0}</div>
+            <div style={{ fontSize: '14px', fontWeight: '500', color: '#D97706' }}>In Progress</div>
+          </div>
+
+          <div style={{
+            background: 'linear-gradient(135deg, #ECFDF5 0%, #F0FDF4 100%)',
+            borderRadius: '16px',
+            padding: '24px',
+            border: '1px solid #A7F3D0',
+          }}>
+            <div style={{ width: '48px', height: '48px', background: '#059669', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            </div>
+            <div style={{ fontSize: '32px', fontWeight: '700', color: '#065F46', marginBottom: '4px' }}>{stats.by_status?.resolved || 0}</div>
+            <div style={{ fontSize: '14px', fontWeight: '500', color: '#059669' }}>Resolved</div>
+          </div>
+
+          <div style={{
+            background: 'linear-gradient(135deg, #F1F5F9 0%, #F8FAFC 100%)',
+            borderRadius: '16px',
+            padding: '24px',
+            border: '1px solid #E2E8F0',
+          }}>
+            <div style={{ width: '48px', height: '48px', background: '#64748B', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+            </div>
+            <div style={{ fontSize: '32px', fontWeight: '700', color: '#334155', marginBottom: '4px' }}>{stats.total || 0}</div>
+            <div style={{ fontSize: '14px', fontWeight: '500', color: '#64748B' }}>Total Queries</div>
+          </div>
         </div>
       )}
 
-      {/* Filters */}
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', flexWrap: 'wrap', alignItems: 'center' }}>
-        <div style={{ position: 'relative', flex: '1', minWidth: '200px' }}>
-          <SearchIcon style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
-          <input
-            type="text"
-            placeholder="Search by name, email, or message..."
-            value={filters.search}
-            onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-            style={{ ...styles.searchInput, paddingLeft: '44px', width: '100%' }}
-          />
+      {/* Filters Bar */}
+      <div style={{
+        background: '#fff',
+        border: '1px solid #E2E8F0',
+        borderRadius: '16px',
+        padding: '20px',
+        marginBottom: '24px',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+          <span style={{ fontSize: '14px', fontWeight: '600', color: '#475569' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+            </svg>
+            Filters
+          </span>
+          {(filters.status || filters.subject || filters.search) && (
+            <button
+              onClick={() => setFilters({ status: '', subject: '', search: '' })}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
+                background: '#FEF2F2',
+                border: '1px solid #FECACA',
+                borderRadius: '8px',
+                color: '#DC2626',
+                fontSize: '13px',
+                fontWeight: '500',
+                cursor: 'pointer',
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+              Clear All
+            </button>
+          )}
         </div>
-        <select
-          value={filters.status}
-          onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-          style={{ ...styles.searchInput, width: '160px', cursor: 'pointer' }}
-        >
-          <option value="">All Statuses</option>
-          <option value="new">New</option>
-          <option value="in_progress">In Progress</option>
-          <option value="resolved">Resolved</option>
-          <option value="closed">Closed</option>
-        </select>
-        <select
-          value={filters.subject}
-          onChange={(e) => setFilters({ ...filters, subject: e.target.value })}
-          style={{ ...styles.searchInput, width: '180px', cursor: 'pointer' }}
-        >
-          <option value="">All Subjects</option>
-          <option value="general">General Inquiry</option>
-          <option value="support">Technical Support</option>
-          <option value="billing">Billing Question</option>
-          <option value="partnership">Partnership</option>
-          <option value="feedback">Feedback</option>
-        </select>
-        {(filters.status || filters.subject || filters.search) && (
-          <button
-            onClick={() => setFilters({ status: '', subject: '', search: '' })}
-            style={{ ...styles.viewBtn, color: '#DC2626', borderColor: '#FECACA', background: '#FEF2F2' }}
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ position: 'relative', flex: '1', minWidth: '280px' }}>
+            <SearchIcon style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+            <input
+              type="text"
+              placeholder="Search by name, email, or message content..."
+              value={filters.search}
+              onChange={(e) => { setFilters({ ...filters, search: e.target.value }); setPagination(p => ({ ...p, page: 1 })); }}
+              style={{
+                width: '100%',
+                padding: '12px 12px 12px 44px',
+                background: '#F8FAFC',
+                border: '1px solid #E2E8F0',
+                borderRadius: '10px',
+                fontSize: '14px',
+                color: '#0F172A',
+                outline: 'none',
+                transition: 'all 0.2s',
+              }}
+            />
+          </div>
+          <select
+            value={filters.status}
+            onChange={(e) => { setFilters({ ...filters, status: e.target.value }); setPagination(p => ({ ...p, page: 1 })); }}
+            style={{
+              padding: '12px 36px 12px 16px',
+              background: '#F8FAFC',
+              border: '1px solid #E2E8F0',
+              borderRadius: '10px',
+              fontSize: '14px',
+              color: '#0F172A',
+              cursor: 'pointer',
+              appearance: 'none',
+              backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='%2364748B' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`,
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'right 14px center',
+            }}
           >
-            Clear Filters
-          </button>
-        )}
+            <option value="">All Statuses</option>
+            <option value="new">🔵 New</option>
+            <option value="in_progress">🟡 In Progress</option>
+            <option value="resolved">🟢 Resolved</option>
+            <option value="closed">⚫ Closed</option>
+          </select>
+          <select
+            value={filters.subject}
+            onChange={(e) => { setFilters({ ...filters, subject: e.target.value }); setPagination(p => ({ ...p, page: 1 })); }}
+            style={{
+              padding: '12px 36px 12px 16px',
+              background: '#F8FAFC',
+              border: '1px solid #E2E8F0',
+              borderRadius: '10px',
+              fontSize: '14px',
+              color: '#0F172A',
+              cursor: 'pointer',
+              appearance: 'none',
+              backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='%2364748B' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`,
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'right 14px center',
+            }}
+          >
+            <option value="">All Subjects</option>
+            <option value="general">💬 General Inquiry</option>
+            <option value="support">🔧 Technical Support</option>
+            <option value="billing">💳 Billing Question</option>
+            <option value="partnership">🤝 Partnership</option>
+            <option value="feedback">📝 Feedback</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Results Info & Page Size */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '16px',
+      }}>
+        <div style={{ fontSize: '14px', color: '#64748B' }}>
+          Showing <span style={{ fontWeight: '600', color: '#0F172A' }}>{((pagination.page - 1) * pagination.limit) + 1}</span>
+          {' '}-{' '}
+          <span style={{ fontWeight: '600', color: '#0F172A' }}>{Math.min(pagination.page * pagination.limit, pagination.total)}</span>
+          {' '}of{' '}
+          <span style={{ fontWeight: '600', color: '#0F172A' }}>{pagination.total}</span> results
+          {(filters.status || filters.subject || filters.search) && (
+            <span style={{ color: '#059669', marginLeft: '8px' }}>(filtered)</span>
+          )}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '13px', color: '#64748B' }}>Show</span>
+          <select
+            value={pagination.limit}
+            onChange={(e) => handlePageSizeChange(e.target.value)}
+            style={{
+              padding: '6px 28px 6px 12px',
+              background: '#F8FAFC',
+              border: '1px solid #E2E8F0',
+              borderRadius: '8px',
+              fontSize: '13px',
+              color: '#0F172A',
+              cursor: 'pointer',
+              appearance: 'none',
+              backgroundImage: `url("data:image/svg+xml,%3Csvg width='10' height='10' viewBox='0 0 10 10' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2.5 4L5 6.5L7.5 4' stroke='%2364748B' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`,
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'right 8px center',
+            }}
+          >
+            <option value="10">10</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+          <span style={{ fontSize: '13px', color: '#64748B' }}>per page</span>
+        </div>
       </div>
 
       {/* Queries Table */}
-      <div style={styles.tableContainer}>
-        <table style={styles.table}>
+      <div style={{
+        background: '#fff',
+        border: '1px solid #E2E8F0',
+        borderRadius: '16px',
+        overflow: 'hidden',
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+      }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            <tr>
-              <th style={styles.th}>Sender</th>
-              <th style={styles.th}>Subject</th>
-              <th style={styles.th}>Status</th>
-              <th style={styles.th}>Date</th>
+            <tr style={{ background: '#F8FAFC' }}>
+              <th 
+                style={{ ...styles.th, cursor: 'pointer', userSelect: 'none' }}
+                onClick={() => handleSort('name')}
+              >
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  Sender
+                  <SortIcon field="name" />
+                </div>
+              </th>
+              <th 
+                style={{ ...styles.th, cursor: 'pointer', userSelect: 'none' }}
+                onClick={() => handleSort('subject')}
+              >
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  Subject
+                  <SortIcon field="subject" />
+                </div>
+              </th>
+              <th 
+                style={{ ...styles.th, cursor: 'pointer', userSelect: 'none' }}
+                onClick={() => handleSort('status')}
+              >
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  Status
+                  <SortIcon field="status" />
+                </div>
+              </th>
+              <th style={styles.th}>Preview</th>
+              <th 
+                style={{ ...styles.th, cursor: 'pointer', userSelect: 'none' }}
+                onClick={() => handleSort('created_at')}
+              >
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  Date
+                  <SortIcon field="created_at" />
+                </div>
+              </th>
               <th style={styles.th}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={5} style={{ ...styles.td, textAlign: 'center', padding: '40px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', color: '#64748B' }}>
-                    <span style={{ width: '20px', height: '20px', border: '2px solid #E2E8F0', borderTopColor: '#059669', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }}></span>
-                    Loading queries...
+                <td colSpan={6} style={{ textAlign: 'center', padding: '60px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      border: '3px solid #E2E8F0',
+                      borderTopColor: '#059669',
+                      borderRadius: '50%',
+                      animation: 'spin 0.8s linear infinite',
+                    }}></div>
+                    <span style={{ color: '#64748B', fontSize: '14px' }}>Loading queries...</span>
                   </div>
-                </td>
-              </tr>
+                      </td>
+                    </tr>
             ) : queries.length === 0 ? (
               <tr>
-                <td colSpan={5} style={{ ...styles.td, textAlign: 'center', padding: '60px' }}>
-                  <div style={styles.emptyState}>
-                    <div style={styles.emptyIcon}><MessageSquareIcon /></div>
-                    <h4 style={styles.emptyTitle}>No queries found</h4>
-                    <p style={styles.emptyDesc}>No user queries match your filters</p>
+                <td colSpan={6} style={{ textAlign: 'center', padding: '80px 40px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                    <div style={{
+                      width: '72px',
+                      height: '72px',
+                      background: '#F1F5F9',
+                      borderRadius: '20px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#94A3B8',
+                    }}>
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 style={{ margin: '0 0 8px', fontSize: '16px', fontWeight: '600', color: '#0F172A' }}>No queries found</h4>
+                      <p style={{ margin: 0, fontSize: '14px', color: '#64748B' }}>
+                        {(filters.status || filters.subject || filters.search) 
+                          ? 'Try adjusting your filters to see more results'
+                          : 'No user queries have been submitted yet'}
+                      </p>
+                    </div>
                   </div>
                 </td>
               </tr>
             ) : (
-              queries.map((query) => (
-                <tr key={query.id} style={styles.tr}>
-                  <td style={styles.td}>
-                    <div style={styles.companyCell}>
+              queries.map((query, idx) => (
+                <tr 
+                  key={query.id} 
+                  style={{ 
+                    borderBottom: '1px solid #E2E8F0',
+                    background: query.status === 'new' ? '#FAFBFF' : '#fff',
+                    transition: 'background 0.15s',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = '#F8FAFC'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = query.status === 'new' ? '#FAFBFF' : '#fff'}
+                >
+                  <td style={{ ...styles.td, padding: '16px 20px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                       <div style={{
-                        ...styles.companyAvatar,
-                        background: '#EFF6FF',
-                        color: '#3B82F6',
+                        width: '44px',
+                        height: '44px',
+                        borderRadius: '12px',
+                        background: `linear-gradient(135deg, ${['#ECFDF5', '#DBEAFE', '#FEF3C7', '#F3E8FF', '#FEE2E2'][idx % 5]} 0%, #fff 100%)`,
+                        border: `1px solid ${['#A7F3D0', '#BFDBFE', '#FDE68A', '#E9D5FF', '#FECACA'][idx % 5]}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: ['#059669', '#3B82F6', '#D97706', '#8B5CF6', '#DC2626'][idx % 5],
+                        fontSize: '18px',
+                        fontWeight: '600',
                       }}>
                         {query.name?.charAt(0)?.toUpperCase() || '?'}
                       </div>
                       <div>
-                        <div style={styles.companyName}>{query.name}</div>
-                        <div style={styles.realmId}>{query.email}</div>
+                        <div style={{ fontWeight: '600', color: '#0F172A', fontSize: '14px', marginBottom: '2px' }}>{query.name}</div>
+                        <div style={{ fontSize: '12px', color: '#64748B' }}>{query.email}</div>
                       </div>
                     </div>
                   </td>
-                  <td style={styles.td}>
+                  <td style={{ ...styles.td, padding: '16px 20px' }}>
                     <span style={{
-                      display: 'inline-block',
-                      padding: '4px 10px',
-                      borderRadius: '6px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '6px 12px',
+                      borderRadius: '8px',
                       fontSize: '13px',
                       fontWeight: '500',
                       background: '#F1F5F9',
                       color: '#475569',
                     }}>
+                      <span>{getSubjectIcon(query.subject)}</span>
                       {getSubjectLabel(query.subject)}
                     </span>
                   </td>
-                  <td style={styles.td}>
+                  <td style={{ ...styles.td, padding: '16px 20px' }}>
                     <span style={{
-                      display: 'inline-block',
-                      padding: '4px 12px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '6px 14px',
                       borderRadius: '20px',
                       fontSize: '12px',
                       fontWeight: '600',
@@ -4553,47 +5488,225 @@ function UserQueriesSection({ getAuthHeaders, formatDate, formatDateTime }) {
                       color: getStatusStyle(query.status).color,
                       textTransform: 'capitalize',
                     }}>
+                      <span style={{
+                        width: '6px',
+                        height: '6px',
+                        borderRadius: '50%',
+                        background: 'currentColor',
+                      }}></span>
                       {query.status?.replace('_', ' ')}
                     </span>
                   </td>
-                  <td style={styles.td}>
-                    <span style={{ fontSize: '13px', color: '#64748B' }}>{formatDate(query.created_at)}</span>
+                  <td style={{ ...styles.td, padding: '16px 20px', maxWidth: '200px' }}>
+                    <p style={{
+                      margin: 0,
+                      fontSize: '13px',
+                      color: '#64748B',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }} title={query.message}>
+                      {query.message?.substring(0, 60)}{query.message?.length > 60 ? '...' : ''}
+                    </p>
                   </td>
-                  <td style={styles.td}>
+                  <td style={{ ...styles.td, padding: '16px 20px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <span style={{ fontSize: '13px', fontWeight: '500', color: '#0F172A' }}>{getTimeSince(query.created_at)}</span>
+                      <span style={{ fontSize: '11px', color: '#94A3B8' }}>{formatDate(query.created_at)}</span>
+                    </div>
+                  </td>
+                  <td style={{ ...styles.td, padding: '16px 20px' }}>
                     <button
                       onClick={() => setSelectedQuery(query)}
-                      style={styles.viewBtn}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '8px 16px',
+                        background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        boxShadow: '0 2px 4px rgba(5, 150, 105, 0.2)',
+                      }}
                     >
-                      View Details
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                      View
                     </button>
                   </td>
                 </tr>
               ))
             )}
-          </tbody>
-        </table>
+                </tbody>
+              </table>
       </div>
 
-      {/* Pagination */}
-      {pagination.total_pages > 1 && (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', marginTop: '24px' }}>
-          <button
-            onClick={() => setPagination({ ...pagination, page: pagination.page - 1 })}
-            disabled={pagination.page === 1}
-            style={{ ...styles.viewBtn, opacity: pagination.page === 1 ? 0.5 : 1, cursor: pagination.page === 1 ? 'not-allowed' : 'pointer' }}
-          >
-            Previous
-          </button>
-          <span style={{ fontSize: '14px', color: '#64748B' }}>
-            Page {pagination.page} of {pagination.total_pages}
+      {/* Enhanced Pagination */}
+      {pagination.total_pages > 0 && (
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginTop: '24px',
+          padding: '16px 20px',
+          background: '#F8FAFC',
+          borderRadius: '12px',
+          border: '1px solid #E2E8F0',
+        }}>
+          <span style={{ fontSize: '13px', color: '#64748B' }}>
+            Page <span style={{ fontWeight: '600', color: '#0F172A' }}>{pagination.page}</span> of <span style={{ fontWeight: '600', color: '#0F172A' }}>{pagination.total_pages}</span>
           </span>
-          <button
-            onClick={() => setPagination({ ...pagination, page: pagination.page + 1 })}
-            disabled={pagination.page === pagination.total_pages}
-            style={{ ...styles.viewBtn, opacity: pagination.page === pagination.total_pages ? 0.5 : 1, cursor: pagination.page === pagination.total_pages ? 'not-allowed' : 'pointer' }}
-          >
-            Next
-          </button>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {/* First Page */}
+            <button
+              onClick={() => setPagination({ ...pagination, page: 1 })}
+              disabled={pagination.page === 1}
+              style={{
+                width: '36px',
+                height: '36px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: pagination.page === 1 ? '#F1F5F9' : '#fff',
+                border: '1px solid #E2E8F0',
+                borderRadius: '8px',
+                color: pagination.page === 1 ? '#94A3B8' : '#475569',
+                cursor: pagination.page === 1 ? 'not-allowed' : 'pointer',
+                transition: 'all 0.15s',
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="11 17 6 12 11 7"></polyline>
+                <polyline points="18 17 13 12 18 7"></polyline>
+              </svg>
+            </button>
+            
+            {/* Previous Page */}
+            <button
+              onClick={() => setPagination({ ...pagination, page: pagination.page - 1 })}
+              disabled={pagination.page === 1}
+              style={{
+                padding: '8px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: pagination.page === 1 ? '#F1F5F9' : '#fff',
+                border: '1px solid #E2E8F0',
+                borderRadius: '8px',
+                color: pagination.page === 1 ? '#94A3B8' : '#475569',
+                fontSize: '13px',
+                fontWeight: '500',
+                cursor: pagination.page === 1 ? 'not-allowed' : 'pointer',
+                transition: 'all 0.15s',
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+              Previous
+            </button>
+            
+            {/* Page Numbers */}
+            <div style={{ display: 'flex', gap: '4px' }}>
+              {Array.from({ length: Math.min(5, pagination.total_pages) }, (_, i) => {
+                let pageNum;
+                if (pagination.total_pages <= 5) {
+                  pageNum = i + 1;
+                } else if (pagination.page <= 3) {
+                  pageNum = i + 1;
+                } else if (pagination.page >= pagination.total_pages - 2) {
+                  pageNum = pagination.total_pages - 4 + i;
+                } else {
+                  pageNum = pagination.page - 2 + i;
+                }
+                
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setPagination({ ...pagination, page: pageNum })}
+                    style={{
+                      width: '36px',
+                      height: '36px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: pagination.page === pageNum ? '#059669' : '#fff',
+                      border: pagination.page === pageNum ? 'none' : '1px solid #E2E8F0',
+                      borderRadius: '8px',
+                      color: pagination.page === pageNum ? '#fff' : '#475569',
+                      fontSize: '13px',
+                      fontWeight: pagination.page === pageNum ? '600' : '500',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+            </div>
+            
+            {/* Next Page */}
+            <button
+              onClick={() => setPagination({ ...pagination, page: pagination.page + 1 })}
+              disabled={pagination.page === pagination.total_pages}
+              style={{
+                padding: '8px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: pagination.page === pagination.total_pages ? '#F1F5F9' : '#fff',
+                border: '1px solid #E2E8F0',
+                borderRadius: '8px',
+                color: pagination.page === pagination.total_pages ? '#94A3B8' : '#475569',
+                fontSize: '13px',
+                fontWeight: '500',
+                cursor: pagination.page === pagination.total_pages ? 'not-allowed' : 'pointer',
+                transition: 'all 0.15s',
+              }}
+            >
+              Next
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
+            
+            {/* Last Page */}
+            <button
+              onClick={() => setPagination({ ...pagination, page: pagination.total_pages })}
+              disabled={pagination.page === pagination.total_pages}
+              style={{
+                width: '36px',
+                height: '36px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: pagination.page === pagination.total_pages ? '#F1F5F9' : '#fff',
+                border: '1px solid #E2E8F0',
+                borderRadius: '8px',
+                color: pagination.page === pagination.total_pages ? '#94A3B8' : '#475569',
+                cursor: pagination.page === pagination.total_pages ? 'not-allowed' : 'pointer',
+                transition: 'all 0.15s',
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="13 17 18 12 13 7"></polyline>
+                <polyline points="6 17 11 12 6 7"></polyline>
+              </svg>
+            </button>
+          </div>
+          
+          <span style={{ fontSize: '13px', color: '#64748B' }}>
+            <span style={{ fontWeight: '600', color: '#0F172A' }}>{pagination.total}</span> total queries
+          </span>
         </div>
       )}
 
@@ -4602,171 +5715,289 @@ function UserQueriesSection({ getAuthHeaders, formatDate, formatDateTime }) {
         <div style={{
           position: 'fixed',
           inset: 0,
-          background: 'rgba(15, 23, 42, 0.6)',
-          backdropFilter: 'blur(4px)',
+          background: 'rgba(15, 23, 42, 0.7)',
+          backdropFilter: 'blur(8px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 1000,
           padding: '20px',
+          animation: 'fadeIn 0.2s ease-out',
         }} onClick={() => setSelectedQuery(null)}>
           <div style={{
             background: '#fff',
-            borderRadius: '20px',
+            borderRadius: '24px',
             width: '100%',
-            maxWidth: '600px',
+            maxWidth: '640px',
             maxHeight: '90vh',
-            overflow: 'auto',
-            boxShadow: '0 25px 50px rgba(0, 0, 0, 0.2)',
+            overflow: 'hidden',
+            boxShadow: '0 25px 60px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05)',
+            animation: 'slideUp 0.3s ease-out',
           }} onClick={(e) => e.stopPropagation()}>
             {/* Modal Header */}
             <div style={{
-              padding: '24px',
-              borderBottom: '1px solid #E2E8F0',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
+              padding: '28px 28px 24px',
+              background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+              position: 'relative',
             }}>
-              <div>
-                <h3 style={{ margin: '0 0 4px', fontSize: '18px', fontWeight: '700', color: '#0F172A' }}>Query Details</h3>
-                <span style={{ fontSize: '13px', color: '#64748B' }}>ID: #{selectedQuery.id}</span>
-              </div>
               <button
                 onClick={() => setSelectedQuery(null)}
                 style={{
+                  position: 'absolute',
+                  top: '20px',
+                  right: '20px',
                   width: '36px',
                   height: '36px',
-                  borderRadius: '8px',
-                  background: '#F1F5F9',
+                  borderRadius: '10px',
+                  background: 'rgba(255, 255, 255, 0.2)',
                   border: 'none',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: '#64748B',
+                  color: '#fff',
+                  transition: 'all 0.2s',
                 }}
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
               </button>
-            </div>
-
-            {/* Modal Content */}
-            <div style={{ padding: '24px' }}>
-              {/* Sender Info */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px', padding: '16px', background: '#F8FAFC', borderRadius: '12px' }}>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                 <div style={{
-                  width: '56px',
-                  height: '56px',
-                  borderRadius: '14px',
-                  background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
+                  width: '60px',
+                  height: '60px',
+                  borderRadius: '16px',
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  border: '2px solid rgba(255, 255, 255, 0.3)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   color: '#fff',
-                  fontSize: '22px',
+                  fontSize: '24px',
                   fontWeight: '700',
                 }}>
                   {selectedQuery.name?.charAt(0)?.toUpperCase()}
                 </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '17px', fontWeight: '600', color: '#0F172A', marginBottom: '4px' }}>{selectedQuery.name}</div>
-                  <div style={{ fontSize: '14px', color: '#64748B' }}>{selectedQuery.email}</div>
+                <div>
+                  <h3 style={{ margin: '0 0 4px', fontSize: '20px', fontWeight: '700', color: '#fff' }}>{selectedQuery.name}</h3>
+                  <div style={{ fontSize: '14px', color: 'rgba(255, 255, 255, 0.8)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                      <polyline points="22,6 12,13 2,6"/>
+                    </svg>
+                    {selectedQuery.email}
+                  </div>
                 </div>
+              </div>
+              
+              <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
                 <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
                   padding: '6px 14px',
                   borderRadius: '20px',
                   fontSize: '12px',
                   fontWeight: '600',
-                  background: getStatusStyle(selectedQuery.status).bg,
-                  color: getStatusStyle(selectedQuery.status).color,
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  color: '#fff',
                   textTransform: 'capitalize',
                 }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#fff' }}></span>
                   {selectedQuery.status?.replace('_', ' ')}
                 </span>
-              </div>
-
-              {/* Query Details */}
-              <div style={{ marginBottom: '24px' }}>
-                <div style={{ fontSize: '12px', fontWeight: '600', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>Subject</div>
-                <div style={{
-                  padding: '8px 14px',
-                  background: '#F1F5F9',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: '#475569',
-                  display: 'inline-block',
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 14px',
+                  borderRadius: '20px',
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  color: '#fff',
                 }}>
-                  {getSubjectLabel(selectedQuery.subject)}
-                </div>
+                  {getSubjectIcon(selectedQuery.subject)} {getSubjectLabel(selectedQuery.subject)}
+                </span>
               </div>
+            </div>
 
-              <div style={{ marginBottom: '24px' }}>
-                <div style={{ fontSize: '12px', fontWeight: '600', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>Message</div>
+            {/* Modal Content */}
+            <div style={{ padding: '28px', maxHeight: 'calc(90vh - 200px)', overflowY: 'auto' }}>
+              {/* Message */}
+              <div style={{ marginBottom: '28px' }}>
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '8px',
+                  fontSize: '12px', 
+                  fontWeight: '700', 
+                  color: '#475569', 
+                  textTransform: 'uppercase', 
+                  letterSpacing: '0.5px', 
+                  marginBottom: '12px' 
+                }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                  </svg>
+                  Message
+                </div>
                 <div style={{
-                  padding: '16px',
-                  background: '#F8FAFC',
+                  padding: '20px',
+                  background: 'linear-gradient(135deg, #F8FAFC 0%, #fff 100%)',
                   border: '1px solid #E2E8F0',
-                  borderRadius: '12px',
+                  borderRadius: '16px',
                   fontSize: '15px',
                   color: '#374151',
-                  lineHeight: '1.7',
+                  lineHeight: '1.8',
                   whiteSpace: 'pre-wrap',
                 }}>
                   {selectedQuery.message}
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', marginBottom: '24px' }}>
+              {/* Details Grid */}
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(2, 1fr)', 
+                gap: '16px', 
+                marginBottom: '28px',
+                padding: '20px',
+                background: '#F8FAFC',
+                borderRadius: '16px',
+              }}>
                 <div>
-                  <div style={{ fontSize: '12px', fontWeight: '600', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Submitted</div>
-                  <div style={{ fontSize: '14px', color: '#0F172A' }}>{formatDateTime(selectedQuery.created_at)}</div>
+                  <div style={{ fontSize: '11px', fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
+                    Submitted
+                  </div>
+                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#0F172A' }}>{formatDateTime(selectedQuery.created_at)}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
+                    Query ID
+                  </div>
+                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#0F172A', fontFamily: 'monospace' }}>#{selectedQuery.id}</div>
                 </div>
                 {selectedQuery.responded_at && (
                   <div>
-                    <div style={{ fontSize: '12px', fontWeight: '600', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Responded</div>
-                    <div style={{ fontSize: '14px', color: '#0F172A' }}>
-                      {formatDateTime(selectedQuery.responded_at)}
-                      {selectedQuery.responded_by && <span style={{ color: '#64748B' }}> by {selectedQuery.responded_by}</span>}
+                    <div style={{ fontSize: '11px', fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
+                      Responded
                     </div>
-                  </div>
-                )}
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: '#0F172A' }}>
+                      {formatDateTime(selectedQuery.responded_at)}
+            </div>
+          </div>
+        )}
                 {selectedQuery.ip_address && (
                   <div>
-                    <div style={{ fontSize: '12px', fontWeight: '600', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>IP Address</div>
+                    <div style={{ fontSize: '11px', fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
+                      IP Address
+                    </div>
                     <div style={{ fontSize: '13px', color: '#64748B', fontFamily: 'monospace' }}>{selectedQuery.ip_address}</div>
                   </div>
                 )}
               </div>
 
               {/* Status Update */}
-              <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '20px' }}>
-                <div style={{ fontSize: '12px', fontWeight: '600', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>Update Status</div>
+              <div>
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '8px',
+                  fontSize: '12px', 
+                  fontWeight: '700', 
+                  color: '#475569', 
+                  textTransform: 'uppercase', 
+                  letterSpacing: '0.5px', 
+                  marginBottom: '14px' 
+                }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="9 11 12 14 22 4"></polyline>
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                  </svg>
+                  Update Status
+                </div>
                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                  {['new', 'in_progress', 'resolved', 'closed'].map((status) => (
-                    <button
-                      key={status}
-                      onClick={() => updateQueryStatus(selectedQuery.id, status)}
-                      style={{
-                        padding: '8px 16px',
-                        borderRadius: '8px',
-                        fontSize: '13px',
-                        fontWeight: '600',
-                        border: selectedQuery.status === status ? 'none' : '1px solid #E2E8F0',
-                        background: selectedQuery.status === status ? getStatusStyle(status).bg : '#fff',
-                        color: selectedQuery.status === status ? getStatusStyle(status).color : '#64748B',
-                        cursor: 'pointer',
-                        textTransform: 'capitalize',
-                        transition: 'all 0.2s',
-                      }}
-                    >
-                      {status.replace('_', ' ')}
-                    </button>
-                  ))}
+                  {['new', 'in_progress', 'resolved', 'closed'].map((status) => {
+                    const isActive = selectedQuery.status === status;
+                    const style = getStatusStyle(status);
+                    return (
+                      <button
+                        key={status}
+                        onClick={() => updateQueryStatus(selectedQuery.id, status)}
+                        style={{
+                          padding: '10px 20px',
+                          borderRadius: '10px',
+                          fontSize: '13px',
+                          fontWeight: '600',
+                          border: isActive ? 'none' : '1px solid #E2E8F0',
+                          background: isActive ? style.bg : '#fff',
+                          color: isActive ? style.color : '#64748B',
+                          cursor: 'pointer',
+                          textTransform: 'capitalize',
+                          transition: 'all 0.2s',
+                          boxShadow: isActive ? `0 2px 8px ${style.color}20` : 'none',
+                        }}
+                      >
+                        {status.replace('_', ' ')}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
+            </div>
+            
+            {/* Modal Footer */}
+            <div style={{
+              padding: '20px 28px',
+              borderTop: '1px solid #E2E8F0',
+              background: '#F8FAFC',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: '12px',
+            }}>
+              <button
+                onClick={() => setSelectedQuery(null)}
+                style={{
+                  padding: '10px 24px',
+                  borderRadius: '10px',
+                  background: '#fff',
+                  border: '1px solid #E2E8F0',
+                  color: '#475569',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+              >
+                Close
+              </button>
+              <button
+                onClick={() => window.open(`mailto:${selectedQuery.email}`)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '10px 24px',
+                  borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                  border: 'none',
+                  color: '#fff',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  boxShadow: '0 2px 8px rgba(5, 150, 105, 0.25)',
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                  <polyline points="22,6 12,13 2,6"/>
+                </svg>
+                Reply via Email
+              </button>
             </div>
           </div>
         </div>
@@ -5257,13 +6488,21 @@ const globalStyles = `
     from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: translateY(0); }
   }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
   * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
   }
   body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
 `;
