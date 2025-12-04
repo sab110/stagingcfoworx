@@ -27,6 +27,8 @@ export default function AdminDashboard() {
   const [adminLogs, setAdminLogs] = useState([]);
   const [webhookLogs, setWebhookLogs] = useState([]);
   const [systemLogs, setSystemLogs] = useState([]);
+  const [tenantLogs, setTenantLogs] = useState([]);
+  const [tenantLogFilters, setTenantLogFilters] = useState({ categories: [], actions: [], companies: [] });
   const [clientLicenses, setClientLicenses] = useState([]);
   const [clientDetail, setClientDetail] = useState(null);
   const [loadingClientDetail, setLoadingClientDetail] = useState(false);
@@ -177,6 +179,19 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchTenantLogs = async () => {
+    try {
+      const response = await fetch(`${backendURL}/api/admin/tenant-logs`, {
+        headers: getAuthHeaders()
+      });
+      const data = await response.json();
+      setTenantLogs(data.tenant_logs || []);
+      setTenantLogFilters(data.filters || { categories: [], actions: [], companies: [] });
+    } catch (err) {
+      console.error("Error fetching tenant logs:", err);
+    }
+  };
+
   const fetchClientDetail = async (realmId) => {
     setLoadingClientDetail(true);
     try {
@@ -206,6 +221,7 @@ export default function AdminDashboard() {
       if (systemLogs.length === 0) fetchSystemLogs();
       if (emailLogs.length === 0) fetchEmailLogs();
       if (adminLogs.length === 0) fetchAdminLogs();
+      if (tenantLogs.length === 0) fetchTenantLogs();
     }
     if (section === "runs" && submissions.length === 0) fetchSubmissions();
     if (section === "mapping" && licenseMappings.length === 0) fetchLicenseMappings();
@@ -477,6 +493,8 @@ export default function AdminDashboard() {
               systemLogs={systemLogs}
               emailLogs={emailLogs}
               adminLogs={adminLogs}
+              tenantLogs={tenantLogs}
+              tenantLogFilters={tenantLogFilters}
               formatDate={formatDate}
               formatDateTime={formatDateTime}
               formatCurrency={formatCurrency}
@@ -1624,6 +1642,7 @@ function MappingDetailModal({ mapping, onClose, formatDate }) {
 function BillingSection({ subscriptions, formatDate }) {
   const [filterStatus, setFilterStatus] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedSubscription, setSelectedSubscription] = useState(null);
   
   const activeCount = subscriptions.filter(s => s.status === "active").length;
   const canceledCount = subscriptions.filter(s => s.status === "canceled").length;
@@ -1749,6 +1768,7 @@ function BillingSection({ subscriptions, formatDate }) {
               <th style={styles.th}>Status</th>
               <th style={styles.th}>Next Billing</th>
               <th style={styles.th}>Stripe ID</th>
+              <th style={styles.th}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -1791,7 +1811,29 @@ function BillingSection({ subscriptions, formatDate }) {
                 </td>
                 <td style={styles.td}>{formatDate(sub.end_date)}</td>
                 <td style={styles.td}>
-                  <span style={styles.stripeId}>{sub.stripe_subscription_id?.slice(0, 20)}...</span>
+                  <button
+                    onClick={() => setSelectedSubscription(sub)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      cursor: 'pointer',
+                      color: '#1B4DFF',
+                      fontWeight: '500',
+                      fontFamily: 'monospace',
+                      fontSize: '12px',
+                    }}
+                  >
+                    {sub.stripe_subscription_id?.slice(0, 20)}...
+                  </button>
+                </td>
+                <td style={styles.td}>
+                  <button
+                    onClick={() => setSelectedSubscription(sub)}
+                    style={styles.viewBtn}
+                  >
+                    View
+                  </button>
                 </td>
               </tr>
             ))}
@@ -1805,12 +1847,192 @@ function BillingSection({ subscriptions, formatDate }) {
           />
         )}
       </div>
+
+      {/* Subscription Detail Modal */}
+      {selectedSubscription && (
+        <SubscriptionDetailModal 
+          subscription={selectedSubscription}
+          onClose={() => setSelectedSubscription(null)}
+          formatDate={formatDate}
+        />
+      )}
+    </div>
+  );
+}
+
+// Subscription Detail Modal
+function SubscriptionDetailModal({ subscription, onClose, formatDate }) {
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+  };
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(0,0,0,0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000,
+    }} onClick={onClose}>
+      <div style={{
+        background: '#fff',
+        borderRadius: '16px',
+        width: '90%',
+        maxWidth: '600px',
+        maxHeight: '80vh',
+        overflow: 'auto',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+      }} onClick={e => e.stopPropagation()}>
+        <div style={{
+          padding: '24px',
+          borderBottom: '1px solid #E2E8F0',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+        }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+              {subscription.plan && (
+                <span style={{
+                  padding: '6px 14px',
+                  background: 'linear-gradient(135deg, #1B4DFF 0%, #3B6FFF 100%)',
+                  color: '#fff',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                }}>
+                  {subscription.plan.name}
+                </span>
+              )}
+              <StatusBadge status={subscription.status} />
+            </div>
+            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#0F172A' }}>
+              {subscription.company_name}
+            </h3>
+            <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#64748B' }}>
+              {subscription.company_email}
+            </p>
+          </div>
+          <button onClick={onClose} style={{
+            width: '36px',
+            height: '36px',
+            borderRadius: '8px',
+            border: 'none',
+            background: '#F1F5F9',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#64748B',
+          }}>
+            <XCircleIcon />
+          </button>
+        </div>
+        
+        <div style={{ padding: '24px' }}>
+          <div style={{ marginBottom: '20px' }}>
+            <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Subscription Details
+            </h4>
+            <div style={{ background: '#F8FAFC', borderRadius: '10px', padding: '16px' }}>
+              <InfoRowCompact label="Status" value={subscription.status} status={subscription.status === 'active' ? 'active' : 'inactive'} />
+              <InfoRowCompact label="Plan" value={subscription.plan?.name || "—"} />
+              <InfoRowCompact label="Billing Cycle" value={subscription.plan?.billing_cycle || "—"} />
+              <InfoRowCompact label="Price" value={subscription.plan?.price || "—"} />
+              <InfoRowCompact label="Licenses" value={subscription.quantity} highlight />
+              <InfoRowCompact label="Start Date" value={formatDate(subscription.start_date)} />
+              <InfoRowCompact label="Next Billing" value={formatDate(subscription.end_date)} />
+            </div>
+          </div>
+
+          <div>
+            <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Stripe Information
+            </h4>
+            <div style={{ background: '#F8FAFC', borderRadius: '10px', padding: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #E2E8F0' }}>
+                <span style={{ color: '#64748B', fontSize: '13px' }}>Subscription ID</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontFamily: 'monospace', fontSize: '12px', color: '#0F172A' }}>
+                    {subscription.stripe_subscription_id}
+                  </span>
+                  <button
+                    onClick={() => copyToClipboard(subscription.stripe_subscription_id)}
+                    style={{
+                      padding: '4px 8px',
+                      background: '#EFF6FF',
+                      border: '1px solid #BFDBFE',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '10px',
+                      color: '#1B4DFF',
+                    }}
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #E2E8F0' }}>
+                <span style={{ color: '#64748B', fontSize: '13px' }}>Customer ID</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontFamily: 'monospace', fontSize: '12px', color: '#0F172A' }}>
+                    {subscription.stripe_customer_id || "—"}
+                  </span>
+                  {subscription.stripe_customer_id && (
+                    <button
+                      onClick={() => copyToClipboard(subscription.stripe_customer_id)}
+                      style={{
+                        padding: '4px 8px',
+                        background: '#EFF6FF',
+                        border: '1px solid #BFDBFE',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '10px',
+                        color: '#1B4DFF',
+                      }}
+                    >
+                      Copy
+                    </button>
+                  )}
+                </div>
+              </div>
+              <InfoRowCompact label="Realm ID" value={subscription.realm_id} mono />
+            </div>
+          </div>
+
+          <div style={{ marginTop: '20px', display: 'flex', gap: '12px' }}>
+            <a
+              href={`https://dashboard.stripe.com/subscriptions/${subscription.stripe_subscription_id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                flex: 1,
+                padding: '12px',
+                background: 'linear-gradient(135deg, #635BFF 0%, #7A73FF 100%)',
+                color: '#fff',
+                borderRadius: '8px',
+                textDecoration: 'none',
+                textAlign: 'center',
+                fontWeight: '600',
+                fontSize: '13px',
+              }}
+            >
+              View in Stripe Dashboard
+            </a>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
 
 // Errors Section
-function ErrorsSection({ failedPayments, webhookLogs, systemLogs, emailLogs, adminLogs, formatDate, formatDateTime, formatCurrency }) {
+function ErrorsSection({ failedPayments, webhookLogs, systemLogs, emailLogs, adminLogs, tenantLogs, tenantLogFilters, formatDate, formatDateTime, formatCurrency }) {
   const [activeTab, setActiveTab] = useState("payments");
   
   const tabs = [
@@ -1818,6 +2040,7 @@ function ErrorsSection({ failedPayments, webhookLogs, systemLogs, emailLogs, adm
     { id: "webhooks", label: "Webhook Logs", count: webhookLogs.length },
     { id: "system", label: "System Logs", count: systemLogs.length },
     { id: "emails", label: "Email Logs", count: emailLogs.length },
+    { id: "tenant", label: "Tenant Activity", count: tenantLogs.length },
     { id: "admin", label: "Admin Activity", count: adminLogs.length },
   ];
   
@@ -2001,56 +2224,19 @@ function ErrorsSection({ failedPayments, webhookLogs, systemLogs, emailLogs, adm
 
       {/* Email Logs Tab */}
       {activeTab === "emails" && (
-        <div style={styles.tableContainer}>
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th style={styles.th}>Recipient</th>
-                <th style={styles.th}>Subject</th>
-                <th style={styles.th}>Type</th>
-                <th style={styles.th}>Company</th>
-                <th style={styles.th}>Status</th>
-                <th style={styles.th}>Sent</th>
-              </tr>
-            </thead>
-            <tbody>
-              {emailLogs.map((log) => (
-                <tr key={log.id} style={styles.tr}>
-                  <td style={styles.td}>{log.recipient_email}</td>
-                  <td style={styles.td}>
-                    <div style={{ maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {log.subject}
-                    </div>
-                  </td>
-                  <td style={styles.td}>
-                    <span style={{
-                      padding: '4px 10px',
-                      borderRadius: '6px',
-                      fontSize: '11px',
-                      fontWeight: '600',
-                      background: '#F1F5F9',
-                      color: '#64748B',
-                    }}>
-                      {log.email_type}
-                    </span>
-                  </td>
-                  <td style={styles.td}>{log.company_name || "—"}</td>
-                  <td style={styles.td}>
-                    <StatusBadge status={log.status === 'sent' ? 'active' : log.status === 'failed' ? 'rejected' : 'pending_review'} />
-                  </td>
-                  <td style={styles.td}>{formatDateTime(log.sent_at)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {emailLogs.length === 0 && (
-            <EmptyState 
-              icon={<MailIcon />}
-              title="No email logs"
-              description="Sent emails will appear here"
-            />
-          )}
-        </div>
+        <EmailLogsTab 
+          emailLogs={emailLogs}
+          formatDateTime={formatDateTime}
+        />
+      )}
+
+      {/* Tenant Activity Tab */}
+      {activeTab === "tenant" && (
+        <TenantActivityTab 
+          tenantLogs={tenantLogs}
+          tenantLogFilters={tenantLogFilters}
+          formatDateTime={formatDateTime}
+        />
       )}
 
       {/* Admin Activity Tab */}
@@ -2348,6 +2534,632 @@ function ActionBadge({ action }) {
     }}>
       {action}
     </span>
+  );
+}
+
+// Email Logs Tab Component
+function EmailLogsTab({ emailLogs, formatDateTime }) {
+  const [selectedEmail, setSelectedEmail] = useState(null);
+  const [filterType, setFilterType] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
+  
+  const types = [...new Set(emailLogs.map(l => l.email_type).filter(Boolean))];
+  
+  const filteredLogs = emailLogs.filter(log => {
+    const matchesType = filterType === "all" || log.email_type === filterType;
+    const matchesSearch = !searchTerm || 
+      log.recipient_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      log.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      log.company_name?.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesType && matchesSearch;
+  });
+
+  return (
+    <div>
+      {/* Filters */}
+      <div style={{
+        display: 'flex',
+        gap: '12px',
+        marginBottom: '16px',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+      }}>
+        <div style={{ position: 'relative', flex: '1', minWidth: '200px', maxWidth: '300px' }}>
+          <SearchIcon style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', width: '16px', height: '16px' }} />
+          <input
+            type="text"
+            placeholder="Search emails..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '8px 12px 8px 38px',
+              border: '1px solid #E2E8F0',
+              borderRadius: '8px',
+              fontSize: '13px',
+              background: '#fff',
+              outline: 'none',
+            }}
+          />
+        </div>
+        <select
+          value={filterType}
+          onChange={(e) => setFilterType(e.target.value)}
+          style={{
+            padding: '8px 32px 8px 12px',
+            border: '1px solid #E2E8F0',
+            borderRadius: '8px',
+            fontSize: '13px',
+            background: '#fff',
+            cursor: 'pointer',
+            outline: 'none',
+            appearance: 'none',
+            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'right 8px center',
+          }}
+        >
+          <option value="all">All Types</option>
+          {types.map(type => (
+            <option key={type} value={type}>{type}</option>
+          ))}
+        </select>
+        <span style={{ color: '#64748B', fontSize: '13px' }}>
+          {filteredLogs.length} emails
+        </span>
+      </div>
+
+      <div style={styles.tableContainer}>
+        <table style={styles.table}>
+          <thead>
+            <tr>
+              <th style={styles.th}>Recipient</th>
+              <th style={styles.th}>Subject</th>
+              <th style={styles.th}>Type</th>
+              <th style={styles.th}>Company</th>
+              <th style={styles.th}>Status</th>
+              <th style={styles.th}>Sent</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredLogs.map((log) => (
+              <tr key={log.id} style={styles.tr}>
+                <td style={styles.td}>{log.recipient_email}</td>
+                <td style={styles.td}>
+                  <button
+                    onClick={() => setSelectedEmail(log)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      maxWidth: '250px',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      color: '#1B4DFF',
+                      fontWeight: '500',
+                      display: 'block',
+                    }}
+                  >
+                    {log.subject}
+                  </button>
+                </td>
+                <td style={styles.td}>
+                  <EmailTypeBadge type={log.email_type} />
+                </td>
+                <td style={styles.td}>{log.company_name || "—"}</td>
+                <td style={styles.td}>
+                  <StatusBadge status={log.status === 'sent' ? 'active' : log.status === 'failed' ? 'rejected' : 'pending_review'} />
+                </td>
+                <td style={styles.td}>{formatDateTime(log.sent_at)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {filteredLogs.length === 0 && (
+          <EmptyState 
+            icon={<MailIcon />}
+            title="No email logs"
+            description="Sent emails will appear here"
+          />
+        )}
+      </div>
+
+      {/* Email Detail Modal */}
+      {selectedEmail && (
+        <EmailDetailModal 
+          email={selectedEmail}
+          onClose={() => setSelectedEmail(null)}
+          formatDateTime={formatDateTime}
+        />
+      )}
+    </div>
+  );
+}
+
+// Email Type Badge
+function EmailTypeBadge({ type }) {
+  const getTypeColor = (type) => {
+    if (type === 'welcome') return { bg: '#ECFDF5', color: '#059669' };
+    if (type === 'billing') return { bg: '#EFF6FF', color: '#1B4DFF' };
+    if (type === 'report') return { bg: '#F3E8FF', color: '#8B5CF6' };
+    if (type === 'notification') return { bg: '#FEF3C7', color: '#D97706' };
+    return { bg: '#F1F5F9', color: '#64748B' };
+  };
+  
+  const colors = getTypeColor(type);
+  
+  return (
+    <span style={{
+      padding: '4px 10px',
+      borderRadius: '6px',
+      fontSize: '11px',
+      fontWeight: '600',
+      background: colors.bg,
+      color: colors.color,
+    }}>
+      {type}
+    </span>
+  );
+}
+
+// Email Detail Modal
+function EmailDetailModal({ email, onClose, formatDateTime }) {
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(0,0,0,0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000,
+    }} onClick={onClose}>
+      <div style={{
+        background: '#fff',
+        borderRadius: '16px',
+        width: '90%',
+        maxWidth: '600px',
+        maxHeight: '80vh',
+        overflow: 'auto',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+      }} onClick={e => e.stopPropagation()}>
+        <div style={{
+          padding: '24px',
+          borderBottom: '1px solid #E2E8F0',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+        }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+              <EmailTypeBadge type={email.email_type} />
+              <StatusBadge status={email.status === 'sent' ? 'active' : 'rejected'} />
+            </div>
+            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#0F172A' }}>
+              Email Details
+            </h3>
+          </div>
+          <button onClick={onClose} style={{
+            width: '36px',
+            height: '36px',
+            borderRadius: '8px',
+            border: 'none',
+            background: '#F1F5F9',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#64748B',
+          }}>
+            <XCircleIcon />
+          </button>
+        </div>
+        
+        <div style={{ padding: '24px' }}>
+          <div style={{ marginBottom: '20px' }}>
+            <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Email Information
+            </h4>
+            <div style={{ background: '#F8FAFC', borderRadius: '10px', padding: '16px' }}>
+              <InfoRowCompact label="Recipient" value={email.recipient_email} />
+              <InfoRowCompact label="Company" value={email.company_name || "—"} />
+              <InfoRowCompact label="Type" value={email.email_type} />
+              <InfoRowCompact label="Sent At" value={formatDateTime(email.sent_at)} />
+              <InfoRowCompact label="Resend ID" value={email.resend_id || "—"} mono />
+            </div>
+          </div>
+
+          <div>
+            <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Subject
+            </h4>
+            <div style={{
+              background: '#F8FAFC',
+              borderRadius: '10px',
+              padding: '16px',
+              fontSize: '14px',
+              color: '#0F172A',
+              lineHeight: '1.6',
+            }}>
+              {email.subject}
+            </div>
+          </div>
+
+          {email.error_message && (
+            <div style={{ marginTop: '20px' }}>
+              <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#DC2626', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Error Message
+              </h4>
+              <div style={{
+                background: '#FEF2F2',
+                borderRadius: '10px',
+                padding: '16px',
+                fontSize: '13px',
+                color: '#DC2626',
+                fontFamily: 'monospace',
+              }}>
+                {email.error_message}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Tenant Activity Tab Component
+function TenantActivityTab({ tenantLogs, tenantLogFilters, formatDateTime }) {
+  const [selectedLog, setSelectedLog] = useState(null);
+  const [filterCategory, setFilterCategory] = useState("all");
+  const [filterCompany, setFilterCompany] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
+  
+  const filteredLogs = tenantLogs.filter(log => {
+    const matchesCategory = filterCategory === "all" || log.category === filterCategory;
+    const matchesCompany = filterCompany === "all" || log.realm_id === filterCompany;
+    const matchesSearch = !searchTerm || 
+      log.user_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      log.action?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      log.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      log.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesCategory && matchesCompany && matchesSearch;
+  });
+
+  return (
+    <div>
+      {/* Filters */}
+      <div style={{
+        display: 'flex',
+        gap: '12px',
+        marginBottom: '16px',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        padding: '16px',
+        background: '#F8FAFC',
+        borderRadius: '10px',
+        border: '1px solid #E2E8F0',
+      }}>
+        <div style={{ position: 'relative', flex: '1', minWidth: '200px', maxWidth: '300px' }}>
+          <SearchIcon style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', width: '16px', height: '16px' }} />
+          <input
+            type="text"
+            placeholder="Search tenant activity..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '10px 12px 10px 38px',
+              border: '1px solid #E2E8F0',
+              borderRadius: '8px',
+              fontSize: '13px',
+              background: '#fff',
+              outline: 'none',
+            }}
+          />
+        </div>
+        
+        <select
+          value={filterCategory}
+          onChange={(e) => setFilterCategory(e.target.value)}
+          style={{
+            padding: '10px 32px 10px 12px',
+            border: '1px solid #E2E8F0',
+            borderRadius: '8px',
+            fontSize: '13px',
+            background: '#fff',
+            cursor: 'pointer',
+            outline: 'none',
+            appearance: 'none',
+            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'right 8px center',
+          }}
+        >
+          <option value="all">All Categories</option>
+          {tenantLogFilters.categories.map(cat => (
+            <option key={cat} value={cat}>{cat}</option>
+          ))}
+        </select>
+
+        <select
+          value={filterCompany}
+          onChange={(e) => setFilterCompany(e.target.value)}
+          style={{
+            padding: '10px 32px 10px 12px',
+            border: '1px solid #E2E8F0',
+            borderRadius: '8px',
+            fontSize: '13px',
+            background: '#fff',
+            cursor: 'pointer',
+            outline: 'none',
+            minWidth: '180px',
+            appearance: 'none',
+            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'right 8px center',
+          }}
+        >
+          <option value="all">All Companies</option>
+          {tenantLogFilters.companies.map(c => (
+            <option key={c.realm_id} value={c.realm_id}>{c.name}</option>
+          ))}
+        </select>
+
+        {(searchTerm || filterCategory !== "all" || filterCompany !== "all") && (
+          <button
+            onClick={() => {
+              setSearchTerm("");
+              setFilterCategory("all");
+              setFilterCompany("all");
+            }}
+            style={{
+              padding: '10px 16px',
+              background: '#FEF2F2',
+              border: '1px solid #FECACA',
+              borderRadius: '8px',
+              color: '#DC2626',
+              fontSize: '13px',
+              fontWeight: '500',
+              cursor: 'pointer',
+            }}
+          >
+            Clear Filters
+          </button>
+        )}
+
+        <span style={{ marginLeft: 'auto', color: '#64748B', fontSize: '13px' }}>
+          {filteredLogs.length} logs
+        </span>
+      </div>
+
+      <div style={styles.tableContainer}>
+        <table style={styles.table}>
+          <thead>
+            <tr>
+              <th style={styles.th}>Company</th>
+              <th style={styles.th}>User</th>
+              <th style={styles.th}>Action</th>
+              <th style={styles.th}>Category</th>
+              <th style={styles.th}>Description</th>
+              <th style={styles.th}>Time</th>
+              <th style={styles.th}>Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredLogs.map((log) => (
+              <tr key={log.id} style={styles.tr}>
+                <td style={styles.td}>
+                  <div style={{ fontWeight: '500' }}>{log.company_name || "—"}</div>
+                  <div style={{ fontSize: '11px', color: '#94A3B8', fontFamily: 'monospace' }}>
+                    {log.realm_id?.slice(0, 12)}...
+                  </div>
+                </td>
+                <td style={styles.td}>{log.user_email || "—"}</td>
+                <td style={styles.td}>
+                  <ActionBadge action={log.action} />
+                </td>
+                <td style={styles.td}>
+                  <CategoryBadge category={log.category} />
+                </td>
+                <td style={styles.td}>
+                  <div style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {log.description || "—"}
+                  </div>
+                </td>
+                <td style={styles.td}>{formatDateTime(log.created_at)}</td>
+                <td style={styles.td}>
+                  {log.details ? (
+                    <button 
+                      onClick={() => setSelectedLog(log)}
+                      style={{
+                        padding: '6px 12px',
+                        background: '#EFF6FF',
+                        border: '1px solid #BFDBFE',
+                        borderRadius: '6px',
+                        color: '#1B4DFF',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      View
+                    </button>
+                  ) : (
+                    <span style={{ color: '#94A3B8', fontSize: '12px' }}>—</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {filteredLogs.length === 0 && (
+          <EmptyState 
+            icon={<UsersIcon />}
+            title="No tenant activity"
+            description="Tenant/user actions will be logged here"
+          />
+        )}
+      </div>
+
+      {/* Detail Modal */}
+      {selectedLog && (
+        <TenantLogDetailModal 
+          log={selectedLog}
+          onClose={() => setSelectedLog(null)}
+          formatDateTime={formatDateTime}
+        />
+      )}
+    </div>
+  );
+}
+
+// Category Badge
+function CategoryBadge({ category }) {
+  const getCategoryColor = (cat) => {
+    if (cat === 'auth') return { bg: '#ECFDF5', color: '#059669' };
+    if (cat === 'billing') return { bg: '#EFF6FF', color: '#1B4DFF' };
+    if (cat === 'license') return { bg: '#F3E8FF', color: '#8B5CF6' };
+    if (cat === 'report') return { bg: '#FEF3C7', color: '#D97706' };
+    if (cat === 'settings') return { bg: '#F1F5F9', color: '#64748B' };
+    if (cat === 'qbo') return { bg: '#ECFDF5', color: '#10B981' };
+    return { bg: '#F1F5F9', color: '#64748B' };
+  };
+  
+  const colors = getCategoryColor(category);
+  
+  return (
+    <span style={{
+      padding: '4px 10px',
+      borderRadius: '6px',
+      fontSize: '11px',
+      fontWeight: '600',
+      background: colors.bg,
+      color: colors.color,
+      textTransform: 'uppercase',
+    }}>
+      {category}
+    </span>
+  );
+}
+
+// Tenant Log Detail Modal
+function TenantLogDetailModal({ log, onClose, formatDateTime }) {
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(0,0,0,0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000,
+    }} onClick={onClose}>
+      <div style={{
+        background: '#fff',
+        borderRadius: '16px',
+        width: '90%',
+        maxWidth: '600px',
+        maxHeight: '80vh',
+        overflow: 'auto',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+      }} onClick={e => e.stopPropagation()}>
+        <div style={{
+          padding: '24px',
+          borderBottom: '1px solid #E2E8F0',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+        }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+              <ActionBadge action={log.action} />
+              <CategoryBadge category={log.category} />
+            </div>
+            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#0F172A' }}>
+              Tenant Activity Details
+            </h3>
+            <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#64748B' }}>
+              {formatDateTime(log.created_at)}
+            </p>
+          </div>
+          <button onClick={onClose} style={{
+            width: '36px',
+            height: '36px',
+            borderRadius: '8px',
+            border: 'none',
+            background: '#F1F5F9',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#64748B',
+          }}>
+            <XCircleIcon />
+          </button>
+        </div>
+        
+        <div style={{ padding: '24px' }}>
+          <div style={{ marginBottom: '20px' }}>
+            <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Company & User
+            </h4>
+            <div style={{ background: '#F8FAFC', borderRadius: '10px', padding: '16px' }}>
+              <InfoRowCompact label="Company" value={log.company_name || "—"} />
+              <InfoRowCompact label="Realm ID" value={log.realm_id} mono />
+              <InfoRowCompact label="User Email" value={log.user_email || "—"} />
+              <InfoRowCompact label="IP Address" value={log.ip_address || "—"} mono />
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '20px' }}>
+            <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Activity
+            </h4>
+            <div style={{ background: '#F8FAFC', borderRadius: '10px', padding: '16px' }}>
+              <InfoRowCompact label="Action" value={log.action} />
+              <InfoRowCompact label="Category" value={log.category} />
+              {log.description && <InfoRowCompact label="Description" value={log.description} />}
+            </div>
+          </div>
+
+          {log.details && (
+            <div>
+              <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Details (JSON)
+              </h4>
+              <div style={{
+                background: '#0F172A',
+                borderRadius: '10px',
+                padding: '16px',
+                overflow: 'auto',
+                maxHeight: '200px',
+              }}>
+                <pre style={{
+                  margin: 0,
+                  fontFamily: 'monospace',
+                  fontSize: '12px',
+                  color: '#E2E8F0',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                }}>
+                  {JSON.stringify(log.details, null, 2)}
+                </pre>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
