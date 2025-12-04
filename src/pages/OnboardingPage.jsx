@@ -247,7 +247,7 @@ const styles = {
   container: {
     minHeight: '100vh',
     backgroundColor: '#F8FAFC',
-    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+    fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif",
   },
   
   loadingContainer: {
@@ -263,7 +263,7 @@ const styles = {
     width: '48px',
     height: '48px',
     border: '4px solid #E2E8F0',
-    borderTopColor: '#2CA01C',
+    borderTopColor: '#059669',
     borderRadius: '50%',
     animation: 'spin 1s linear infinite',
   },
@@ -316,7 +316,7 @@ const styles = {
   },
   
   stepNumberActive: {
-    backgroundColor: '#2CA01C',
+    backgroundColor: '#059669',
     color: '#fff',
   },
   
@@ -345,7 +345,7 @@ const styles = {
   
   stepLineProgress: {
     height: '100%',
-    backgroundColor: '#2CA01C',
+    backgroundColor: '#059669',
     transition: 'width 0.5s ease',
   },
   
@@ -383,7 +383,7 @@ const styles = {
   successIcon: {
     width: '80px',
     height: '80px',
-    backgroundColor: '#2CA01C',
+    backgroundColor: '#059669',
     borderRadius: '50%',
     display: 'flex',
     alignItems: 'center',
@@ -412,7 +412,7 @@ const styles = {
     alignItems: 'center',
     gap: '10px',
     padding: '16px 32px',
-    backgroundColor: '#2CA01C',
+    backgroundColor: '#059669',
     color: 'white',
     border: 'none',
     borderRadius: '12px',

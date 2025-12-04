@@ -92,7 +92,7 @@ export default function Pricing() {
 
   return (
     <div style={styles.page}>
-      <style>{keyframes}</style>
+      <style>{keyframes + responsiveCSS}</style>
       
       {/* Modern Navbar */}
       <header style={styles.header}>
@@ -111,14 +111,14 @@ export default function Pricing() {
             </div>
           </div>
           
-          <nav style={styles.nav}>
+          <nav style={styles.nav} className="nav">
             <a href="/" style={styles.navLink}>Home</a>
             <a href="/about" style={styles.navLink}>About</a>
             <a href="/pricing" style={styles.navLinkActive}>Pricing</a>
             <a href="/contact" style={styles.navLink}>Contact</a>
           </nav>
           
-          <div style={styles.headerRight}>
+          <div style={styles.headerRight} className="header-right">
             {isAuthenticated ? (
               <button onClick={() => navigate("/dashboard")} style={styles.navButtonPrimary}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -142,7 +142,11 @@ export default function Pricing() {
           </div>
           
           {/* Mobile Menu Button */}
-          <button style={styles.mobileMenuBtn} onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+          <button
+            style={styles.mobileMenuBtn}
+            className="mobile-menu-btn"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0F172A" strokeWidth="2">
               {mobileMenuOpen ? (
                 <path d="M18 6L6 18M6 6l12 12"/>
@@ -155,7 +159,7 @@ export default function Pricing() {
         
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div style={styles.mobileMenu}>
+          <div style={styles.mobileMenu} className="mobile-menu">
             <a href="/" style={styles.mobileNavLink}>Home</a>
             <a href="/about" style={styles.mobileNavLink}>About</a>
             <a href="/pricing" style={styles.mobileNavLinkActive}>Pricing</a>
@@ -181,12 +185,12 @@ export default function Pricing() {
         <div style={styles.heroBackground}></div>
         <div style={styles.heroContent}>
           <div style={styles.heroBadge}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2CA01C" strokeWidth="2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
             </svg>
             Simple, Transparent Pricing
           </div>
-          <h1 style={styles.heroTitle}>
+          <h1 style={styles.heroTitle} className="hero-title">
             Choose the plan that
             <br />
             <span style={styles.heroTitleGradient}>fits your business</span>
@@ -227,7 +231,7 @@ export default function Pricing() {
 
       {/* Pricing Cards */}
       <section style={styles.pricingSection}>
-        <div style={styles.pricingGrid}>
+        <div style={styles.pricingGrid} className="pricing-grid">
           {plans.map((plan) => {
             const variation = getVariation(plan.variations);
             const showDiscount = variation.discount > 0;
@@ -298,7 +302,7 @@ export default function Pricing() {
                   {plan.features.map((feature, idx) => (
                     <li key={idx} style={styles.featureItem}>
                       <div style={styles.featureIcon}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2CA01C" strokeWidth="3">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="3">
                           <polyline points="20 6 9 17 4 12"/>
                         </svg>
                       </div>
@@ -315,7 +319,7 @@ export default function Pricing() {
         <div style={styles.trustSection}>
           <div style={styles.trustItem}>
             <div style={styles.trustIcon}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2CA01C" strokeWidth="2">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
               </svg>
             </div>
@@ -326,7 +330,7 @@ export default function Pricing() {
           </div>
           <div style={styles.trustItem}>
             <div style={styles.trustIcon}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2CA01C" strokeWidth="2">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2">
                 <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
               </svg>
             </div>
@@ -337,7 +341,7 @@ export default function Pricing() {
           </div>
           <div style={styles.trustItem}>
             <div style={styles.trustIcon}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2CA01C" strokeWidth="2">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
               </svg>
             </div>
@@ -409,7 +413,7 @@ export default function Pricing() {
 
       {/* CTA Section */}
       <section style={styles.ctaSection}>
-        <div style={styles.ctaSectionInner}>
+        <div style={styles.ctaSectionInner} className="cta-section-inner">
           <div style={styles.ctaSectionContent}>
             <h2 style={styles.ctaSectionTitle}>
               Ready to streamline your franchise royalties?
@@ -432,7 +436,7 @@ export default function Pricing() {
           <div style={styles.ctaSectionGraphic}>
             <div style={styles.ctaGraphicCard}>
               <div style={styles.ctaGraphicIcon}>
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#2CA01C" strokeWidth="1.5">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="1.5">
                   <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                 </svg>
               </div>
@@ -447,7 +451,7 @@ export default function Pricing() {
 
       {/* Modern Footer */}
       <footer style={styles.footer}>
-        <div style={styles.footerTop}>
+        <div style={styles.footerTop} className="footer-top">
           <div style={styles.footerBrand}>
             <div style={styles.footerLogo}>
               <div style={styles.footerLogoIcon}>
@@ -526,7 +530,7 @@ const styles = {
   page: {
     minHeight: '100vh',
     backgroundColor: '#fff',
-    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     color: '#0F172A',
   },
   
@@ -561,7 +565,7 @@ const styles = {
   logoIcon: {
     width: '44px',
     height: '44px',
-    background: 'linear-gradient(135deg, #2CA01C 0%, #1E7A14 100%)',
+    background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
     borderRadius: '12px',
     display: 'flex',
     alignItems: 'center',
@@ -599,7 +603,7 @@ const styles = {
     transition: 'all 0.2s',
   },
   navLinkActive: {
-    color: '#2CA01C',
+    color: '#059669',
     textDecoration: 'none',
     fontSize: '15px',
     fontWeight: '600',
@@ -627,7 +631,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
-    backgroundColor: '#2CA01C',
+    backgroundColor: '#059669',
     color: '#fff',
     border: 'none',
     padding: '10px 20px',
@@ -660,7 +664,7 @@ const styles = {
   mobileNavLinkActive: {
     display: 'block',
     padding: '16px 24px',
-    color: '#2CA01C',
+    color: '#059669',
     textDecoration: 'none',
     fontSize: '16px',
     fontWeight: '600',
@@ -687,7 +691,7 @@ const styles = {
   mobileNavButtonPrimary: {
     width: '100%',
     padding: '14px',
-    backgroundColor: '#2CA01C',
+    backgroundColor: '#059669',
     color: '#fff',
     border: 'none',
     borderRadius: '10px',
@@ -739,7 +743,7 @@ const styles = {
     letterSpacing: '-0.02em',
   },
   heroTitleGradient: {
-    background: 'linear-gradient(135deg, #2CA01C 0%, #047857 100%)',
+    background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
     WebkitBackgroundClip: 'text',
     WebkitTextFillColor: 'transparent',
   },
@@ -795,7 +799,7 @@ const styles = {
     zIndex: 0,
   },
   saveBadgeInline: {
-    backgroundColor: '#2CA01C',
+    backgroundColor: '#059669',
     color: '#fff',
     fontSize: '10px',
     fontWeight: '700',
@@ -825,7 +829,7 @@ const styles = {
     transition: 'all 0.3s',
   },
   pricingCardPopular: {
-    border: '2px solid #2CA01C',
+    border: '2px solid #059669',
     boxShadow: '0 8px 40px rgba(44, 160, 28, 0.12)',
     transform: 'scale(1.02)',
   },
@@ -837,7 +841,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '6px',
-    backgroundColor: '#2CA01C',
+    backgroundColor: '#059669',
     color: '#fff',
     fontSize: '13px',
     fontWeight: '700',
@@ -937,7 +941,7 @@ const styles = {
     marginBottom: '32px',
   },
   ctaButtonPopular: {
-    backgroundColor: '#2CA01C',
+    backgroundColor: '#059669',
     color: '#fff',
     boxShadow: '0 4px 16px rgba(44, 160, 28, 0.3)',
   },
@@ -1066,7 +1070,7 @@ const styles = {
     transition: 'all 0.2s',
   },
   faqItemOpen: {
-    border: '1px solid #2CA01C',
+    border: '1px solid #059669',
     boxShadow: '0 4px 16px rgba(44, 160, 28, 0.1)',
   },
   faqQuestion: {
@@ -1175,7 +1179,7 @@ const styles = {
     display: 'inline-flex',
     alignItems: 'center',
     gap: '10px',
-    backgroundColor: '#2CA01C',
+    backgroundColor: '#059669',
     color: '#fff',
     border: 'none',
     padding: '18px 36px',
@@ -1262,7 +1266,7 @@ const styles = {
   footerLogoIcon: {
     width: '44px',
     height: '44px',
-    background: 'linear-gradient(135deg, #2CA01C 0%, #1E7A14 100%)',
+    background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
     borderRadius: '12px',
     display: 'flex',
     alignItems: 'center',

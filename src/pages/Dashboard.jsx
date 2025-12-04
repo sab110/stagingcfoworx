@@ -286,7 +286,7 @@ export default function Dashboard() {
 
 // Menu Icon Component
 function MenuIcon({ name, active }) {
-  const color = active ? "#2CA01C" : "#64748B";
+  const color = active ? "#059669" : "#64748B";
   const icons = {
     grid: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>,
     building: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2"><path d="M3 21h18M9 8h1M9 12h1M9 16h1M14 8h1M14 12h1M14 16h1M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16"/></svg>,
@@ -303,15 +303,15 @@ function OverviewSection({ user, licenses, activeLicenses, subscription, onManag
       label: "Active Franchises", 
       value: activeLicenses.length, 
       total: licenses.length,
-      icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2CA01C" strokeWidth="2"><path d="M3 21h18M9 8h1M9 12h1M9 16h1M14 8h1M14 12h1M14 16h1M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16"/></svg>,
-      color: "#2CA01C",
+      icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2"><path d="M3 21h18M9 8h1M9 12h1M9 16h1M14 8h1M14 12h1M14 16h1M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16"/></svg>,
+      color: "#059669",
       bgColor: "#ECFDF5",
     },
     { 
       label: "Subscription Status", 
       value: subscription?.status === "active" ? "Active" : subscription?.status === "canceled" ? "Canceled" : "None",
-      icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={subscription?.status === "active" ? "#2CA01C" : "#F59E0B"} strokeWidth="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>,
-      color: subscription?.status === "active" ? "#2CA01C" : "#F59E0B",
+      icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={subscription?.status === "active" ? "#059669" : "#F59E0B"} strokeWidth="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>,
+      color: subscription?.status === "active" ? "#059669" : "#F59E0B",
       bgColor: subscription?.status === "active" ? "#ECFDF5" : "#FFFBEB",
     },
     { 
@@ -370,7 +370,7 @@ function OverviewSection({ user, licenses, activeLicenses, subscription, onManag
       <div style={styles.actionsGrid}>
         <button onClick={() => setActiveSection("franchises")} style={styles.actionCard}>
           <div style={{ ...styles.actionIcon, background: '#ECFDF5' }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2CA01C" strokeWidth="2">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2">
               <path d="M3 21h18M9 8h1M9 12h1M9 16h1M14 8h1M14 12h1M14 16h1M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16"/>
             </svg>
           </div>
@@ -539,8 +539,8 @@ function FranchisesSection({ licenses, setLicenses, realmId, backendURL, refresh
     <div style={styles.section}>
       {/* Stats Cards */}
       <div style={styles.franchiseStats}>
-        <div style={{ ...styles.franchiseStatCard, borderColor: '#2CA01C' }}>
-          <div style={{ ...styles.franchiseStatValue, color: '#2CA01C' }}>{activeCount}</div>
+        <div style={{ ...styles.franchiseStatCard, borderColor: '#059669' }}>
+          <div style={{ ...styles.franchiseStatValue, color: '#059669' }}>{activeCount}</div>
           <div style={styles.franchiseStatLabel}>Active</div>
         </div>
         <div style={{ ...styles.franchiseStatCard, borderColor: '#EF4444' }}>
@@ -824,7 +824,7 @@ const styles = {
     display: 'flex',
     minHeight: '100vh',
     background: '#F8FAFC',
-    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
   },
   
   // Loading & Error
@@ -840,7 +840,7 @@ const styles = {
     width: 48,
     height: 48,
     border: '3px solid #E2E8F0',
-    borderTopColor: '#2CA01C',
+    borderTopColor: '#059669',
     borderRadius: '50%',
     animation: 'spin 1s linear infinite',
   },
@@ -874,7 +874,7 @@ const styles = {
   },
   errorBtn: {
     padding: '12px 24px',
-    background: '#2CA01C',
+    background: '#059669',
     color: '#fff',
     border: 'none',
     borderRadius: 8,
@@ -911,11 +911,12 @@ const styles = {
   logoIcon: {
     width: 36,
     height: 36,
-    background: 'linear-gradient(135deg, #2CA01C 0%, #1E7A14 100%)',
+    background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
     borderRadius: 10,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    boxShadow: '0 2px 8px rgba(5, 150, 105, 0.25)',
   },
   logoText: {
     fontSize: 16,
@@ -959,7 +960,7 @@ const styles = {
   },
   navItemActive: {
     background: '#ECFDF5',
-    color: '#2CA01C',
+    color: '#059669',
   },
   sidebarFooter: {
     padding: 16,
@@ -976,7 +977,7 @@ const styles = {
   statusDot: {
     width: 8,
     height: 8,
-    background: '#2CA01C',
+    background: '#059669',
     borderRadius: '50%',
   },
   statusText: {
@@ -1032,7 +1033,7 @@ const styles = {
   userAvatar: {
     width: 40,
     height: 40,
-    background: 'linear-gradient(135deg, #2CA01C 0%, #1E7A14 100%)',
+    background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
     borderRadius: 10,
     display: 'flex',
     alignItems: 'center',
@@ -1102,7 +1103,7 @@ const styles = {
   },
   subscribeBtn: {
     padding: '12px 24px',
-    background: '#2CA01C',
+    background: '#059669',
     color: '#fff',
     border: 'none',
     borderRadius: 10,
@@ -1169,7 +1170,7 @@ const styles = {
   viewAllBtn: {
     background: 'none',
     border: 'none',
-    color: '#2CA01C',
+    color: '#059669',
     fontSize: 14,
     fontWeight: 600,
     cursor: 'pointer',
@@ -1235,12 +1236,12 @@ const styles = {
     fontFamily: "'SF Mono', Monaco, monospace",
     fontSize: 14,
     fontWeight: 600,
-    color: '#2CA01C',
+    color: '#059669',
   },
   activeBadge: {
     padding: '4px 8px',
     background: '#ECFDF5',
-    color: '#2CA01C',
+    color: '#059669',
     borderRadius: 4,
     fontSize: 11,
     fontWeight: 600,
@@ -1343,7 +1344,7 @@ const styles = {
   },
   bulkBtnSuccess: {
     background: '#ECFDF5',
-    color: '#2CA01C',
+    color: '#059669',
     border: '1px solid #A7F3D0',
   },
   bulkBtnDanger: {
@@ -1404,7 +1405,7 @@ const styles = {
   franchiseNumber: {
     fontFamily: "'SF Mono', Monaco, monospace",
     fontWeight: 600,
-    color: '#2CA01C',
+    color: '#059669',
   },
   franchiseName: {
     fontWeight: 500,
@@ -1425,7 +1426,7 @@ const styles = {
   },
   statusActive: {
     background: '#ECFDF5',
-    color: '#2CA01C',
+    color: '#059669',
   },
   statusInactive: {
     background: '#FEF2F2',
@@ -1441,8 +1442,8 @@ const styles = {
   },
   toggleBtnActivate: {
     background: '#fff',
-    color: '#2CA01C',
-    border: '1px solid #2CA01C',
+    color: '#059669',
+    border: '1px solid #059669',
   },
   toggleBtnDeactivate: {
     background: '#fff',
@@ -1516,7 +1517,7 @@ const styles = {
   },
   subscribeNowBtn: {
     padding: '14px 32px',
-    background: 'linear-gradient(135deg, #2CA01C 0%, #1E7A14 100%)',
+    background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
     color: '#fff',
     border: 'none',
     borderRadius: 10,
@@ -1559,7 +1560,7 @@ const styles = {
   },
   billingStatusActive: {
     background: '#ECFDF5',
-    color: '#2CA01C',
+    color: '#059669',
   },
   billingStatusCanceled: {
     background: '#FEF2F2',

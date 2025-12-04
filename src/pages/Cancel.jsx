@@ -80,7 +80,7 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     background: "linear-gradient(180deg, #FEF2F2 0%, #FECACA 100%)",
-    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+    fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif",
     padding: "20px",
   },
   card: {
@@ -152,7 +152,7 @@ const styles = {
     marginBottom: "28px",
   },
   primaryButton: {
-    backgroundColor: "#2CA01C",
+    backgroundColor: "#059669",
     color: "white",
     border: "none",
     padding: "14px 32px",
@@ -184,7 +184,7 @@ const styles = {
     margin: 0,
   },
   helpLink: {
-    color: "#2CA01C",
+    color: "#059669",
     textDecoration: "none",
     fontWeight: "600",
   },

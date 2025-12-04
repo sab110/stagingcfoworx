@@ -1,51 +1,7 @@
-body {
-  font-family: Arial, sans-serif;
-  background-color: #f9fafb;
-  margin: 0;
-  padding: 0;
-  color: #333;
-}
+/* Import Global Design System */
+@import './global.css';
 
-.container {
-  text-align: center;
-  margin-top: 2rem;
-}
-
-.title {
-  font-size: 2rem;
-  color: #222;
-}
-
-.plans {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 1.5rem;
-  margin-top: 2rem;
-}
-
-.plan-card {
-  background: white;
-  border: 1px solid #ddd;
-  border-radius: 10px;
-  padding: 1.5rem;
-  width: 220px;
-  box-shadow: 0 3px 10px rgba(0,0,0,0.05);
-}
-
-.plan-card button {
-  background-color: #0070f3;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  padding: 0.5rem 1rem;
-  cursor: pointer;
-}
-
-.plan-card button:hover {
-  background-color: #0059c1;
-}
-
+/* Legacy compatibility styles - can be removed once all components updated */
 .center {
   text-align: center;
   margin-top: 5rem;

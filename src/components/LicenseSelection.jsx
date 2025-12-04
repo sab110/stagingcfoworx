@@ -188,7 +188,7 @@ export default function LicenseSelection({ realmId, onComplete, isManageMode = f
             {/* Stats */}
             <div style={styles.statsRow}>
               <div style={styles.statItem}>
-                <span style={{...styles.statValue, color: '#2CA01C'}}>{selectedLicenses.size}</span>
+                <span style={{...styles.statValue, color: '#059669'}}>{selectedLicenses.size}</span>
                 <span style={styles.statLabel}>Selected</span>
               </div>
               <div style={styles.statItem}>
@@ -235,14 +235,14 @@ export default function LicenseSelection({ realmId, onComplete, isManageMode = f
                     style={{
                       ...styles.licenseItem,
                       backgroundColor: isSelected ? '#ECFDF5' : '#fff',
-                      borderColor: isSelected ? '#2CA01C' : '#E2E8F0',
+                      borderColor: isSelected ? '#059669' : '#E2E8F0',
                     }}
                     onClick={() => handleToggleLicense(license.franchise_number)}
                   >
                     <div style={{
                       ...styles.checkbox,
-                      backgroundColor: isSelected ? '#2CA01C' : '#fff',
-                      borderColor: isSelected ? '#2CA01C' : '#CBD5E1',
+                      backgroundColor: isSelected ? '#059669' : '#fff',
+                      borderColor: isSelected ? '#059669' : '#CBD5E1',
                     }}>
                       {isSelected && (
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
@@ -439,7 +439,7 @@ const styles = {
   },
   bulkButton: {
     padding: "12px 20px",
-    backgroundColor: "#2CA01C",
+    backgroundColor: "#059669",
     color: "#fff",
     border: "none",
     borderRadius: "10px",
@@ -500,7 +500,7 @@ const styles = {
   franchiseNumber: {
     fontSize: "15px",
     fontWeight: "700",
-    color: "#2CA01C",
+    color: "#059669",
     fontFamily: "'SF Mono', Monaco, monospace",
   },
   franchiseName: {
@@ -542,7 +542,7 @@ const styles = {
     alignItems: "center",
     gap: "10px",
     padding: "16px 40px",
-    backgroundColor: "#2CA01C",
+    backgroundColor: "#059669",
     color: "#fff",
     border: "none",
     borderRadius: "12px",
@@ -568,7 +568,7 @@ const styles = {
     width: "48px",
     height: "48px",
     border: "4px solid #E2E8F0",
-    borderTopColor: "#2CA01C",
+    borderTopColor: "#059669",
     borderRadius: "50%",
     animation: "spin 1s linear infinite",
     margin: "0 auto",
@@ -603,7 +603,7 @@ const styles = {
   },
   retryButton: {
     padding: "12px 28px",
-    backgroundColor: "#2CA01C",
+    backgroundColor: "#059669",
     color: "#fff",
     border: "none",
     borderRadius: "10px",

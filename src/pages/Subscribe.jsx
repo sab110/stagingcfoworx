@@ -230,7 +230,7 @@ export default function Subscribe() {
         <div style={styles.licenseCard}>
           <div style={styles.licenseInfo}>
             <div style={styles.licenseIcon}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2CA01C" strokeWidth="2">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2">
                 <path d="M3 21h18M9 8h1M9 12h1M9 16h1M14 8h1M14 12h1M14 16h1M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16"/>
               </svg>
             </div>
@@ -310,7 +310,7 @@ export default function Subscribe() {
                 <ul style={styles.featuresList}>
                   {plan.features.map((feature, i) => (
                     <li key={i} style={styles.featureItem}>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2CA01C" strokeWidth="2.5">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5">
                         <polyline points="20 6 9 17 4 12"/>
                       </svg>
                       {feature}
@@ -383,7 +383,7 @@ const styles = {
   page: {
     minHeight: '100vh',
     background: 'linear-gradient(180deg, #F8FAFC 0%, #EFF6FF 100%)',
-    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
     color: '#0F172A',
   },
   
@@ -401,7 +401,7 @@ const styles = {
     width: 48,
     height: 48,
     border: '3px solid #E2E8F0',
-    borderTopColor: '#2CA01C',
+    borderTopColor: '#059669',
     borderRadius: '50%',
     animation: 'spin 1s linear infinite',
   },
@@ -441,7 +441,7 @@ const styles = {
   logoIcon: {
     width: 40,
     height: 40,
-    background: 'linear-gradient(135deg, #2CA01C 0%, #1E7A14 100%)',
+    background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
     borderRadius: 10,
     display: 'flex',
     alignItems: 'center',
@@ -554,7 +554,7 @@ const styles = {
   licenseNumber: {
     fontSize: 32,
     fontWeight: 700,
-    color: '#2CA01C',
+    color: '#059669',
   },
   
   licenseLabel: {
@@ -600,7 +600,7 @@ const styles = {
   },
   
   planCardFeatured: {
-    borderColor: '#2CA01C',
+    borderColor: '#059669',
     boxShadow: '0 4px 20px rgba(44, 160, 28, 0.15)',
   },
   
@@ -609,7 +609,7 @@ const styles = {
     top: -12,
     left: '50%',
     transform: 'translateX(-50%)',
-    background: 'linear-gradient(135deg, #2CA01C 0%, #1E7A14 100%)',
+    background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
     color: '#fff',
     padding: '6px 16px',
     borderRadius: 20,
@@ -757,7 +757,7 @@ const styles = {
   },
   
   ctaBtnPrimary: {
-    background: 'linear-gradient(135deg, #2CA01C 0%, #1E7A14 100%)',
+    background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
     color: '#fff',
   },
   
@@ -807,7 +807,7 @@ const styles = {
   },
   
   footerLink: {
-    color: '#2CA01C',
+    color: '#059669',
     textDecoration: 'none',
     fontWeight: 500,
   },

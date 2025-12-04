@@ -408,7 +408,7 @@ const widgetStyles = `
     width: 40px;
     height: 40px;
     border-radius: 10px;
-    background: linear-gradient(135deg, #2CA01C 0%, #1E7A14 100%);
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
     border: none;
     color: white;
     font-weight: 700;
@@ -419,7 +419,7 @@ const widgetStyles = `
 
   .avatar-btn:hover, .avatar-btn.active {
     transform: scale(1.05);
-    box-shadow: 0 0 0 3px rgba(44, 160, 28, 0.2);
+    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.2);
   }
 
   .dropdown {
@@ -649,7 +649,7 @@ const widgetStyles = `
   }
 
   .form-input:focus {
-    border-color: #2CA01C;
+    border-color: #059669;
     background: #fff;
   }
 
@@ -680,7 +680,7 @@ const widgetStyles = `
   .checkbox-label input {
     width: 16px;
     height: 16px;
-    accent-color: #2CA01C;
+    accent-color: #059669;
   }
 
   .form-actions {
@@ -705,13 +705,13 @@ const widgetStyles = `
   }
 
   .btn-primary {
-    background: linear-gradient(135deg, #2CA01C 0%, #1E7A14 100%);
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
     color: white;
   }
 
   .btn-primary:hover:not(:disabled) {
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(44, 160, 28, 0.3);
+    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
   }
 
   .btn-secondary {

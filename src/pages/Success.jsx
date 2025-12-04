@@ -93,7 +93,7 @@ export default function Success() {
         ) : (
           <>
             <div style={styles.confirmationBox}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2CA01C" strokeWidth="2">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2">
                 <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
                 <polyline points="22,6 12,13 2,6"/>
               </svg>
@@ -132,7 +132,7 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     background: "linear-gradient(180deg, #ECFDF5 0%, #D1FAE5 100%)",
-    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+    fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif",
     padding: "20px",
   },
   card: {
@@ -151,7 +151,7 @@ const styles = {
   checkIcon: {
     width: "80px",
     height: "80px",
-    backgroundColor: "#2CA01C",
+    backgroundColor: "#059669",
     borderRadius: "50%",
     display: "flex",
     alignItems: "center",
@@ -181,7 +181,7 @@ const styles = {
     width: "40px",
     height: "40px",
     border: "4px solid #E2E8F0",
-    borderTopColor: "#2CA01C",
+    borderTopColor: "#059669",
     borderRadius: "50%",
     animation: "spin 1s linear infinite",
   },
@@ -213,7 +213,7 @@ const styles = {
     marginBottom: "24px",
   },
   countdown: {
-    color: "#2CA01C",
+    color: "#059669",
     fontWeight: "700",
     fontSize: "18px",
   },
@@ -221,7 +221,7 @@ const styles = {
     display: "inline-flex",
     alignItems: "center",
     gap: "10px",
-    backgroundColor: "#2CA01C",
+    backgroundColor: "#059669",
     color: "white",
     border: "none",
     padding: "16px 32px",
