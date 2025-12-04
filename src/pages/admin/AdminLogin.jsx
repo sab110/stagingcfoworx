@@ -64,7 +64,7 @@ export default function AdminLogin() {
         <div style={styles.logoSection}>
           <div style={styles.logoContainer}>
             <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-              <rect width="32" height="32" rx="8" fill="#1B4DFF"/>
+              <rect width="32" height="32" rx="8" fill="#059669"/>
               <path d="M8 12L16 8L24 12V20L16 24L8 20V12Z" stroke="white" strokeWidth="2" fill="none"/>
               <circle cx="16" cy="16" r="3" fill="white"/>
             </svg>
@@ -178,8 +178,8 @@ export default function AdminLogin() {
           to { opacity: 1; transform: translateY(0); }
         }
         .admin-login-input:focus {
-          border-color: #1B4DFF !important;
-          box-shadow: 0 0 0 3px rgba(27, 77, 255, 0.1) !important;
+          border-color: #059669 !important;
+          box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1) !important;
         }
       `}</style>
     </div>
@@ -274,7 +274,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
     position: 'relative',
     overflow: 'hidden',
     padding: '20px',
@@ -282,7 +282,7 @@ const styles = {
   bgPattern: {
     position: 'absolute',
     inset: 0,
-    backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%231B4DFF' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+    backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23059669' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
     opacity: 0.8,
   },
   bgGradient: {
@@ -291,7 +291,7 @@ const styles = {
     right: '-20%',
     width: '80%',
     height: '100%',
-    background: 'radial-gradient(ellipse at center, rgba(27, 77, 255, 0.08) 0%, transparent 60%)',
+    background: 'radial-gradient(ellipse at center, rgba(5, 150, 105, 0.08) 0%, transparent 60%)',
     pointerEvents: 'none',
   },
   loginWrapper: {
@@ -333,7 +333,7 @@ const styles = {
     display: 'inline-flex',
     alignItems: 'center',
     gap: '6px',
-    background: 'linear-gradient(135deg, #1B4DFF 0%, #3B6FFF 100%)',
+    background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
     color: '#FFFFFF',
     padding: '6px 14px',
     borderRadius: '20px',
@@ -425,7 +425,7 @@ const styles = {
     gap: '10px',
     width: '100%',
     padding: '14px 24px',
-    background: 'linear-gradient(135deg, #1B4DFF 0%, #3B6FFF 100%)',
+    background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
     border: 'none',
     borderRadius: '10px',
     color: '#FFFFFF',
@@ -433,7 +433,7 @@ const styles = {
     fontWeight: '600',
     transition: 'all 0.2s ease',
     marginTop: '4px',
-    boxShadow: '0 2px 8px rgba(27, 77, 255, 0.25)',
+    boxShadow: '0 2px 8px rgba(5, 150, 105, 0.25)',
   },
   spinner: {
     width: '18px',

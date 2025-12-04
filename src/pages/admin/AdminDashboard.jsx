@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 
 // ============================================================
 // ADMIN DASHBOARD - Enterprise SaaS Admin Panel
-// CFOWORX Branding: Primary #1B4DFF, Accent #F97316
+// CFOWORX Branding: Primary #059669 (Corporate Green), Accent #F97316
+// Modern, Sleek, Aesthetic Corporate Style
 // ============================================================
 
 export default function AdminDashboard() {
@@ -348,7 +349,7 @@ export default function AdminDashboard() {
             >
               <span style={{
                 ...styles.navIcon,
-                color: activeSection === item.id ? '#1B4DFF' : '#64748B',
+                color: activeSection === item.id ? '#059669' : '#64748B',
               }}>{item.icon}</span>
               {!sidebarCollapsed && <span style={styles.navLabel}>{item.label}</span>}
               {item.alert && <span style={styles.alertDot}></span>}
@@ -359,14 +360,14 @@ export default function AdminDashboard() {
         {/* Footer */}
         <div style={styles.sidebarFooter}>
           {!sidebarCollapsed && (
-            <div style={styles.adminInfo}>
+          <div style={styles.adminInfo}>
               <div style={styles.adminAvatar}>
                 {adminUsername.charAt(0).toUpperCase()}
               </div>
               <div style={styles.adminDetails}>
-                <span style={styles.adminName}>{adminUsername}</span>
+            <span style={styles.adminName}>{adminUsername}</span>
                 <span style={styles.adminRole}>Administrator</span>
-              </div>
+          </div>
             </div>
           )}
           <button onClick={handleLogout} style={{
@@ -523,7 +524,7 @@ function DashboardSection({ dashboard, onViewFailedPayments }) {
     <div>
       {/* Alert Banner */}
       {dashboard?.alerts?.has_failed_payments && (
-        <div style={styles.alertBanner}>
+              <div style={styles.alertBanner}>
           <AlertTriangleIcon />
           <span>
             You have <strong>{overview.unresolved_failed_payments}</strong> unresolved failed payment(s) that require attention
@@ -531,8 +532,8 @@ function DashboardSection({ dashboard, onViewFailedPayments }) {
           <button onClick={onViewFailedPayments} style={styles.alertAction}>
             View Details
           </button>
-        </div>
-      )}
+              </div>
+            )}
 
       {/* Next Run Banner */}
       <div style={styles.scheduleBanner}>
@@ -546,14 +547,14 @@ function DashboardSection({ dashboard, onViewFailedPayments }) {
         <span style={styles.scheduleBadge}>Automated</span>
       </div>
 
-      {/* Stats Grid */}
-      <div style={styles.statsGrid}>
+            {/* Stats Grid */}
+            <div style={styles.statsGrid}>
         <StatCard 
           icon={<BuildingIcon />}
           value={overview.total_companies || 0}
           label="Total Clients"
           subtext={`+${overview.new_companies_this_month || 0} this month`}
-          color="#1B4DFF"
+          color="#059669"
         />
         <StatCard 
           icon={<CheckCircleIcon />}
@@ -589,18 +590,18 @@ function DashboardSection({ dashboard, onViewFailedPayments }) {
           color="#EF4444"
           alert={overview.unresolved_failed_payments > 0}
         />
-      </div>
+                  </div>
 
       {/* Quick Actions */}
       <div style={styles.sectionHeader}>
         <h3 style={styles.sectionTitle}>Quick Actions</h3>
-      </div>
+                </div>
       <div style={styles.quickActionsGrid}>
         <QuickActionCard icon={<UsersIcon />} label="View All Clients" />
         <QuickActionCard icon={<PlayCircleIcon />} label="Trigger Manual Run" />
         <QuickActionCard icon={<DownloadIcon />} label="Export Reports" />
         <QuickActionCard icon={<SettingsIcon />} label="System Settings" />
-      </div>
+              </div>
     </div>
   );
 }
@@ -612,7 +613,7 @@ function ClientsSection({ clients, onViewClient, formatDate }) {
       <div style={styles.sectionHeader}>
         <h3 style={styles.sectionTitle}>All Clients</h3>
         <span style={styles.resultCount}>{clients.length} clients</span>
-      </div>
+                  </div>
 
       <div style={styles.tableContainer}>
         <table style={styles.table}>
@@ -634,11 +635,11 @@ function ClientsSection({ clients, onViewClient, formatDate }) {
                   <div style={styles.companyCell}>
                     <div style={styles.companyAvatar}>
                       {(client.company_name || "?").charAt(0).toUpperCase()}
-                    </div>
+                </div>
                     <div>
                       <div style={styles.companyName}>{client.company_name || "Unknown"}</div>
                       <div style={styles.realmId}>{client.realm_id}</div>
-                    </div>
+              </div>
                   </div>
                 </td>
                 <td style={styles.td}>{client.email || "—"}</td>
@@ -716,8 +717,8 @@ function ClientDetailSection({ client, clientDetail, clientLicenses, loadingDeta
         </div>
         <div style={styles.clientHeaderRight}>
           <StatusBadge status={subscription?.status || "none"} large />
-        </div>
-      </div>
+                </div>
+              </div>
 
       {/* Tabs */}
       <div style={styles.tabsContainer}>
@@ -735,7 +736,7 @@ function ClientDetailSection({ client, clientDetail, clientLicenses, loadingDeta
               <span style={{
                 marginLeft: '6px',
                 padding: '2px 8px',
-                background: activeTab === tab.id ? '#1B4DFF' : '#E2E8F0',
+                background: activeTab === tab.id ? '#059669' : '#E2E8F0',
                 color: activeTab === tab.id ? '#fff' : '#64748B',
                 borderRadius: '10px',
                 fontSize: '11px',
@@ -750,7 +751,7 @@ function ClientDetailSection({ client, clientDetail, clientLicenses, loadingDeta
 
       {loadingDetail && (
         <div style={{ textAlign: 'center', padding: '40px', color: '#64748B' }}>
-          <div style={{ width: '32px', height: '32px', border: '3px solid #E2E8F0', borderTopColor: '#1B4DFF', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }}></div>
+          <div style={{ width: '32px', height: '32px', border: '3px solid #E2E8F0', borderTopColor: '#059669', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }}></div>
           Loading details...
         </div>
       )}
@@ -800,7 +801,7 @@ function ClientDetailSection({ client, clientDetail, clientLicenses, loadingDeta
                         {subscription.plan ? (
                           <span style={{
                             padding: '4px 12px',
-                            background: 'linear-gradient(135deg, #1B4DFF 0%, #3B6FFF 100%)',
+                            background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
                             color: '#fff',
                             borderRadius: '6px',
                             fontSize: '12px',
@@ -818,7 +819,7 @@ function ClientDetailSection({ client, clientDetail, clientLicenses, loadingDeta
                     <div style={styles.infoRow}>
                       <span style={styles.infoLabel}>Licenses</span>
                       <span style={styles.infoValue}>
-                        <span style={{ fontWeight: '700', color: '#1B4DFF', fontSize: '16px' }}>{subscription.quantity || 1}</span>
+                        <span style={{ fontWeight: '700', color: '#059669', fontSize: '16px' }}>{subscription.quantity || 1}</span>
                       </span>
                     </div>
                     <div style={styles.infoRow}>
@@ -1157,7 +1158,7 @@ function InfoRowCompact({ label, value, highlight, mono, status }) {
       <span style={{ color: '#64748B', fontSize: '13px' }}>{label}</span>
       <span style={{ 
         fontWeight: highlight ? '700' : '500', 
-        color: highlight ? '#1B4DFF' : '#0F172A',
+        color: highlight ? '#059669' : '#0F172A',
         fontFamily: mono ? 'monospace' : 'inherit',
         fontSize: mono ? '12px' : '13px',
       }}>
@@ -1297,37 +1298,37 @@ function MappingRulesSection({ licenseMappings, formatDate }) {
     <div>
       {/* Stats Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-        <div style={styles.statCard}>
-          <div style={{ ...styles.statIcon, color: '#1B4DFF', background: '#EFF6FF' }}>
+              <div style={styles.statCard}>
+          <div style={{ ...styles.statIcon, color: '#059669', background: '#ECFDF5' }}>
             <GitBranchIcon />
           </div>
-          <div style={styles.statContent}>
-            <div style={{ ...styles.statValue, color: '#1B4DFF' }}>{licenseMappings.length}</div>
+                <div style={styles.statContent}>
+            <div style={{ ...styles.statValue, color: '#059669' }}>{licenseMappings.length}</div>
             <div style={styles.statLabel}>Total Mappings</div>
-          </div>
-        </div>
-        <div style={styles.statCard}>
+                </div>
+              </div>
+              <div style={styles.statCard}>
           <div style={{ ...styles.statIcon, color: '#10B981', background: '#ECFDF5' }}>
             <CheckCircleIcon />
           </div>
-          <div style={styles.statContent}>
+                <div style={styles.statContent}>
             <div style={{ ...styles.statValue, color: '#10B981' }}>{activeMappings.length}</div>
             <div style={styles.statLabel}>Active</div>
-          </div>
-        </div>
+                </div>
+              </div>
         <div style={styles.statCard}>
           <div style={{ ...styles.statIcon, color: '#F59E0B', background: '#FEF3C7' }}>
             <XCircleIcon />
           </div>
-          <div style={styles.statContent}>
+                <div style={styles.statContent}>
             <div style={{ ...styles.statValue, color: '#F59E0B' }}>{inactiveMappings.length}</div>
             <div style={styles.statLabel}>Inactive</div>
-          </div>
-        </div>
+                </div>
+              </div>
         <div style={styles.statCard}>
           <div style={{ ...styles.statIcon, color: '#8B5CF6', background: '#F3E8FF' }}>
             <BuildingIcon />
-          </div>
+            </div>
           <div style={styles.statContent}>
             <div style={{ ...styles.statValue, color: '#8B5CF6' }}>{companies.length}</div>
             <div style={styles.statLabel}>Companies</div>
@@ -1350,11 +1351,11 @@ function MappingRulesSection({ licenseMappings, formatDate }) {
         {/* Search */}
         <div style={{ position: 'relative', flex: '1', minWidth: '200px', maxWidth: '300px' }}>
           <SearchIcon style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', width: '16px', height: '16px' }} />
-          <input
-            type="text"
+                <input
+                  type="text"
             placeholder="Search franchises..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
             style={{
               width: '100%',
               padding: '10px 12px 10px 38px',
@@ -1365,7 +1366,7 @@ function MappingRulesSection({ licenseMappings, formatDate }) {
               outline: 'none',
             }}
           />
-        </div>
+            </div>
 
         {/* Status Filter */}
         <select
@@ -1444,20 +1445,20 @@ function MappingRulesSection({ licenseMappings, formatDate }) {
       </div>
 
       {/* Table */}
-      <div style={styles.tableContainer}>
-        <table style={styles.table}>
-          <thead>
-            <tr>
-              <th style={styles.th}>Company</th>
+            <div style={styles.tableContainer}>
+              <table style={styles.table}>
+                <thead>
+                  <tr>
+                    <th style={styles.th}>Company</th>
               <th style={styles.th}>Franchise #</th>
               <th style={styles.th}>License Name</th>
               <th style={styles.th}>Location</th>
               <th style={styles.th}>QB Department</th>
-              <th style={styles.th}>Status</th>
+                    <th style={styles.th}>Status</th>
               <th style={styles.th}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
+                  </tr>
+                </thead>
+                <tbody>
             {filteredMappings.map((mapping) => (
               <tr 
                 key={mapping.id} 
@@ -1468,11 +1469,11 @@ function MappingRulesSection({ licenseMappings, formatDate }) {
                 onMouseEnter={() => setHoveredMapping(mapping.id)}
                 onMouseLeave={() => setHoveredMapping(null)}
               >
-                <td style={styles.td}>
+                      <td style={styles.td}>
                   <div style={styles.companyName}>{mapping.company_name || "Unknown"}</div>
                   <div style={styles.realmId}>{mapping.realm_id?.slice(0, 12)}...</div>
-                </td>
-                <td style={styles.td}>
+                      </td>
+                      <td style={styles.td}>
                   <span style={styles.licenseCount}>#{mapping.franchise_number}</span>
                 </td>
                 <td style={styles.td}>{mapping.license_name || "—"}</td>
@@ -1488,11 +1489,11 @@ function MappingRulesSection({ licenseMappings, formatDate }) {
                     <div style={{ fontSize: '10px', color: '#94A3B8', fontFamily: 'monospace' }}>
                       ID: {mapping.qbo_department_id}
                     </div>
-                  )}
-                </td>
-                <td style={styles.td}>
+                        )}
+                      </td>
+                      <td style={styles.td}>
                   <StatusBadge status={mapping.is_active === "true" ? "active" : "inactive"} />
-                </td>
+                      </td>
                 <td style={styles.td}>
                   <button 
                     onClick={() => setSelectedMapping(mapping)}
@@ -1501,18 +1502,18 @@ function MappingRulesSection({ licenseMappings, formatDate }) {
                     View Details
                   </button>
                 </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
         {filteredMappings.length === 0 && (
           <EmptyState 
             icon={<GitBranchIcon />}
             title={searchTerm || filterStatus !== "all" || filterCompany !== "all" ? "No matching results" : "No license mappings"}
             description={searchTerm || filterStatus !== "all" || filterCompany !== "all" ? "Try adjusting your search or filters" : "License mappings will appear here when clients configure their franchises"}
           />
-        )}
-      </div>
+              )}
+            </div>
 
       {/* Mapping Detail Modal */}
       {selectedMapping && (
@@ -1561,8 +1562,8 @@ function MappingDetailModal({ mapping, onClose, formatDate }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
               <span style={{
                 padding: '6px 14px',
-                background: '#EFF6FF',
-                color: '#1B4DFF',
+                background: '#ECFDF5',
+                color: '#059669',
                 borderRadius: '8px',
                 fontSize: '14px',
                 fontWeight: '700',
@@ -1661,11 +1662,11 @@ function BillingSection({ subscriptions, formatDate }) {
       {/* Stats Row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '24px' }}>
         <div style={styles.statCard}>
-          <div style={{ ...styles.statIcon, color: '#1B4DFF', background: '#EFF6FF' }}>
+          <div style={{ ...styles.statIcon, color: '#059669', background: '#ECFDF5' }}>
             <CreditCardIcon />
           </div>
           <div style={styles.statContent}>
-            <div style={{ ...styles.statValue, color: '#1B4DFF' }}>{subscriptions.length}</div>
+            <div style={{ ...styles.statValue, color: '#059669' }}>{subscriptions.length}</div>
             <div style={styles.statLabel}>Total Subscriptions</div>
           </div>
         </div>
@@ -1758,33 +1759,33 @@ function BillingSection({ subscriptions, formatDate }) {
       </div>
 
       {/* Table */}
-      <div style={styles.tableContainer}>
-        <table style={styles.table}>
-          <thead>
-            <tr>
-              <th style={styles.th}>Company</th>
-              <th style={styles.th}>Plan</th>
-              <th style={styles.th}>Licenses</th>
-              <th style={styles.th}>Status</th>
-              <th style={styles.th}>Next Billing</th>
-              <th style={styles.th}>Stripe ID</th>
+            <div style={styles.tableContainer}>
+              <table style={styles.table}>
+                <thead>
+                  <tr>
+                    <th style={styles.th}>Company</th>
+                    <th style={styles.th}>Plan</th>
+                    <th style={styles.th}>Licenses</th>
+                    <th style={styles.th}>Status</th>
+                    <th style={styles.th}>Next Billing</th>
+                    <th style={styles.th}>Stripe ID</th>
               <th style={styles.th}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
+                  </tr>
+                </thead>
+                <tbody>
             {filteredSubscriptions.map((sub) => (
-              <tr key={sub.id} style={styles.tr}>
-                <td style={styles.td}>
-                  <div style={styles.companyName}>{sub.company_name}</div>
-                  <div style={styles.realmId}>{sub.company_email}</div>
-                </td>
-                <td style={styles.td}>
-                  {sub.plan ? (
-                    <div>
+                    <tr key={sub.id} style={styles.tr}>
+                      <td style={styles.td}>
+                        <div style={styles.companyName}>{sub.company_name}</div>
+                        <div style={styles.realmId}>{sub.company_email}</div>
+                      </td>
+                      <td style={styles.td}>
+                        {sub.plan ? (
+                          <div>
                       <span style={{
                         display: 'inline-block',
                         padding: '4px 12px',
-                        background: 'linear-gradient(135deg, #1B4DFF 0%, #3B6FFF 100%)',
+                        background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
                         color: '#fff',
                         borderRadius: '6px',
                         fontSize: '12px',
@@ -1794,23 +1795,23 @@ function BillingSection({ subscriptions, formatDate }) {
                         {sub.plan.name}
                       </span>
                       <div style={styles.planPrice}>{sub.plan.billing_cycle} - {sub.plan.price}</div>
-                    </div>
+                          </div>
                   ) : "—"}
-                </td>
-                <td style={styles.td}>
-                  <span style={{
+                      </td>
+                      <td style={styles.td}>
+                        <span style={{
                     fontWeight: '700',
-                    color: '#1B4DFF',
+                    color: '#059669',
                     fontSize: '16px',
                   }}>
                     {sub.quantity}
-                  </span>
-                </td>
+                        </span>
+                      </td>
                 <td style={styles.td}>
                   <StatusBadge status={sub.status} />
                 </td>
-                <td style={styles.td}>{formatDate(sub.end_date)}</td>
-                <td style={styles.td}>
+                      <td style={styles.td}>{formatDate(sub.end_date)}</td>
+                      <td style={styles.td}>
                   <button
                     onClick={() => setSelectedSubscription(sub)}
                     style={{
@@ -1818,7 +1819,7 @@ function BillingSection({ subscriptions, formatDate }) {
                       border: 'none',
                       padding: 0,
                       cursor: 'pointer',
-                      color: '#1B4DFF',
+                      color: '#059669',
                       fontWeight: '500',
                       fontFamily: 'monospace',
                       fontSize: '12px',
@@ -1834,19 +1835,19 @@ function BillingSection({ subscriptions, formatDate }) {
                   >
                     View
                   </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
         {filteredSubscriptions.length === 0 && (
           <EmptyState 
             icon={<CreditCardIcon />}
             title={searchTerm || filterStatus !== "all" ? "No matching subscriptions" : "No subscriptions"}
             description={searchTerm || filterStatus !== "all" ? "Try adjusting your filters" : "Subscriptions will appear here when clients subscribe"}
           />
-        )}
-      </div>
+              )}
+            </div>
 
       {/* Subscription Detail Modal */}
       {selectedSubscription && (
@@ -1856,7 +1857,7 @@ function BillingSection({ subscriptions, formatDate }) {
           formatDate={formatDate}
         />
       )}
-    </div>
+          </div>
   );
 }
 
@@ -1936,7 +1937,7 @@ function SubscriptionDetailModal({ subscription, onClose, formatDate }) {
               {subscription.plan && (
                 <span style={{
                   padding: '6px 14px',
-                  background: 'linear-gradient(135deg, #1B4DFF 0%, #3B6FFF 100%)',
+                  background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
                   color: '#fff',
                   borderRadius: '8px',
                   fontSize: '13px',
@@ -2001,12 +2002,12 @@ function SubscriptionDetailModal({ subscription, onClose, formatDate }) {
                     onClick={() => copyToClipboard(subscription.stripe_subscription_id)}
                     style={{
                       padding: '4px 8px',
-                      background: '#EFF6FF',
+                      background: '#ECFDF5',
                       border: '1px solid #BFDBFE',
                       borderRadius: '4px',
                       cursor: 'pointer',
                       fontSize: '10px',
-                      color: '#1B4DFF',
+                      color: '#059669',
                     }}
                   >
                     Copy
@@ -2024,12 +2025,12 @@ function SubscriptionDetailModal({ subscription, onClose, formatDate }) {
                       onClick={() => copyToClipboard(subscription.stripe_customer_id)}
                       style={{
                         padding: '4px 8px',
-                        background: '#EFF6FF',
+                        background: '#ECFDF5',
                         border: '1px solid #BFDBFE',
                         borderRadius: '4px',
                         cursor: 'pointer',
                         fontSize: '10px',
-                        color: '#1B4DFF',
+                        color: '#059669',
                       }}
                     >
                       Copy
@@ -2162,7 +2163,7 @@ function ErrorsSection({ failedPayments, webhookLogs, systemLogs, emailLogs, adm
             <span style={{
               marginLeft: '6px',
               padding: '2px 8px',
-              background: activeTab === tab.id ? '#1B4DFF' : '#E2E8F0',
+              background: activeTab === tab.id ? '#059669' : '#E2E8F0',
               color: activeTab === tab.id ? '#fff' : '#64748B',
               borderRadius: '10px',
               fontSize: '11px',
@@ -2174,8 +2175,8 @@ function ErrorsSection({ failedPayments, webhookLogs, systemLogs, emailLogs, adm
         ))}
       </div>
 
-      {/* Failed Payments Tab */}
-      {activeTab === "payments" && (
+        {/* Failed Payments Tab */}
+        {activeTab === "payments" && (
         <FailedPaymentsTab 
           failedPayments={failedPayments}
           formatDate={formatDate}
@@ -2250,7 +2251,7 @@ function AdminActivityTab({ adminLogs, formatDateTime }) {
   const paginatedLogs = filteredLogs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
-    <div>
+          <div>
       {/* Filter */}
       <div style={{
         display: 'flex',
@@ -2351,7 +2352,7 @@ function AdminActivityTab({ adminLogs, formatDateTime }) {
                     <div style={{
                       width: '28px',
                       height: '28px',
-                      background: 'linear-gradient(135deg, #1B4DFF 0%, #3B6FFF 100%)',
+                      background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
                       borderRadius: '6px',
                       display: 'flex',
                       alignItems: 'center',
@@ -2549,7 +2550,7 @@ function AdminLogDetailModal({ log, onClose, formatDateTime }) {
 // Action Badge
 function ActionBadge({ action }) {
   const getActionColor = (action) => {
-    if (action?.includes('view')) return { bg: '#EFF6FF', color: '#1B4DFF' };
+    if (action?.includes('view')) return { bg: '#ECFDF5', color: '#059669' };
     if (action?.includes('login')) return { bg: '#ECFDF5', color: '#059669' };
     if (action?.includes('create') || action?.includes('add')) return { bg: '#F0FDF4', color: '#16A34A' };
     if (action?.includes('delete') || action?.includes('remove')) return { bg: '#FEF2F2', color: '#DC2626' };
@@ -2738,7 +2739,7 @@ function EmailLogsTab({ emailLogs, formatDateTime }) {
 function EmailTypeBadge({ type }) {
   const getTypeColor = (type) => {
     if (type === 'welcome') return { bg: '#ECFDF5', color: '#059669' };
-    if (type === 'billing') return { bg: '#EFF6FF', color: '#1B4DFF' };
+    if (type === 'billing') return { bg: '#ECFDF5', color: '#059669' };
     if (type === 'report') return { bg: '#F3E8FF', color: '#8B5CF6' };
     if (type === 'notification') return { bg: '#FEF3C7', color: '#D97706' };
     return { bg: '#F1F5F9', color: '#64748B' };
@@ -3091,7 +3092,7 @@ function TenantActivityTab({ tenantLogs, tenantLogFilters, formatDateTime }) {
 function CategoryBadge({ category }) {
   const getCategoryColor = (cat) => {
     if (cat === 'auth') return { bg: '#ECFDF5', color: '#059669' };
-    if (cat === 'billing') return { bg: '#EFF6FF', color: '#1B4DFF' };
+    if (cat === 'billing') return { bg: '#ECFDF5', color: '#059669' };
     if (cat === 'license') return { bg: '#F3E8FF', color: '#8B5CF6' };
     if (cat === 'report') return { bg: '#FEF3C7', color: '#D97706' };
     if (cat === 'settings') return { bg: '#F1F5F9', color: '#64748B' };
@@ -3217,36 +3218,36 @@ function FailedPaymentsTab({ failedPayments, formatDate, formatCurrency }) {
         </span>
       </div>
 
-      <div style={styles.tableContainer}>
-        <table style={styles.table}>
-          <thead>
-            <tr>
-              <th style={styles.th}>Company</th>
-              <th style={styles.th}>Email</th>
-              <th style={styles.th}>Amount</th>
-              <th style={styles.th}>Failure Reason</th>
-              <th style={styles.th}>Status</th>
-              <th style={styles.th}>Failed At</th>
-            </tr>
-          </thead>
-          <tbody>
+            <div style={styles.tableContainer}>
+              <table style={styles.table}>
+                <thead>
+                  <tr>
+                    <th style={styles.th}>Company</th>
+                    <th style={styles.th}>Email</th>
+                    <th style={styles.th}>Amount</th>
+                    <th style={styles.th}>Failure Reason</th>
+                    <th style={styles.th}>Status</th>
+                    <th style={styles.th}>Failed At</th>
+                  </tr>
+                </thead>
+                <tbody>
             {paginatedPayments.map((payment) => (
-              <tr key={payment.id} style={styles.tr}>
-                <td style={styles.td}>{payment.company_name || "Unknown"}</td>
+                    <tr key={payment.id} style={styles.tr}>
+                      <td style={styles.td}>{payment.company_name || "Unknown"}</td>
                 <td style={styles.td}>{payment.customer_email || "—"}</td>
-                <td style={styles.td}>{formatCurrency(payment.amount)}</td>
-                <td style={styles.td}>
+                      <td style={styles.td}>{formatCurrency(payment.amount)}</td>
+                      <td style={styles.td}>
                   <div 
                     style={{ ...styles.failureMessage, cursor: 'help' }}
                     title={payment.failure_message}
                   >
                     {payment.failure_message}
                   </div>
-                  {payment.failure_code && (
-                    <div style={styles.failureCode}>Code: {payment.failure_code}</div>
-                  )}
-                </td>
-                <td style={styles.td}>
+                        {payment.failure_code && (
+                          <div style={styles.failureCode}>Code: {payment.failure_code}</div>
+                        )}
+                      </td>
+                      <td style={styles.td}>
                   <StatusBadge status={payment.status} />
                 </td>
                 <td style={styles.td}>{formatDate(payment.failed_at)}</td>
@@ -3307,7 +3308,7 @@ function Pagination({ currentPage, totalPages, onPageChange, totalItems, itemsPe
     }}>
       <span style={{ fontSize: '13px', color: '#64748B' }}>
         Showing {startItem} to {endItem} of {totalItems} entries
-      </span>
+                        </span>
       <div style={{ display: 'flex', gap: '4px' }}>
         <button
           onClick={() => onPageChange(1)}
@@ -3346,9 +3347,9 @@ function Pagination({ currentPage, totalPages, onPageChange, totalItems, itemsPe
             style={{
               padding: '8px 12px',
               border: '1px solid',
-              borderColor: page === currentPage ? '#1B4DFF' : '#E2E8F0',
+              borderColor: page === currentPage ? '#059669' : '#E2E8F0',
               borderRadius: '6px',
-              background: page === currentPage ? '#1B4DFF' : '#fff',
+              background: page === currentPage ? '#059669' : '#fff',
               color: page === currentPage ? '#fff' : '#374151',
               cursor: 'pointer',
               fontSize: '13px',
@@ -3543,7 +3544,7 @@ function SystemLogsTab({ systemLogs, formatDateTime }) {
               <tr key={log.id} style={styles.tr}>
                 <td style={styles.td}>
                   <LogLevelBadge level={log.level} />
-                </td>
+                      </td>
                 <td style={styles.td}>
                   <span style={{ fontFamily: 'monospace', fontSize: '12px' }}>{log.source}</span>
                 </td>
@@ -3568,10 +3569,10 @@ function SystemLogsTab({ systemLogs, formatDateTime }) {
                     View
                   </button>
                 </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
         {filteredLogs.length === 0 && (
           <EmptyState 
             icon={<FileTextIcon />}
@@ -3716,12 +3717,12 @@ function SystemLogDetailModal({ log, onClose, formatDateTime }) {
                 }}>
                   {JSON.stringify(log.details, null, 2)}
                 </pre>
-              </div>
             </div>
-          )}
+          </div>
+        )}
 
           {log.error_traceback && (
-            <div>
+          <div>
               <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#DC2626', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 Error Traceback
               </h4>
@@ -3882,36 +3883,36 @@ function WebhookLogsTab({ webhookLogs, formatDateTime }) {
         </span>
       </div>
 
-      <div style={styles.tableContainer}>
-        <table style={styles.table}>
-          <thead>
-            <tr>
+            <div style={styles.tableContainer}>
+              <table style={styles.table}>
+                <thead>
+                  <tr>
               <th style={styles.th}>Source</th>
               <th style={styles.th}>Event Type</th>
               <th style={styles.th}>Event ID</th>
-              <th style={styles.th}>Company</th>
-              <th style={styles.th}>Status</th>
+                    <th style={styles.th}>Company</th>
+                    <th style={styles.th}>Status</th>
               <th style={styles.th}>Time (ms)</th>
               <th style={styles.th}>Received</th>
               <th style={styles.th}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
+                  </tr>
+                </thead>
+                <tbody>
             {paginatedLogs.map((log) => (
               <tr key={log.id} style={styles.tr}>
-                <td style={styles.td}>
-                  <span style={{
+                      <td style={styles.td}>
+                        <span style={{
                     padding: '4px 10px',
                     borderRadius: '6px',
                     fontSize: '11px',
                     fontWeight: '600',
                     textTransform: 'uppercase',
-                    background: log.source === 'stripe' ? '#EFF6FF' : '#F0FDF4',
-                    color: log.source === 'stripe' ? '#1B4DFF' : '#059669',
+                    background: log.source === 'stripe' ? '#ECFDF5' : '#F0FDF4',
+                    color: log.source === 'stripe' ? '#059669' : '#059669',
                   }}>
                     {log.source}
-                  </span>
-                </td>
+                        </span>
+                      </td>
                 <td style={styles.td}>
                   <span 
                     style={{ fontFamily: 'monospace', fontSize: '12px', cursor: 'help' }}
@@ -3942,10 +3943,10 @@ function WebhookLogsTab({ webhookLogs, formatDateTime }) {
                     View
                   </button>
                 </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
         {filteredLogs.length === 0 && (
           <EmptyState 
             icon={<WebhookIcon />}
@@ -4021,8 +4022,8 @@ function WebhookLogDetailModal({ log, onClose, formatDateTime }) {
                 fontSize: '11px',
                 fontWeight: '600',
                 textTransform: 'uppercase',
-                background: log.source === 'stripe' ? '#EFF6FF' : '#F0FDF4',
-                color: log.source === 'stripe' ? '#1B4DFF' : '#059669',
+                background: log.source === 'stripe' ? '#ECFDF5' : '#F0FDF4',
+                color: log.source === 'stripe' ? '#059669' : '#059669',
               }}>
                 {log.source}
               </span>
@@ -4086,12 +4087,12 @@ function WebhookLogDetailModal({ log, onClose, formatDateTime }) {
                 onClick={() => copyToClipboard(log.event_id)}
                 style={{
                   padding: '12px 16px',
-                  background: '#EFF6FF',
+                  background: '#ECFDF5',
                   border: '1px solid #BFDBFE',
                   borderRadius: '8px',
                   cursor: 'pointer',
                   fontSize: '12px',
-                  color: '#1B4DFF',
+                  color: '#059669',
                   fontWeight: '500',
                 }}
               >
@@ -4122,9 +4123,9 @@ function WebhookLogDetailModal({ log, onClose, formatDateTime }) {
                 }}>
                   {JSON.stringify(log.payload, null, 2)}
                 </pre>
-              </div>
             </div>
-          )}
+          </div>
+        )}
 
           {log.error_message && (
             <div>
@@ -4265,7 +4266,7 @@ function TenantLogDetailModal({ log, onClose, formatDateTime }) {
 // Log Level Badge
 function LogLevelBadge({ level }) {
   const config = {
-    INFO: { bg: '#EFF6FF', color: '#1B4DFF' },
+    INFO: { bg: '#ECFDF5', color: '#059669' },
     WARNING: { bg: '#FEF3C7', color: '#D97706' },
     ERROR: { bg: '#FEF2F2', color: '#DC2626' },
     DEBUG: { bg: '#F1F5F9', color: '#64748B' },
@@ -4295,8 +4296,6 @@ function SettingsSection({ adminUsername }) {
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState(null);
   const [uploadError, setUploadError] = useState(null);
-  const [syncingAll, setSyncingAll] = useState(false);
-  const [syncResult, setSyncResult] = useState(null);
   const fileInputRef = useRef(null);
 
   const handleFileSelect = async (e) => {
@@ -4339,33 +4338,6 @@ function SettingsSection({ adminUsername }) {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-    }
-  };
-
-  const handleSyncAllSubscriptions = async () => {
-    if (!window.confirm('This will update ALL active subscriptions to match their active license counts. Billing may be affected. Continue?')) {
-      return;
-    }
-
-    setSyncingAll(true);
-    setSyncResult(null);
-
-    try {
-      const token = localStorage.getItem('adminToken');
-      const response = await fetch(`${backendURL}/admin/subscriptions/sync-all-quantities`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const data = await response.json();
-      setSyncResult(data);
-    } catch (err) {
-      setSyncResult({ success: false, error: err.message });
-    } finally {
-      setSyncingAll(false);
     }
   };
 
@@ -4432,14 +4404,14 @@ function SettingsSection({ adminUsername }) {
             <div style={{
               width: '56px',
               height: '56px',
-              background: '#EFF6FF',
+              background: '#ECFDF5',
               borderRadius: '12px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
             }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1B4DFF" strokeWidth="2">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2">
                 <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
               </svg>
             </div>
@@ -4467,7 +4439,7 @@ function SettingsSection({ adminUsername }) {
                     alignItems: 'center',
                     gap: '8px',
                     padding: '10px 20px',
-                    background: uploading ? '#94A3B8' : '#1B4DFF',
+                    background: uploading ? '#94A3B8' : '#059669',
                     color: '#fff',
                     borderRadius: '8px',
                     fontSize: '14px',
@@ -4553,7 +4525,7 @@ function SettingsSection({ adminUsername }) {
                   <div style={{ fontSize: '12px', color: '#64748B' }}>Created</div>
                 </div>
                 <div style={{ padding: '12px', background: '#fff', borderRadius: '6px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '20px', fontWeight: '700', color: '#1B4DFF' }}>{uploadResult.summary.updated}</div>
+                  <div style={{ fontSize: '20px', fontWeight: '700', color: '#059669' }}>{uploadResult.summary.updated}</div>
                   <div style={{ fontSize: '12px', color: '#64748B' }}>Updated</div>
                 </div>
                 <div style={{ padding: '12px', background: '#fff', borderRadius: '6px', textAlign: 'center' }}>
@@ -4581,147 +4553,6 @@ function SettingsSection({ adminUsername }) {
         </div>
       </div>
 
-      {/* Subscription Sync Section */}
-      <div style={{ marginTop: '32px' }}>
-        <div style={styles.sectionHeader}>
-          <h3 style={styles.sectionTitle}>Subscription Management</h3>
-        </div>
-        
-        <div style={{
-          ...styles.settingsCard,
-          marginTop: '16px',
-          maxWidth: '800px',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '24px' }}>
-            <div style={{
-              width: '56px',
-              height: '56px',
-              background: '#FEF3C7',
-              borderRadius: '12px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2">
-                <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
-              </svg>
-            </div>
-            <div style={{ flex: 1 }}>
-              <h4 style={{ margin: '0 0 8px', fontSize: '16px', fontWeight: '600', color: '#0F172A' }}>
-                Sync Subscription Quantities
-              </h4>
-              <p style={{ margin: '0 0 16px', fontSize: '14px', color: '#64748B', lineHeight: '1.5' }}>
-                Update all Stripe subscriptions to match their current active license count. This will adjust billing for all companies based on their active franchises.
-              </p>
-              
-              <button
-                onClick={handleSyncAllSubscriptions}
-                disabled={syncingAll}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '10px 20px',
-                  background: syncingAll ? '#94A3B8' : '#D97706',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  cursor: syncingAll ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.15s',
-                }}
-              >
-                {syncingAll ? (
-                  <>
-                    <span style={{
-                      width: '16px',
-                      height: '16px',
-                      border: '2px solid rgba(255,255,255,0.3)',
-                      borderTopColor: '#fff',
-                      borderRadius: '50%',
-                      animation: 'spin 1s linear infinite',
-                    }}></span>
-                    Syncing...
-                  </>
-                ) : (
-                  <>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
-                    </svg>
-                    Sync All Subscriptions
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* Sync Result */}
-          {syncResult && (
-            <div style={{
-              marginTop: '16px',
-              padding: '16px',
-              background: syncResult.success ? '#ECFDF5' : '#FEF2F2',
-              border: `1px solid ${syncResult.success ? '#A7F3D0' : '#FECACA'}`,
-              borderRadius: '8px',
-            }}>
-              {syncResult.success ? (
-                <>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2">
-                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
-                    </svg>
-                    <span style={{ fontSize: '15px', fontWeight: '600', color: '#059669' }}>
-                      Sync Completed
-                    </span>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
-                    <div style={{ padding: '12px', background: '#fff', borderRadius: '6px', textAlign: 'center' }}>
-                      <div style={{ fontSize: '20px', fontWeight: '700', color: '#0F172A' }}>{syncResult.summary?.total_active_subscriptions || 0}</div>
-                      <div style={{ fontSize: '12px', color: '#64748B' }}>Total</div>
-                    </div>
-                    <div style={{ padding: '12px', background: '#fff', borderRadius: '6px', textAlign: 'center' }}>
-                      <div style={{ fontSize: '20px', fontWeight: '700', color: '#059669' }}>{syncResult.summary?.synced || 0}</div>
-                      <div style={{ fontSize: '12px', color: '#64748B' }}>Updated</div>
-                    </div>
-                    <div style={{ padding: '12px', background: '#fff', borderRadius: '6px', textAlign: 'center' }}>
-                      <div style={{ fontSize: '20px', fontWeight: '700', color: '#1B4DFF' }}>{syncResult.summary?.already_synced || 0}</div>
-                      <div style={{ fontSize: '12px', color: '#64748B' }}>Already Synced</div>
-                    </div>
-                    <div style={{ padding: '12px', background: '#fff', borderRadius: '6px', textAlign: 'center' }}>
-                      <div style={{ fontSize: '20px', fontWeight: '700', color: syncResult.summary?.errors > 0 ? '#DC2626' : '#94A3B8' }}>{syncResult.summary?.errors || 0}</div>
-                      <div style={{ fontSize: '12px', color: '#64748B' }}>Errors</div>
-                    </div>
-                  </div>
-                  {syncResult.details?.synced && syncResult.details.synced.length > 0 && (
-                    <div style={{ marginTop: '12px', padding: '12px', background: '#fff', borderRadius: '6px' }}>
-                      <div style={{ fontSize: '13px', fontWeight: '600', color: '#059669', marginBottom: '8px' }}>Updated Subscriptions:</div>
-                      {syncResult.details.synced.slice(0, 5).map((item, i) => (
-                        <div key={i} style={{ fontSize: '12px', color: '#374151', marginBottom: '4px' }}>
-                          {item.company_name}: {item.old_quantity} → {item.new_quantity} licenses
-                        </div>
-                      ))}
-                      {syncResult.details.synced.length > 5 && (
-                        <div style={{ fontSize: '12px', color: '#94A3B8', fontStyle: 'italic' }}>
-                          ...and {syncResult.details.synced.length - 5} more
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#DC2626' }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
-                  </svg>
-                  Error: {syncResult.error || 'Sync failed'}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
     </div>
   );
 }
@@ -4774,7 +4605,7 @@ function StatusBadge({ status, large }) {
     past_due: { bg: '#FEF3C7', color: '#D97706', label: 'Past Due' },
     inactive: { bg: '#F1F5F9', color: '#64748B', label: 'Inactive' },
     none: { bg: '#F1F5F9', color: '#64748B', label: 'None' },
-    submitted: { bg: '#EFF6FF', color: '#2563EB', label: 'Submitted' },
+    submitted: { bg: '#DBEAFE', color: '#2563EB', label: 'Submitted' },
     approved: { bg: '#ECFDF5', color: '#059669', label: 'Approved' },
     rejected: { bg: '#FEF2F2', color: '#DC2626', label: 'Rejected' },
     pending_review: { bg: '#FEF3C7', color: '#D97706', label: 'Pending' },
@@ -4950,7 +4781,7 @@ const styles = {
     display: 'flex',
     minHeight: '100vh',
     background: '#F8FAFC',
-    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
   },
   
   // Loading
@@ -4968,7 +4799,7 @@ const styles = {
     width: '40px',
     height: '40px',
     border: '3px solid #E2E8F0',
-    borderTopColor: '#1B4DFF',
+    borderTopColor: '#059669',
     borderRadius: '50%',
     animation: 'spin 0.8s linear infinite',
     margin: '0 auto 16px',
@@ -5004,7 +4835,7 @@ const styles = {
   logoIcon: {
     width: '36px',
     height: '36px',
-    background: 'linear-gradient(135deg, #1B4DFF 0%, #3B6FFF 100%)',
+    background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
     borderRadius: '10px',
     display: 'flex',
     alignItems: 'center',
@@ -5064,8 +4895,8 @@ const styles = {
     textAlign: 'left',
   },
   navItemActive: {
-    background: '#EFF6FF',
-    color: '#1B4DFF',
+    background: '#ECFDF5',
+    color: '#059669',
   },
   navIcon: {
     width: '20px',
@@ -5101,7 +4932,7 @@ const styles = {
   adminAvatar: {
     width: '36px',
     height: '36px',
-    background: 'linear-gradient(135deg, #1B4DFF 0%, #3B6FFF 100%)',
+    background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
     borderRadius: '8px',
     display: 'flex',
     alignItems: 'center',
@@ -5265,7 +5096,7 @@ const styles = {
     alignItems: 'center',
     gap: '16px',
     padding: '20px 24px',
-    background: 'linear-gradient(135deg, #1B4DFF 0%, #3B6FFF 100%)',
+    background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
     borderRadius: '12px',
     marginBottom: '24px',
     color: '#FFFFFF',
@@ -5388,7 +5219,7 @@ const styles = {
     transition: 'all 0.15s ease',
   },
   quickActionIcon: {
-    color: '#1B4DFF',
+    color: '#059669',
   },
   quickActionLabel: {
     fontSize: '14px',
@@ -5436,12 +5267,12 @@ const styles = {
   companyAvatar: {
     width: '36px',
     height: '36px',
-    background: '#EFF6FF',
+    background: '#ECFDF5',
     borderRadius: '8px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    color: '#1B4DFF',
+    color: '#059669',
     fontWeight: '600',
     fontSize: '14px',
     flexShrink: 0,
@@ -5457,8 +5288,8 @@ const styles = {
     fontFamily: 'monospace',
   },
   licenseCount: {
-    background: '#EFF6FF',
-    color: '#1B4DFF',
+    background: '#ECFDF5',
+    color: '#059669',
     padding: '4px 10px',
     borderRadius: '6px',
     fontSize: '13px',
@@ -5490,7 +5321,7 @@ const styles = {
     display: 'inline-flex',
     alignItems: 'center',
     gap: '8px',
-    background: 'linear-gradient(135deg, #1B4DFF 0%, #3B6FFF 100%)',
+    background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
     color: '#FFFFFF',
     border: 'none',
     padding: '10px 18px',
@@ -5519,7 +5350,7 @@ const styles = {
   clientLargeAvatar: {
     width: '56px',
     height: '56px',
-    background: 'linear-gradient(135deg, #1B4DFF 0%, #3B6FFF 100%)',
+    background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
     borderRadius: '12px',
     display: 'flex',
     alignItems: 'center',
@@ -5640,7 +5471,7 @@ const styles = {
     textAlign: 'center',
   },
   reportIcon: {
-    color: '#1B4DFF',
+    color: '#059669',
     marginBottom: '12px',
   },
   reportTitle: {
@@ -5685,7 +5516,7 @@ const styles = {
     alignItems: 'center',
     gap: '10px',
     marginBottom: '8px',
-    color: '#1B4DFF',
+    color: '#059669',
   },
   ruleName: {
     fontSize: '16px',
@@ -5700,13 +5531,13 @@ const styles = {
   },
   ruleBtn: {
     width: '100%',
-    background: '#EFF6FF',
+    background: '#ECFDF5',
     border: 'none',
     padding: '10px',
     borderRadius: '8px',
     fontSize: '14px',
     fontWeight: '500',
-    color: '#1B4DFF',
+    color: '#059669',
     cursor: 'pointer',
   },
 
