@@ -2259,8 +2259,8 @@ function SubscriptionDetailModal({ subscription, onClose, formatDate }) {
     setSyncResult(null);
     
     try {
-      const token = localStorage.getItem('adminToken');
-      const response = await fetch(`${backendURL}/admin/subscriptions/${subscription.realm_id}/sync-quantity`, {
+      const token = localStorage.getItem('admin_token');
+      const response = await fetch(`${backendURL}/api/admin/subscriptions/${subscription.realm_id}/sync-quantity`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -6423,7 +6423,7 @@ function SettingsSection({ adminUsername }) {
     setUploadResult(null);
 
     try {
-      const token = localStorage.getItem('adminToken');
+      const token = localStorage.getItem('admin_token');
       const formData = new FormData();
       formData.append('file', selectedFile);
 
