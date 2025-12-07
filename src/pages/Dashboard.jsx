@@ -889,23 +889,15 @@ function ReportsSection() {
   const [licenseMappings, setLicenseMappings] = useState([]);
   const [rvcrReports, setRvcrReports] = useState([]);
   const [selectedDepartment, setSelectedDepartment] = useState("");
-  const [selectedMonth, setSelectedMonth] = useState("");
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [generatingAll, setGeneratingAll] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
-  // Generate month options (last 12 months)
-  const monthOptions = Array.from({ length: 12 }, (_, i) => {
-    const date = new Date();
-    date.setMonth(date.getMonth() - i);
-    return {
-      value: (date.getMonth() + 1).toString(),
-      label: date.toLocaleDateString('en-US', { month: 'long' }),
-      year: date.getFullYear().toString(),
-    };
-  });
+  // Calculate "Last Month" display text
+  const lastMonth = new Date();
+  lastMonth.setMonth(lastMonth.getMonth() - 1);
+  const lastMonthText = lastMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   // Fetch license mappings and RVCR reports
   useEffect(() => {
@@ -946,14 +938,13 @@ function ReportsSection() {
     setMessage({ type: '', text: '' });
 
     try {
+      // Reports are always generated for "Last Month" as determined by QuickBooks
       const response = await fetch(`${backendURL}/api/rvcr/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           realm_id: realmId,
           department_id: selectedDepartment,
-          period_month: selectedMonth ? parseInt(selectedMonth) : undefined,
-          period_year: selectedYear ? parseInt(selectedYear) : undefined,
         }),
       });
 
@@ -988,12 +979,9 @@ function ReportsSection() {
     setMessage({ type: '', text: '' });
 
     try {
-      const params = new URLSearchParams();
-      if (selectedMonth) params.append('period_month', selectedMonth);
-      if (selectedYear) params.append('period_year', selectedYear);
-
+      // Reports are always generated for "Last Month" as determined by QuickBooks
       const response = await fetch(
-        `${backendURL}/api/rvcr/generate-all/${realmId}?${params.toString()}`,
+        `${backendURL}/api/rvcr/generate-all/${realmId}`,
         { method: 'POST' }
       );
 
@@ -1086,22 +1074,23 @@ function ReportsSection() {
 
           <div style={reportsStyles.controlGroup}>
             <label style={reportsStyles.controlLabel}>Period</label>
-            <select 
-              value={selectedMonth}
-              onChange={(e) => {
-                setSelectedMonth(e.target.value);
-                const opt = monthOptions.find(m => m.value === e.target.value);
-                if (opt) setSelectedYear(opt.year);
-              }}
-              style={reportsStyles.controlSelect}
-            >
-              <option value="">Last Month (default)</option>
-              {monthOptions.map((month, idx) => (
-                <option key={idx} value={month.value}>
-                  {month.label} {month.year}
-                </option>
-              ))}
-            </select>
+            <div style={{
+              ...reportsStyles.controlSelect,
+              display: 'flex',
+              alignItems: 'center',
+              background: '#F0FDF4',
+              border: '1px solid #86EFAC',
+              color: '#166534',
+              fontWeight: 500,
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 8 }}>
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+              {lastMonthText}
+            </div>
           </div>
 
           <div style={reportsStyles.controlGroup}>
