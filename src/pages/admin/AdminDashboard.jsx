@@ -479,7 +479,12 @@ export default function AdminDashboard() {
 
           {/* Reports Section */}
           {activeSection === "reports" && !selectedClient && (
-            <ReportsSection />
+            <ReportsSection 
+              clients={clients}
+              backendURL={backendURL}
+              getAuthHeaders={getAuthHeaders}
+              formatDate={formatDate}
+            />
           )}
 
           {/* Mapping Rules Section */}
@@ -1466,40 +1471,469 @@ function RunsSection({ submissions, formatDate, formatCurrency }) {
 }
 
 // Reports Section
-function ReportsSection() {
-  const reportTypes = [
-    { id: "ilrm", name: "ILRM Report", description: "Individual License Royalty Manager", icon: <FileTextIcon /> },
-    { id: "rvcr", name: "RVCR Report", description: "Royalty Volume Calculation Report", icon: <FileIcon /> },
-    { id: "payment", name: "Payment Summary", description: "Monthly payment breakdown", icon: <DollarSignIcon /> },
-  ];
+function ReportsSection({ clients, backendURL, getAuthHeaders, formatDate }) {
+  const [selectedClient, setSelectedClient] = useState("");
+  const [licenseMappings, setLicenseMappings] = useState([]);
+  const [selectedDepartment, setSelectedDepartment] = useState("");
+  const [selectedMonth, setSelectedMonth] = useState("");
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
+  const [rvcrReports, setRvcrReports] = useState([]);
+  const [loadingMappings, setLoadingMappings] = useState(false);
+  const [loadingReports, setLoadingReports] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [generatingAll, setGeneratingAll] = useState(false);
+  const [message, setMessage] = useState({ type: '', text: '' });
+
+  // Generate month options (last 12 months)
+  const monthOptions = Array.from({ length: 12 }, (_, i) => {
+    const date = new Date();
+    date.setMonth(date.getMonth() - i);
+    return {
+      value: (date.getMonth() + 1).toString(),
+      label: date.toLocaleDateString('en-US', { month: 'long' }),
+      year: date.getFullYear().toString(),
+    };
+  });
+
+  // Fetch license mappings when client changes
+  useEffect(() => {
+    if (!selectedClient) {
+      setLicenseMappings([]);
+      setRvcrReports([]);
+      return;
+    }
+
+    const fetchData = async () => {
+      setLoadingMappings(true);
+      setLoadingReports(true);
+      
+      try {
+        // Fetch license mappings
+        const mappingsRes = await fetch(`${backendURL}/api/licenses/mappings/${selectedClient}`);
+        if (mappingsRes.ok) {
+          const mappingsData = await mappingsRes.json();
+          setLicenseMappings(mappingsData.mappings || []);
+        }
+
+        // Fetch RVCR reports
+        const reportsRes = await fetch(`${backendURL}/api/rvcr/list/${selectedClient}`);
+        if (reportsRes.ok) {
+          const reportsData = await reportsRes.json();
+          setRvcrReports(reportsData.reports || []);
+        }
+      } catch (err) {
+        console.error("Error fetching data:", err);
+      } finally {
+        setLoadingMappings(false);
+        setLoadingReports(false);
+      }
+    };
+
+    fetchData();
+    setSelectedDepartment("");
+  }, [selectedClient, backendURL]);
+
+  const handleGenerateRVCR = async () => {
+    if (!selectedClient || !selectedDepartment) {
+      setMessage({ type: 'error', text: 'Please select a client and department' });
+      return;
+    }
+
+    setGenerating(true);
+    setMessage({ type: '', text: '' });
+
+    try {
+      const response = await fetch(`${backendURL}/api/rvcr/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          realm_id: selectedClient,
+          department_id: selectedDepartment,
+          period_month: selectedMonth ? parseInt(selectedMonth) : undefined,
+          period_year: selectedYear ? parseInt(selectedYear) : undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to generate report');
+      }
+
+      const result = await response.json();
+      setMessage({ type: 'success', text: `RVCR generated: ${result.report.report_name}` });
+      
+      // Refresh reports list
+      const reportsRes = await fetch(`${backendURL}/api/rvcr/list/${selectedClient}`);
+      if (reportsRes.ok) {
+        const reportsData = await reportsRes.json();
+        setRvcrReports(reportsData.reports || []);
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message || 'Failed to generate report' });
+    } finally {
+      setGenerating(false);
+      setTimeout(() => setMessage({ type: '', text: '' }), 5000);
+    }
+  };
+
+  const handleGenerateAll = async () => {
+    if (!selectedClient) {
+      setMessage({ type: 'error', text: 'Please select a client' });
+      return;
+    }
+
+    if (!window.confirm('Generate RVCR reports for all franchises? This may take a few minutes.')) {
+      return;
+    }
+
+    setGeneratingAll(true);
+    setMessage({ type: '', text: '' });
+
+    try {
+      const params = new URLSearchParams();
+      if (selectedMonth) params.append('period_month', selectedMonth);
+      if (selectedYear) params.append('period_year', selectedYear);
+
+      const response = await fetch(
+        `${backendURL}/api/rvcr/generate-all/${selectedClient}?${params.toString()}`,
+        { method: 'POST' }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to generate reports');
+      }
+
+      const result = await response.json();
+      setMessage({ 
+        type: result.failed > 0 ? 'warning' : 'success', 
+        text: `Generated ${result.successful} of ${result.total_franchises} reports${result.failed > 0 ? ` (${result.failed} failed)` : ''}` 
+      });
+
+      // Refresh reports list
+      const reportsRes = await fetch(`${backendURL}/api/rvcr/list/${selectedClient}`);
+      if (reportsRes.ok) {
+        const reportsData = await reportsRes.json();
+        setRvcrReports(reportsData.reports || []);
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message || 'Failed to generate reports' });
+    } finally {
+      setGeneratingAll(false);
+      setTimeout(() => setMessage({ type: '', text: '' }), 5000);
+    }
+  };
+
+  const handleDownload = (url, type) => {
+    if (!url) {
+      setMessage({ type: 'error', text: `No ${type} file available` });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+      return;
+    }
+    window.open(url, '_blank');
+  };
+
+  const formatDateTime = (dateStr) => {
+    if (!dateStr) return 'N/A';
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
 
   return (
     <div>
       <div style={styles.sectionHeader}>
-        <h3 style={styles.sectionTitle}>Reports</h3>
+        <h3 style={styles.sectionTitle}>RVCR Report Generation</h3>
+        <p style={{ color: '#64748B', fontSize: 14, margin: 0 }}>Royalty Volume Calculation Reports</p>
       </div>
 
-      <div style={styles.reportsGrid}>
-        {reportTypes.map((report) => (
-          <div key={report.id} style={styles.reportCard}>
-            <div style={styles.reportIcon}>{report.icon}</div>
-            <h4 style={styles.reportTitle}>{report.name}</h4>
-            <p style={styles.reportDesc}>{report.description}</p>
-            <button style={styles.reportBtn}>
-              <DownloadIcon /> Download
+      {/* Generation Controls */}
+      <div style={{ 
+        background: '#fff', 
+        border: '2px solid #D1FAE5', 
+        borderRadius: 12, 
+        padding: 24, 
+        marginBottom: 24 
+      }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 16 }}>
+          {/* Client Select */}
+          <div>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: '#475569', marginBottom: 8 }}>
+              Client (Company)
+            </label>
+            <select 
+              value={selectedClient}
+              onChange={(e) => setSelectedClient(e.target.value)}
+              style={{ 
+                width: '100%', 
+                padding: '12px 14px', 
+                background: '#fff', 
+                border: '1px solid #E2E8F0', 
+                borderRadius: 8, 
+                fontSize: 14,
+                cursor: 'pointer',
+              }}
+            >
+              <option value="">Select client...</option>
+              {clients.map((client) => (
+                <option key={client.realm_id} value={client.realm_id}>
+                  {client.company_name || client.realm_id}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Department Select */}
+          <div>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: '#475569', marginBottom: 8 }}>
+              Department/Franchise
+            </label>
+            <select 
+              value={selectedDepartment}
+              onChange={(e) => setSelectedDepartment(e.target.value)}
+              disabled={!selectedClient || loadingMappings}
+              style={{ 
+                width: '100%', 
+                padding: '12px 14px', 
+                background: '#fff', 
+                border: '1px solid #E2E8F0', 
+                borderRadius: 8, 
+                fontSize: 14,
+                cursor: selectedClient ? 'pointer' : 'not-allowed',
+                opacity: selectedClient ? 1 : 0.5,
+              }}
+            >
+              <option value="">{loadingMappings ? 'Loading...' : 'Select department...'}</option>
+              {licenseMappings.map((mapping) => (
+                <option key={mapping.id} value={mapping.qbo_department_id}>
+                  {mapping.qbo_department_name} ({mapping.franchise_number})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Period Select */}
+          <div>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: '#475569', marginBottom: 8 }}>
+              Period
+            </label>
+            <select 
+              value={selectedMonth}
+              onChange={(e) => {
+                setSelectedMonth(e.target.value);
+                const opt = monthOptions.find(m => m.value === e.target.value);
+                if (opt) setSelectedYear(opt.year);
+              }}
+              style={{ 
+                width: '100%', 
+                padding: '12px 14px', 
+                background: '#fff', 
+                border: '1px solid #E2E8F0', 
+                borderRadius: 8, 
+                fontSize: 14,
+                cursor: 'pointer',
+              }}
+            >
+              <option value="">Last Month (default)</option>
+              {monthOptions.map((month, idx) => (
+                <option key={idx} value={month.value}>
+                  {month.label} {month.year}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Generate Button */}
+          <div>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'transparent', marginBottom: 8 }}>
+              &nbsp;
+            </label>
+            <button 
+              onClick={handleGenerateRVCR}
+              disabled={!selectedClient || !selectedDepartment || generating}
+              style={{ 
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                padding: '12px 20px',
+                background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 8,
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: (!selectedClient || !selectedDepartment || generating) ? 'not-allowed' : 'pointer',
+                opacity: (!selectedClient || !selectedDepartment || generating) ? 0.5 : 1,
+              }}
+            >
+              {generating ? 'Generating...' : 'Generate'}
             </button>
           </div>
-        ))}
+
+          {/* Generate All Button */}
+          <div>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'transparent', marginBottom: 8 }}>
+              &nbsp;
+            </label>
+            <button 
+              onClick={handleGenerateAll}
+              disabled={!selectedClient || generatingAll}
+              style={{ 
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                padding: '12px 20px',
+                background: '#fff',
+                color: '#059669',
+                border: '1px solid #059669',
+                borderRadius: 8,
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: (!selectedClient || generatingAll) ? 'not-allowed' : 'pointer',
+                opacity: (!selectedClient || generatingAll) ? 0.5 : 1,
+              }}
+            >
+              {generatingAll ? 'Generating All...' : 'Generate All'}
+            </button>
+          </div>
+        </div>
+
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 10, 
+          padding: '12px 16px', 
+          background: '#EFF6FF', 
+          border: '1px solid #BFDBFE', 
+          borderRadius: 8, 
+          fontSize: 13, 
+          color: '#1E40AF' 
+        }}>
+          <InfoIcon />
+          <span>Reports are named: <code style={{ background: '#F1F5F9', padding: '2px 6px', borderRadius: 4 }}>Franchise # - mmyyyy RVCR</code></span>
+        </div>
       </div>
 
+      {/* Messages */}
+      {message.text && (
+        <div style={{
+          padding: '14px 20px',
+          borderRadius: 10,
+          marginBottom: 24,
+          fontSize: 14,
+          fontWeight: 500,
+          ...(message.type === 'success' ? { background: '#ECFDF5', color: '#065F46', border: '1px solid #A7F3D0' } : 
+              message.type === 'warning' ? { background: '#FFFBEB', color: '#92400E', border: '1px solid #FCD34D' } : 
+              { background: '#FEF2F2', color: '#991B1B', border: '1px solid #FECACA' })
+        }}>
+          {message.text}
+        </div>
+      )}
+
+      {/* Reports List */}
       <div style={styles.sectionHeader}>
-        <h3 style={styles.sectionTitle}>Recent Reports</h3>
+        <h3 style={styles.sectionTitle}>Generated RVCR Reports</h3>
+        <span style={{ fontSize: 13, color: '#64748B', background: '#F1F5F9', padding: '4px 10px', borderRadius: 4 }}>
+          {rvcrReports.length} reports
+        </span>
       </div>
-      <EmptyState 
-        icon={<FileTextIcon />}
-        title="No reports generated yet"
-        description="Reports will be available after the first royalty run"
-      />
+
+      {!selectedClient ? (
+        <EmptyState 
+          icon={<FileTextIcon />}
+          title="Select a client"
+          description="Choose a client above to view and generate RVCR reports"
+        />
+      ) : loadingReports ? (
+        <div style={{ textAlign: 'center', padding: 60, color: '#64748B' }}>Loading reports...</div>
+      ) : rvcrReports.length === 0 ? (
+        <EmptyState 
+          icon={<FileTextIcon />}
+          title="No RVCR reports yet"
+          description="Generate reports using the controls above"
+        />
+      ) : (
+        <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 12, overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr>
+                <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#64748B', textTransform: 'uppercase', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>Report Name</th>
+                <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#64748B', textTransform: 'uppercase', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>Franchise</th>
+                <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#64748B', textTransform: 'uppercase', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>Period</th>
+                <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#64748B', textTransform: 'uppercase', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>Generated</th>
+                <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#64748B', textTransform: 'uppercase', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>Status</th>
+                <th style={{ padding: '14px 20px', textAlign: 'right', fontSize: 12, fontWeight: 600, color: '#64748B', textTransform: 'uppercase', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rvcrReports.map((report) => (
+                <tr key={report.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                  <td style={{ padding: '16px 20px', fontSize: 14, fontWeight: 600, color: '#0F172A' }}>{report.report_name}</td>
+                  <td style={{ padding: '16px 20px' }}>
+                    <div>
+                      <span style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 600, color: '#059669' }}>{report.franchise_number}</span>
+                      <br />
+                      <span style={{ fontSize: 12, color: '#64748B' }}>{report.qbo_department_name}</span>
+                    </div>
+                  </td>
+                  <td style={{ padding: '16px 20px' }}>
+                    <span style={{ padding: '4px 10px', background: '#F1F5F9', borderRadius: 4, fontSize: 13, fontWeight: 500, color: '#475569' }}>{report.period_month}</span>
+                  </td>
+                  <td style={{ padding: '16px 20px', fontSize: 13, color: '#64748B' }}>{formatDateTime(report.generated_at)}</td>
+                  <td style={{ padding: '16px 20px' }}>
+                    <span style={{ 
+                      padding: '5px 10px', 
+                      borderRadius: 6, 
+                      fontSize: 12, 
+                      fontWeight: 600, 
+                      textTransform: 'uppercase',
+                      ...(report.status === 'generated' ? { background: '#ECFDF5', color: '#059669' } : { background: '#FFFBEB', color: '#D97706' })
+                    }}>
+                      {report.status}
+                    </span>
+                  </td>
+                  <td style={{ padding: '16px 20px', textAlign: 'right' }}>
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                      <button 
+                        onClick={() => handleDownload(report.excel_download_url, 'Excel')}
+                        disabled={!report.excel_download_url}
+                        style={{ 
+                          display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', 
+                          background: '#ECFDF5', color: '#059669', border: 'none', borderRadius: 6, 
+                          fontSize: 13, fontWeight: 500, cursor: report.excel_download_url ? 'pointer' : 'not-allowed',
+                          opacity: report.excel_download_url ? 1 : 0.5,
+                        }}
+                      >
+                        <FileIcon /> Excel
+                      </button>
+                      <button 
+                        onClick={() => handleDownload(report.pdf_download_url, 'PDF')}
+                        disabled={!report.pdf_download_url}
+                        style={{ 
+                          display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', 
+                          background: '#FEF2F2', color: '#DC2626', border: 'none', borderRadius: 6, 
+                          fontSize: 13, fontWeight: 500, cursor: report.pdf_download_url ? 'pointer' : 'not-allowed',
+                          opacity: report.pdf_download_url ? 1 : 0.5,
+                        }}
+                      >
+                        <DownloadIcon /> PDF
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
@@ -7181,6 +7615,10 @@ function UploadIcon() {
 
 function MailIcon() {
   return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>;
+}
+
+function InfoIcon() {
+  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>;
 }
 
 // ============================================================

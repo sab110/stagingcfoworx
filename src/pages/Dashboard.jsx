@@ -881,22 +881,668 @@ function FranchisesSection({ licenses, setLicenses, realmId, backendURL, refresh
   );
 }
 
-// Reports Section
+// Reports Section with RVCR Generation
 function ReportsSection() {
+  const backendURL = import.meta.env.VITE_BACKEND_URL;
+  const realmId = localStorage.getItem("realm_id");
+  
+  const [licenseMappings, setLicenseMappings] = useState([]);
+  const [rvcrReports, setRvcrReports] = useState([]);
+  const [selectedDepartment, setSelectedDepartment] = useState("");
+  const [selectedMonth, setSelectedMonth] = useState("");
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
+  const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [generatingAll, setGeneratingAll] = useState(false);
+  const [message, setMessage] = useState({ type: '', text: '' });
+
+  // Generate month options (last 12 months)
+  const monthOptions = Array.from({ length: 12 }, (_, i) => {
+    const date = new Date();
+    date.setMonth(date.getMonth() - i);
+    return {
+      value: (date.getMonth() + 1).toString(),
+      label: date.toLocaleDateString('en-US', { month: 'long' }),
+      year: date.getFullYear().toString(),
+    };
+  });
+
+  // Fetch license mappings and RVCR reports
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!realmId) return;
+      
+      try {
+        // Fetch license mappings
+        const mappingsRes = await fetch(`${backendURL}/api/licenses/mappings/${realmId}`);
+        if (mappingsRes.ok) {
+          const mappingsData = await mappingsRes.json();
+          setLicenseMappings(mappingsData.mappings || []);
+        }
+
+        // Fetch RVCR reports
+        const reportsRes = await fetch(`${backendURL}/api/rvcr/list/${realmId}`);
+        if (reportsRes.ok) {
+          const reportsData = await reportsRes.json();
+          setRvcrReports(reportsData.reports || []);
+        }
+      } catch (err) {
+        console.error("Error fetching data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [backendURL, realmId]);
+
+  const handleGenerateRVCR = async () => {
+    if (!selectedDepartment) {
+      setMessage({ type: 'error', text: 'Please select a department' });
+      return;
+    }
+
+    setGenerating(true);
+    setMessage({ type: '', text: '' });
+
+    try {
+      const response = await fetch(`${backendURL}/api/rvcr/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          realm_id: realmId,
+          department_id: selectedDepartment,
+          period_month: selectedMonth ? parseInt(selectedMonth) : undefined,
+          period_year: selectedYear ? parseInt(selectedYear) : undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to generate report');
+      }
+
+      const result = await response.json();
+      setMessage({ type: 'success', text: `RVCR generated: ${result.report.report_name}` });
+      
+      // Refresh reports list
+      const reportsRes = await fetch(`${backendURL}/api/rvcr/list/${realmId}`);
+      if (reportsRes.ok) {
+        const reportsData = await reportsRes.json();
+        setRvcrReports(reportsData.reports || []);
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message || 'Failed to generate report' });
+    } finally {
+      setGenerating(false);
+      setTimeout(() => setMessage({ type: '', text: '' }), 5000);
+    }
+  };
+
+  const handleGenerateAll = async () => {
+    if (!window.confirm('Generate RVCR reports for all franchises? This may take a few minutes.')) {
+      return;
+    }
+
+    setGeneratingAll(true);
+    setMessage({ type: '', text: '' });
+
+    try {
+      const params = new URLSearchParams();
+      if (selectedMonth) params.append('period_month', selectedMonth);
+      if (selectedYear) params.append('period_year', selectedYear);
+
+      const response = await fetch(
+        `${backendURL}/api/rvcr/generate-all/${realmId}?${params.toString()}`,
+        { method: 'POST' }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to generate reports');
+      }
+
+      const result = await response.json();
+      setMessage({ 
+        type: result.failed > 0 ? 'warning' : 'success', 
+        text: `Generated ${result.successful} of ${result.total_franchises} reports${result.failed > 0 ? ` (${result.failed} failed)` : ''}` 
+      });
+
+      // Refresh reports list
+      const reportsRes = await fetch(`${backendURL}/api/rvcr/list/${realmId}`);
+      if (reportsRes.ok) {
+        const reportsData = await reportsRes.json();
+        setRvcrReports(reportsData.reports || []);
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message || 'Failed to generate reports' });
+    } finally {
+      setGeneratingAll(false);
+      setTimeout(() => setMessage({ type: '', text: '' }), 5000);
+    }
+  };
+
+  const handleDownload = (url, type) => {
+    if (!url) {
+      setMessage({ type: 'error', text: `No ${type} file available` });
+      return;
+    }
+    window.open(url, '_blank');
+  };
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return 'N/A';
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  if (loading) {
+    return (
+      <div style={styles.section}>
+        <div style={{ textAlign: 'center', padding: 60, color: '#64748B' }}>
+          Loading reports...
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={styles.section}>
-      <div style={styles.comingSoon}>
-        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="1.5">
-          <path d="M18 20V10M12 20V4M6 20v-6"/>
-        </svg>
-        <h3 style={styles.comingSoonTitle}>Reports Coming Soon</h3>
-        <p style={styles.comingSoonText}>
-          Your royalty reports, analytics, and file downloads will be available here.
-        </p>
+      {/* Generate RVCR Card */}
+      <div style={reportsStyles.generateCard}>
+        <div style={reportsStyles.generateHeader}>
+          <div>
+            <h3 style={reportsStyles.generateTitle}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2" style={{ marginRight: 8, verticalAlign: 'middle' }}>
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
+              </svg>
+              Generate RVCR Report
+            </h3>
+            <p style={reportsStyles.generateDesc}>Royalty Volume Calculation Report - Generate for a specific franchise or all at once</p>
+          </div>
+        </div>
+
+        <div style={reportsStyles.generateControls}>
+          <div style={reportsStyles.controlGroup}>
+            <label style={reportsStyles.controlLabel}>Department/Franchise</label>
+            <select 
+              value={selectedDepartment}
+              onChange={(e) => setSelectedDepartment(e.target.value)}
+              style={reportsStyles.controlSelect}
+            >
+              <option value="">Select department...</option>
+              {licenseMappings.map((mapping) => (
+                <option key={mapping.id} value={mapping.qbo_department_id}>
+                  {mapping.qbo_department_name} ({mapping.franchise_number})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div style={reportsStyles.controlGroup}>
+            <label style={reportsStyles.controlLabel}>Period</label>
+            <select 
+              value={selectedMonth}
+              onChange={(e) => {
+                setSelectedMonth(e.target.value);
+                const opt = monthOptions.find(m => m.value === e.target.value);
+                if (opt) setSelectedYear(opt.year);
+              }}
+              style={reportsStyles.controlSelect}
+            >
+              <option value="">Last Month (default)</option>
+              {monthOptions.map((month, idx) => (
+                <option key={idx} value={month.value}>
+                  {month.label} {month.year}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div style={reportsStyles.controlGroup}>
+            <label style={reportsStyles.controlLabel}>&nbsp;</label>
+            <button 
+              onClick={handleGenerateRVCR}
+              disabled={!selectedDepartment || generating}
+              style={{
+                ...reportsStyles.generateBtn,
+                opacity: (!selectedDepartment || generating) ? 0.5 : 1,
+                cursor: (!selectedDepartment || generating) ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {generating ? (
+                <>
+                  <span style={reportsStyles.spinner}></span>
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                  </svg>
+                  Generate
+                </>
+              )}
+            </button>
+          </div>
+
+          <div style={reportsStyles.controlGroup}>
+            <label style={reportsStyles.controlLabel}>&nbsp;</label>
+            <button 
+              onClick={handleGenerateAll}
+              disabled={generatingAll}
+              style={{
+                ...reportsStyles.generateAllBtn,
+                opacity: generatingAll ? 0.5 : 1,
+                cursor: generatingAll ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {generatingAll ? (
+                <>
+                  <span style={reportsStyles.spinner}></span>
+                  Generating All...
+                </>
+              ) : (
+                <>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+                  </svg>
+                  Generate All
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        <div style={reportsStyles.infoNote}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+          </svg>
+          <span>Reports are named: <code style={{ background: '#F1F5F9', padding: '2px 6px', borderRadius: 4 }}>Franchise # - mmyyyy RVCR</code> (e.g., 01444 - 082024 RVCR)</span>
+        </div>
+      </div>
+
+      {/* Messages */}
+      {message.text && (
+        <div style={{
+          ...reportsStyles.message,
+          ...(message.type === 'success' ? reportsStyles.messageSuccess : 
+              message.type === 'warning' ? reportsStyles.messageWarning : reportsStyles.messageError)
+        }}>
+          {message.text}
+        </div>
+      )}
+
+      {/* Reports List */}
+      <div style={reportsStyles.reportsCard}>
+        <div style={reportsStyles.reportsHeader}>
+          <h3 style={reportsStyles.reportsTitle}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0F172A" strokeWidth="2" style={{ marginRight: 8, verticalAlign: 'middle' }}>
+              <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+            Generated RVCR Reports
+          </h3>
+          <span style={reportsStyles.reportCount}>{rvcrReports.length} reports</span>
+        </div>
+
+        {rvcrReports.length === 0 ? (
+          <div style={reportsStyles.emptyState}>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="1.5">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
+            </svg>
+            <h4 style={reportsStyles.emptyTitle}>No RVCR reports yet</h4>
+            <p style={reportsStyles.emptyText}>Select a department above and click Generate to create your first report.</p>
+          </div>
+        ) : (
+          <div style={reportsStyles.tableContainer}>
+            <table style={reportsStyles.table}>
+              <thead>
+                <tr>
+                  <th style={reportsStyles.th}>Report Name</th>
+                  <th style={reportsStyles.th}>Franchise</th>
+                  <th style={reportsStyles.th}>Period</th>
+                  <th style={reportsStyles.th}>Generated</th>
+                  <th style={reportsStyles.th}>Status</th>
+                  <th style={{ ...reportsStyles.th, textAlign: 'right' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rvcrReports.map((report) => (
+                  <tr key={report.id} style={reportsStyles.tr}>
+                    <td style={reportsStyles.td}>
+                      <span style={reportsStyles.reportName}>{report.report_name}</span>
+                    </td>
+                    <td style={reportsStyles.td}>
+                      <div style={reportsStyles.franchiseInfo}>
+                        <span style={reportsStyles.franchiseNumber}>{report.franchise_number}</span>
+                        <span style={reportsStyles.departmentName}>{report.qbo_department_name}</span>
+                      </div>
+                    </td>
+                    <td style={reportsStyles.td}>
+                      <span style={reportsStyles.periodBadge}>{report.period_month}</span>
+                    </td>
+                    <td style={reportsStyles.td}>
+                      <span style={reportsStyles.dateText}>{formatDate(report.generated_at)}</span>
+                    </td>
+                    <td style={reportsStyles.td}>
+                      <span style={{
+                        ...reportsStyles.statusBadge,
+                        ...(report.status === 'generated' ? reportsStyles.statusSuccess : reportsStyles.statusPending)
+                      }}>
+                        {report.status}
+                      </span>
+                    </td>
+                    <td style={{ ...reportsStyles.td, textAlign: 'right' }}>
+                      <div style={reportsStyles.actionBtns}>
+                        <button 
+                          onClick={() => handleDownload(report.excel_download_url, 'Excel')}
+                          disabled={!report.excel_download_url}
+                          style={{
+                            ...reportsStyles.downloadBtn,
+                            ...reportsStyles.excelBtn,
+                            opacity: report.excel_download_url ? 1 : 0.5,
+                          }}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/>
+                          </svg>
+                          Excel
+                        </button>
+                        <button 
+                          onClick={() => handleDownload(report.pdf_download_url, 'PDF')}
+                          disabled={!report.pdf_download_url}
+                          style={{
+                            ...reportsStyles.downloadBtn,
+                            ...reportsStyles.pdfBtn,
+                            opacity: report.pdf_download_url ? 1 : 0.5,
+                          }}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                          </svg>
+                          PDF
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
 }
+
+// Reports Section Styles
+const reportsStyles = {
+  generateCard: {
+    background: '#fff',
+    border: '2px solid #D1FAE5',
+    borderRadius: 14,
+    padding: 24,
+    marginBottom: 24,
+  },
+  generateHeader: {
+    marginBottom: 20,
+  },
+  generateTitle: {
+    fontSize: 18,
+    fontWeight: 600,
+    color: '#0F172A',
+    margin: 0,
+    marginBottom: 4,
+    display: 'flex',
+    alignItems: 'center',
+  },
+  generateDesc: {
+    fontSize: 14,
+    color: '#64748B',
+    margin: 0,
+  },
+  generateControls: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, 1fr)',
+    gap: 16,
+    marginBottom: 16,
+  },
+  controlGroup: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 8,
+  },
+  controlLabel: {
+    fontSize: 13,
+    fontWeight: 500,
+    color: '#475569',
+  },
+  controlSelect: {
+    padding: '12px 14px',
+    background: '#fff',
+    border: '1px solid #E2E8F0',
+    borderRadius: 8,
+    fontSize: 14,
+    color: '#0F172A',
+    cursor: 'pointer',
+    outline: 'none',
+  },
+  generateBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    padding: '12px 20px',
+    background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+    color: '#fff',
+    border: 'none',
+    borderRadius: 8,
+    fontSize: 14,
+    fontWeight: 600,
+    cursor: 'pointer',
+  },
+  generateAllBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    padding: '12px 20px',
+    background: '#fff',
+    color: '#059669',
+    border: '1px solid #059669',
+    borderRadius: 8,
+    fontSize: 14,
+    fontWeight: 600,
+    cursor: 'pointer',
+  },
+  spinner: {
+    width: 14,
+    height: 14,
+    border: '2px solid transparent',
+    borderTopColor: 'currentColor',
+    borderRadius: '50%',
+    animation: 'spin 1s linear infinite',
+  },
+  infoNote: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    padding: '12px 16px',
+    background: '#EFF6FF',
+    border: '1px solid #BFDBFE',
+    borderRadius: 8,
+    fontSize: 13,
+    color: '#1E40AF',
+  },
+  message: {
+    padding: '14px 20px',
+    borderRadius: 10,
+    marginBottom: 24,
+    fontSize: 14,
+    fontWeight: 500,
+  },
+  messageSuccess: {
+    background: '#ECFDF5',
+    color: '#065F46',
+    border: '1px solid #A7F3D0',
+  },
+  messageWarning: {
+    background: '#FFFBEB',
+    color: '#92400E',
+    border: '1px solid #FCD34D',
+  },
+  messageError: {
+    background: '#FEF2F2',
+    color: '#991B1B',
+    border: '1px solid #FECACA',
+  },
+  reportsCard: {
+    background: '#fff',
+    border: '1px solid #E2E8F0',
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  reportsHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '20px 24px',
+    borderBottom: '1px solid #E2E8F0',
+    background: '#F8FAFC',
+  },
+  reportsTitle: {
+    fontSize: 16,
+    fontWeight: 600,
+    color: '#0F172A',
+    margin: 0,
+    display: 'flex',
+    alignItems: 'center',
+  },
+  reportCount: {
+    fontSize: 13,
+    color: '#64748B',
+    background: '#F1F5F9',
+    padding: '4px 10px',
+    borderRadius: 4,
+  },
+  emptyState: {
+    textAlign: 'center',
+    padding: 60,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: 600,
+    color: '#0F172A',
+    marginTop: 20,
+    marginBottom: 8,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#64748B',
+    margin: 0,
+  },
+  tableContainer: {
+    overflowX: 'auto',
+  },
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse',
+  },
+  th: {
+    padding: '14px 20px',
+    textAlign: 'left',
+    fontSize: 12,
+    fontWeight: 600,
+    color: '#64748B',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+    background: '#F8FAFC',
+    borderBottom: '1px solid #E2E8F0',
+  },
+  tr: {
+    borderBottom: '1px solid #F1F5F9',
+  },
+  td: {
+    padding: '16px 20px',
+    fontSize: 14,
+    color: '#0F172A',
+  },
+  reportName: {
+    fontWeight: 600,
+    color: '#0F172A',
+  },
+  franchiseInfo: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 2,
+  },
+  franchiseNumber: {
+    fontFamily: "'SF Mono', Monaco, monospace",
+    fontSize: 13,
+    fontWeight: 600,
+    color: '#059669',
+  },
+  departmentName: {
+    fontSize: 12,
+    color: '#64748B',
+  },
+  periodBadge: {
+    padding: '4px 10px',
+    background: '#F1F5F9',
+    borderRadius: 4,
+    fontSize: 13,
+    fontWeight: 500,
+    color: '#475569',
+  },
+  dateText: {
+    fontSize: 13,
+    color: '#64748B',
+  },
+  statusBadge: {
+    padding: '5px 10px',
+    borderRadius: 6,
+    fontSize: 12,
+    fontWeight: 600,
+    textTransform: 'uppercase',
+  },
+  statusSuccess: {
+    background: '#ECFDF5',
+    color: '#059669',
+  },
+  statusPending: {
+    background: '#FFFBEB',
+    color: '#D97706',
+  },
+  actionBtns: {
+    display: 'flex',
+    gap: 8,
+    justifyContent: 'flex-end',
+  },
+  downloadBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    padding: '8px 14px',
+    borderRadius: 6,
+    fontSize: 13,
+    fontWeight: 500,
+    cursor: 'pointer',
+    border: 'none',
+  },
+  excelBtn: {
+    background: '#ECFDF5',
+    color: '#059669',
+  },
+  pdfBtn: {
+    background: '#FEF2F2',
+    color: '#DC2626',
+  },
+};
 
 // Billing Section
 function BillingSection({ subscription, activeLicenses, onManageBilling, navigate }) {
