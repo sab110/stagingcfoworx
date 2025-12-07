@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import { Spinner } from "../components/ui";
 
 export default function LoginPage() {
   const [error, setError] = useState("");
@@ -106,7 +107,7 @@ export default function LoginPage() {
           <button onClick={handleLogin} disabled={loading} className="btn-quickbooks">
             {loading ? (
               <>
-                <div className="spinner"></div>
+                <Spinner size="sm" color="white" />
                 <span>Connecting...</span>
               </>
             ) : (

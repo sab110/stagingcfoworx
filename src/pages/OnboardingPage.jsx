@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import LicenseSelection from "../components/LicenseSelection";
+import { LoadingScreen, Spinner } from "../components/ui";
 
 export default function OnboardingPage() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -111,11 +112,11 @@ export default function OnboardingPage() {
 
   if (loading) {
     return (
-      <div style={styles.loadingContainer}>
-          <div style={styles.spinner}></div>
-        <p style={styles.loadingText}>Setting up your account...</p>
-        <style>{keyframes}</style>
-      </div>
+      <LoadingScreen 
+        message="Setting up your account..."
+        submessage="Connecting to QuickBooks"
+        showLogo={true}
+      />
     );
   }
 
@@ -196,7 +197,7 @@ export default function OnboardingPage() {
       {/* Step Content */}
       {currentStep === 1 && (
         <div style={styles.stepContent}>
-          <div style={styles.spinner}></div>
+          <Spinner size="lg" color="primary" />
           <h2 style={styles.connectingTitle}>Connecting to QuickBooks...</h2>
         </div>
       )}

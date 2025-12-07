@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { LoadingScreen, ErrorScreen, Spinner, Alert } from "./ui";
 
 export default function LicenseSelection({ realmId, onComplete, isManageMode = false }) {
   const backendURL = import.meta.env.VITE_BACKEND_URL;
@@ -161,34 +162,23 @@ export default function LicenseSelection({ realmId, onComplete, isManageMode = f
 
   if (loading) {
     return (
-      <div style={styles.container}>
-        <style>{keyframes}</style>
-        <div style={styles.loadingBox}>
-          <div style={styles.spinner}></div>
-          <p style={styles.loadingText}>Loading your franchises from QuickBooks...</p>
-        </div>
-      </div>
+      <LoadingScreen 
+        message="Loading your franchises..."
+        submessage="Fetching data from QuickBooks"
+        showLogo={false}
+        fullScreen={false}
+      />
     );
   }
 
   if (error && licenses.length === 0) {
     return (
-      <div style={styles.container}>
-        <div style={styles.errorBox}>
-          <div style={styles.errorIcon}>
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2">
-              <circle cx="12" cy="12" r="10"/>
-              <line x1="12" y1="8" x2="12" y2="12"/>
-              <line x1="12" y1="16" x2="12.01" y2="16"/>
-            </svg>
-          </div>
-          <h2 style={styles.errorTitle}>Error Loading Franchises</h2>
-          <p style={styles.errorText}>{error}</p>
-          <button onClick={fetchLicenses} style={styles.retryButton}>
-            Try Again
-          </button>
-        </div>
-      </div>
+      <ErrorScreen 
+        title="Error Loading Franchises"
+        message={error}
+        onRetry={fetchLicenses}
+        fullScreen={false}
+      />
     );
   }
 
@@ -524,14 +514,9 @@ export default function LicenseSelection({ realmId, onComplete, isManageMode = f
 
             {/* Error Message */}
             {error && (
-              <div style={styles.errorMessage}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10"/>
-                  <line x1="12" y1="8" x2="12" y2="12"/>
-                  <line x1="12" y1="16" x2="12.01" y2="16"/>
-                </svg>
+              <Alert type="error" style={{ marginBottom: '24px' }}>
                 {error}
-              </div>
+              </Alert>
             )}
 
             {/* Save Button */}
@@ -547,7 +532,7 @@ export default function LicenseSelection({ realmId, onComplete, isManageMode = f
               >
                 {saving ? (
                   <>
-                    <div style={styles.btnSpinner}></div>
+                    <Spinner size="xs" color="white" />
                     Saving...
                   </>
                 ) : (

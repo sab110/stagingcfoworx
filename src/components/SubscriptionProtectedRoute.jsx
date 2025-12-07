@@ -1,6 +1,7 @@
 // src/components/SubscriptionProtectedRoute.jsx
 import React, { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
+import { LoadingScreen } from "./ui";
 
 /**
  * Protects routes that require both authentication AND an active subscription.
@@ -55,10 +56,11 @@ const SubscriptionProtectedRoute = ({ children }) => {
   // Show loading while checking subscription
   if (loading) {
     return (
-      <div style={styles.loadingContainer}>
-        <div style={styles.spinner}></div>
-        <p style={styles.loadingText}>Verifying subscription...</p>
-      </div>
+      <LoadingScreen 
+        message="Verifying subscription..."
+        submessage="This will only take a moment"
+        showLogo={true}
+      />
     );
   }
 
@@ -80,43 +82,4 @@ const SubscriptionProtectedRoute = ({ children }) => {
   return children;
 };
 
-const styles = {
-  loadingContainer: {
-    minHeight: "100vh",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#f9fafb",
-    fontFamily: "system-ui, -apple-system, sans-serif",
-  },
-  spinner: {
-    width: "50px",
-    height: "50px",
-    border: "4px solid #e5e7eb",
-    borderTop: "4px solid #3b82f6",
-    borderRadius: "50%",
-    animation: "spin 1s linear infinite",
-  },
-  loadingText: {
-    marginTop: "20px",
-    color: "#6b7280",
-    fontSize: "16px",
-  },
-};
-
-// Add CSS animation for spinner
-const styleSheet = document.createElement("style");
-styleSheet.textContent = `
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-`;
-if (!document.querySelector('style[data-subscription-protected]')) {
-  styleSheet.setAttribute('data-subscription-protected', 'true');
-  document.head.appendChild(styleSheet);
-}
-
 export default SubscriptionProtectedRoute;
-
