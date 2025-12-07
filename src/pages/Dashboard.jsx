@@ -881,13 +881,15 @@ function FranchisesSection({ licenses, setLicenses, realmId, backendURL, refresh
   );
 }
 
-// Reports Section with RVCR Generation
+// Reports Section with RVCR and Payment Summary Generation
 function ReportsSection() {
   const backendURL = import.meta.env.VITE_BACKEND_URL;
   const realmId = localStorage.getItem("realm_id");
   
+  const [activeTab, setActiveTab] = useState("rvcr"); // "rvcr" or "payment"
   const [licenseMappings, setLicenseMappings] = useState([]);
   const [rvcrReports, setRvcrReports] = useState([]);
+  const [paymentReports, setPaymentReports] = useState([]);
   const [selectedDepartment, setSelectedDepartment] = useState("");
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -899,7 +901,7 @@ function ReportsSection() {
   lastMonth.setMonth(lastMonth.getMonth() - 1);
   const lastMonthText = lastMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
-  // Fetch license mappings and RVCR reports
+  // Fetch license mappings and reports
   useEffect(() => {
     const fetchData = async () => {
       if (!realmId) return;
@@ -917,6 +919,13 @@ function ReportsSection() {
         if (reportsRes.ok) {
           const reportsData = await reportsRes.json();
           setRvcrReports(reportsData.reports || []);
+        }
+
+        // Fetch Payment Summary reports
+        const paymentRes = await fetch(`${backendURL}/api/payment-summary/list/${realmId}`);
+        if (paymentRes.ok) {
+          const paymentData = await paymentRes.json();
+          setPaymentReports(paymentData.reports || []);
         }
       } catch (err) {
         console.error("Error fetching data:", err);
@@ -971,7 +980,8 @@ function ReportsSection() {
   };
 
   const handleGenerateAll = async () => {
-    if (!window.confirm('Generate RVCR reports for all franchises? This may take a few minutes.')) {
+    const reportType = activeTab === 'rvcr' ? 'RVCR' : 'Payment Summary';
+    if (!window.confirm(`Generate ${reportType} reports for all franchises? This may take a few minutes.`)) {
       return;
     }
 
@@ -979,11 +989,11 @@ function ReportsSection() {
     setMessage({ type: '', text: '' });
 
     try {
-      // Reports are always generated for "Last Month" as determined by QuickBooks
-      const response = await fetch(
-        `${backendURL}/api/rvcr/generate-all/${realmId}`,
-        { method: 'POST' }
-      );
+      const endpoint = activeTab === 'rvcr' 
+        ? `${backendURL}/api/rvcr/generate-all/${realmId}`
+        : `${backendURL}/api/payment-summary/generate-all/${realmId}`;
+      
+      const response = await fetch(endpoint, { method: 'POST' });
 
       if (!response.ok) {
         const error = await response.json();
@@ -991,21 +1001,75 @@ function ReportsSection() {
       }
 
       const result = await response.json();
+      const successCount = result.successful || result.success_count || 0;
+      const failedCount = result.failed || result.failed_count || 0;
+      const total = result.total_franchises || result.total || 0;
+      
       setMessage({ 
-        type: result.failed > 0 ? 'warning' : 'success', 
-        text: `Generated ${result.successful} of ${result.total_franchises} reports${result.failed > 0 ? ` (${result.failed} failed)` : ''}` 
+        type: failedCount > 0 ? 'warning' : 'success', 
+        text: `Generated ${successCount} of ${total} ${reportType} reports${failedCount > 0 ? ` (${failedCount} failed)` : ''}` 
       });
 
       // Refresh reports list
-      const reportsRes = await fetch(`${backendURL}/api/rvcr/list/${realmId}`);
-      if (reportsRes.ok) {
-        const reportsData = await reportsRes.json();
-        setRvcrReports(reportsData.reports || []);
+      if (activeTab === 'rvcr') {
+        const reportsRes = await fetch(`${backendURL}/api/rvcr/list/${realmId}`);
+        if (reportsRes.ok) {
+          const reportsData = await reportsRes.json();
+          setRvcrReports(reportsData.reports || []);
+        }
+      } else {
+        const paymentRes = await fetch(`${backendURL}/api/payment-summary/list/${realmId}`);
+        if (paymentRes.ok) {
+          const paymentData = await paymentRes.json();
+          setPaymentReports(paymentData.reports || []);
+        }
       }
     } catch (err) {
       setMessage({ type: 'error', text: err.message || 'Failed to generate reports' });
     } finally {
       setGeneratingAll(false);
+      setTimeout(() => setMessage({ type: '', text: '' }), 5000);
+    }
+  };
+
+  // Generate Payment Summary Report
+  const handleGeneratePaymentSummary = async () => {
+    if (!selectedDepartment) {
+      setMessage({ type: 'error', text: 'Please select a department' });
+      return;
+    }
+
+    setGenerating(true);
+    setMessage({ type: '', text: '' });
+
+    try {
+      const response = await fetch(`${backendURL}/api/payment-summary/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          realm_id: realmId,
+          department_id: selectedDepartment,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to generate payment summary');
+      }
+
+      const result = await response.json();
+      setMessage({ type: 'success', text: `Payment Summary generated for franchise ${result.franchise_number}` });
+      
+      // Refresh reports list
+      const paymentRes = await fetch(`${backendURL}/api/payment-summary/list/${realmId}`);
+      if (paymentRes.ok) {
+        const paymentData = await paymentRes.json();
+        setPaymentReports(paymentData.reports || []);
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message || 'Failed to generate payment summary' });
+    } finally {
+      setGenerating(false);
       setTimeout(() => setMessage({ type: '', text: '' }), 5000);
     }
   };
@@ -1039,19 +1103,64 @@ function ReportsSection() {
     );
   }
 
+  const currentReports = activeTab === 'rvcr' ? rvcrReports : paymentReports;
+  const reportTypeTitle = activeTab === 'rvcr' ? 'RVCR' : 'Payment Summary';
+  const reportTypeDesc = activeTab === 'rvcr' 
+    ? 'Royalty Volume Calculation Report' 
+    : 'Royalty Report with fees calculation';
+
   return (
     <div style={styles.section}>
-      {/* Generate RVCR Card */}
+      {/* Tab Navigation */}
+      <div style={reportsStyles.tabContainer}>
+        <button
+          onClick={() => { setActiveTab('rvcr'); setMessage({ type: '', text: '' }); }}
+          style={{
+            ...reportsStyles.tab,
+            ...(activeTab === 'rvcr' ? reportsStyles.tabActive : {})
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+            <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
+          </svg>
+          RVCR Reports
+          <span style={reportsStyles.tabBadge}>{rvcrReports.length}</span>
+        </button>
+        <button
+          onClick={() => { setActiveTab('payment'); setMessage({ type: '', text: '' }); }}
+          style={{
+            ...reportsStyles.tab,
+            ...(activeTab === 'payment' ? reportsStyles.tabActive : {})
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="1" y="4" width="22" height="16" rx="2"/>
+            <line x1="1" y1="10" x2="23" y2="10"/>
+          </svg>
+          Payment Summary
+          <span style={reportsStyles.tabBadge}>{paymentReports.length}</span>
+        </button>
+      </div>
+
+      {/* Generate Report Card */}
       <div style={reportsStyles.generateCard}>
         <div style={reportsStyles.generateHeader}>
           <div>
             <h3 style={reportsStyles.generateTitle}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2" style={{ marginRight: 8, verticalAlign: 'middle' }}>
-                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
-              </svg>
-              Generate RVCR Report
+              {activeTab === 'rvcr' ? (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2" style={{ marginRight: 8, verticalAlign: 'middle' }}>
+                  <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
+                </svg>
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2" style={{ marginRight: 8, verticalAlign: 'middle' }}>
+                  <rect x="1" y="4" width="22" height="16" rx="2"/>
+                  <line x1="1" y1="10" x2="23" y2="10"/>
+                </svg>
+              )}
+              Generate {reportTypeTitle} Report
             </h3>
-            <p style={reportsStyles.generateDesc}>Royalty Volume Calculation Report - Generate for a specific franchise or all at once</p>
+            <p style={reportsStyles.generateDesc}>{reportTypeDesc} - Generate for a specific franchise or all at once</p>
           </div>
         </div>
 
@@ -1096,7 +1205,7 @@ function ReportsSection() {
           <div style={reportsStyles.controlGroup}>
             <label style={reportsStyles.controlLabel}>&nbsp;</label>
             <button 
-              onClick={handleGenerateRVCR}
+              onClick={activeTab === 'rvcr' ? handleGenerateRVCR : handleGeneratePaymentSummary}
               disabled={!selectedDepartment || generating}
               style={{
                 ...reportsStyles.generateBtn,
@@ -1152,7 +1261,11 @@ function ReportsSection() {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2">
             <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
           </svg>
-          <span>Reports are named: <code style={{ background: '#F1F5F9', padding: '2px 6px', borderRadius: 4 }}>Franchise # - mmyyyy RVCR</code> (e.g., 01444 - 082024 RVCR)</span>
+          {activeTab === 'rvcr' ? (
+            <span>Reports are named: <code style={{ background: '#F1F5F9', padding: '2px 6px', borderRadius: 4 }}>Franchise # - mmyyyy RVCR</code> (e.g., 01444 - 082024 RVCR)</span>
+          ) : (
+            <span>Reports include royalty calculations, fixed fees, and National Brand Fund fees based on tiered rates</span>
+          )}
         </div>
       </div>
 
@@ -1171,20 +1284,27 @@ function ReportsSection() {
       <div style={reportsStyles.reportsCard}>
         <div style={reportsStyles.reportsHeader}>
           <h3 style={reportsStyles.reportsTitle}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0F172A" strokeWidth="2" style={{ marginRight: 8, verticalAlign: 'middle' }}>
-              <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-            </svg>
-            Generated RVCR Reports
+            {activeTab === 'rvcr' ? (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0F172A" strokeWidth="2" style={{ marginRight: 8, verticalAlign: 'middle' }}>
+                <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0F172A" strokeWidth="2" style={{ marginRight: 8, verticalAlign: 'middle' }}>
+                <rect x="1" y="4" width="22" height="16" rx="2"/>
+                <line x1="1" y1="10" x2="23" y2="10"/>
+              </svg>
+            )}
+            Generated {reportTypeTitle} Reports
           </h3>
-          <span style={reportsStyles.reportCount}>{rvcrReports.length} reports</span>
+          <span style={reportsStyles.reportCount}>{currentReports.length} reports</span>
         </div>
 
-        {rvcrReports.length === 0 ? (
+        {currentReports.length === 0 ? (
           <div style={reportsStyles.emptyState}>
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="1.5">
               <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
             </svg>
-            <h4 style={reportsStyles.emptyTitle}>No RVCR reports yet</h4>
+            <h4 style={reportsStyles.emptyTitle}>No {reportTypeTitle} reports yet</h4>
             <p style={reportsStyles.emptyText}>Select a department above and click Generate to create your first report.</p>
           </div>
         ) : (
@@ -1192,39 +1312,31 @@ function ReportsSection() {
             <table style={reportsStyles.table}>
               <thead>
                 <tr>
-                  <th style={reportsStyles.th}>Report Name</th>
-                  <th style={reportsStyles.th}>Franchise</th>
+                  <th style={reportsStyles.th}>{activeTab === 'rvcr' ? 'Report Name' : 'Franchise'}</th>
+                  <th style={reportsStyles.th}>Franchise #</th>
                   <th style={reportsStyles.th}>Period</th>
                   <th style={reportsStyles.th}>Generated</th>
-                  <th style={reportsStyles.th}>Status</th>
                   <th style={{ ...reportsStyles.th, textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {rvcrReports.map((report) => (
+                {currentReports.map((report) => (
                   <tr key={report.id} style={reportsStyles.tr}>
                     <td style={reportsStyles.td}>
-                      <span style={reportsStyles.reportName}>{report.report_name}</span>
+                      <span style={reportsStyles.reportName}>
+                        {activeTab === 'rvcr' ? report.report_name : `${report.franchise_number} Payment Summary`}
+                      </span>
                     </td>
                     <td style={reportsStyles.td}>
-                      <div style={reportsStyles.franchiseInfo}>
-                        <span style={reportsStyles.franchiseNumber}>{report.franchise_number}</span>
-                        <span style={reportsStyles.departmentName}>{report.qbo_department_name}</span>
-                      </div>
+                      <span style={reportsStyles.franchiseNumber}>{report.franchise_number}</span>
                     </td>
                     <td style={reportsStyles.td}>
-                      <span style={reportsStyles.periodBadge}>{report.period_month}</span>
+                      <span style={reportsStyles.periodBadge}>
+                        {report.period_month ? `${String(report.period_month).padStart(2, '0')}/${report.period_year}` : report.period_month}
+                      </span>
                     </td>
                     <td style={reportsStyles.td}>
                       <span style={reportsStyles.dateText}>{formatDate(report.generated_at)}</span>
-                    </td>
-                    <td style={reportsStyles.td}>
-                      <span style={{
-                        ...reportsStyles.statusBadge,
-                        ...(report.status === 'generated' ? reportsStyles.statusSuccess : reportsStyles.statusPending)
-                      }}>
-                        {report.status}
-                      </span>
                     </td>
                     <td style={{ ...reportsStyles.td, textAlign: 'right' }}>
                       <div style={reportsStyles.actionBtns}>
@@ -1271,6 +1383,41 @@ function ReportsSection() {
 
 // Reports Section Styles
 const reportsStyles = {
+  tabContainer: {
+    display: 'flex',
+    gap: 8,
+    marginBottom: 24,
+    background: '#F1F5F9',
+    padding: 6,
+    borderRadius: 12,
+    width: 'fit-content',
+  },
+  tab: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    padding: '12px 20px',
+    background: 'transparent',
+    border: 'none',
+    borderRadius: 8,
+    fontSize: 14,
+    fontWeight: 500,
+    color: '#64748B',
+    cursor: 'pointer',
+    transition: 'all 0.15s',
+  },
+  tabActive: {
+    background: '#fff',
+    color: '#059669',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+  },
+  tabBadge: {
+    padding: '2px 8px',
+    background: '#E2E8F0',
+    borderRadius: 10,
+    fontSize: 12,
+    fontWeight: 600,
+  },
   generateCard: {
     background: '#fff',
     border: '2px solid #D1FAE5',

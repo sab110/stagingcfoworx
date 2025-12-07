@@ -1472,10 +1472,12 @@ function RunsSection({ submissions, formatDate, formatCurrency }) {
 
 // Reports Section
 function ReportsSection({ clients, backendURL, getAuthHeaders, formatDate }) {
+  const [activeTab, setActiveTab] = useState("rvcr"); // "rvcr" or "payment"
   const [selectedClient, setSelectedClient] = useState("");
   const [licenseMappings, setLicenseMappings] = useState([]);
   const [selectedDepartment, setSelectedDepartment] = useState("");
   const [rvcrReports, setRvcrReports] = useState([]);
+  const [paymentReports, setPaymentReports] = useState([]);
   const [loadingMappings, setLoadingMappings] = useState(false);
   const [loadingReports, setLoadingReports] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -1487,11 +1489,12 @@ function ReportsSection({ clients, backendURL, getAuthHeaders, formatDate }) {
   lastMonth.setMonth(lastMonth.getMonth() - 1);
   const lastMonthText = lastMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
-  // Fetch license mappings when client changes
+  // Fetch license mappings and reports when client changes
   useEffect(() => {
     if (!selectedClient) {
       setLicenseMappings([]);
       setRvcrReports([]);
+      setPaymentReports([]);
       return;
     }
 
@@ -1512,6 +1515,13 @@ function ReportsSection({ clients, backendURL, getAuthHeaders, formatDate }) {
         if (reportsRes.ok) {
           const reportsData = await reportsRes.json();
           setRvcrReports(reportsData.reports || []);
+        }
+
+        // Fetch Payment Summary reports
+        const paymentRes = await fetch(`${backendURL}/api/payment-summary/list/${selectedClient}`);
+        if (paymentRes.ok) {
+          const paymentData = await paymentRes.json();
+          setPaymentReports(paymentData.reports || []);
         }
       } catch (err) {
         console.error("Error fetching data:", err);
@@ -1573,7 +1583,8 @@ function ReportsSection({ clients, backendURL, getAuthHeaders, formatDate }) {
       return;
     }
 
-    if (!window.confirm('Generate RVCR reports for all franchises? This may take a few minutes.')) {
+    const reportType = activeTab === 'rvcr' ? 'RVCR' : 'Payment Summary';
+    if (!window.confirm(`Generate ${reportType} reports for all franchises? This may take a few minutes.`)) {
       return;
     }
 
@@ -1581,11 +1592,11 @@ function ReportsSection({ clients, backendURL, getAuthHeaders, formatDate }) {
     setMessage({ type: '', text: '' });
 
     try {
-      // Reports are always generated for "Last Month" as determined by QuickBooks
-      const response = await fetch(
-        `${backendURL}/api/rvcr/generate-all/${selectedClient}`,
-        { method: 'POST' }
-      );
+      const endpoint = activeTab === 'rvcr'
+        ? `${backendURL}/api/rvcr/generate-all/${selectedClient}`
+        : `${backendURL}/api/payment-summary/generate-all/${selectedClient}`;
+
+      const response = await fetch(endpoint, { method: 'POST' });
 
       if (!response.ok) {
         const error = await response.json();
@@ -1593,21 +1604,74 @@ function ReportsSection({ clients, backendURL, getAuthHeaders, formatDate }) {
       }
 
       const result = await response.json();
+      const successCount = result.successful || result.success_count || 0;
+      const failedCount = result.failed || result.failed_count || 0;
+      const total = result.total_franchises || result.total || 0;
+
       setMessage({ 
-        type: result.failed > 0 ? 'warning' : 'success', 
-        text: `Generated ${result.successful} of ${result.total_franchises} reports${result.failed > 0 ? ` (${result.failed} failed)` : ''}` 
+        type: failedCount > 0 ? 'warning' : 'success', 
+        text: `Generated ${successCount} of ${total} ${reportType} reports${failedCount > 0 ? ` (${failedCount} failed)` : ''}` 
       });
 
       // Refresh reports list
-      const reportsRes = await fetch(`${backendURL}/api/rvcr/list/${selectedClient}`);
-      if (reportsRes.ok) {
-        const reportsData = await reportsRes.json();
-        setRvcrReports(reportsData.reports || []);
+      if (activeTab === 'rvcr') {
+        const reportsRes = await fetch(`${backendURL}/api/rvcr/list/${selectedClient}`);
+        if (reportsRes.ok) {
+          const reportsData = await reportsRes.json();
+          setRvcrReports(reportsData.reports || []);
+        }
+      } else {
+        const paymentRes = await fetch(`${backendURL}/api/payment-summary/list/${selectedClient}`);
+        if (paymentRes.ok) {
+          const paymentData = await paymentRes.json();
+          setPaymentReports(paymentData.reports || []);
+        }
       }
     } catch (err) {
       setMessage({ type: 'error', text: err.message || 'Failed to generate reports' });
     } finally {
       setGeneratingAll(false);
+      setTimeout(() => setMessage({ type: '', text: '' }), 5000);
+    }
+  };
+
+  const handleGeneratePaymentSummary = async () => {
+    if (!selectedClient || !selectedDepartment) {
+      setMessage({ type: 'error', text: 'Please select a client and department' });
+      return;
+    }
+
+    setGenerating(true);
+    setMessage({ type: '', text: '' });
+
+    try {
+      const response = await fetch(`${backendURL}/api/payment-summary/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          realm_id: selectedClient,
+          department_id: selectedDepartment,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to generate payment summary');
+      }
+
+      const result = await response.json();
+      setMessage({ type: 'success', text: `Payment Summary generated for franchise ${result.franchise_number}` });
+      
+      // Refresh reports list
+      const paymentRes = await fetch(`${backendURL}/api/payment-summary/list/${selectedClient}`);
+      if (paymentRes.ok) {
+        const paymentData = await paymentRes.json();
+        setPaymentReports(paymentData.reports || []);
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message || 'Failed to generate payment summary' });
+    } finally {
+      setGenerating(false);
       setTimeout(() => setMessage({ type: '', text: '' }), 5000);
     }
   };
@@ -1632,11 +1696,55 @@ function ReportsSection({ clients, backendURL, getAuthHeaders, formatDate }) {
     });
   };
 
+  const currentReports = activeTab === 'rvcr' ? rvcrReports : paymentReports;
+  const reportTypeTitle = activeTab === 'rvcr' ? 'RVCR' : 'Payment Summary';
+  const reportTypeDesc = activeTab === 'rvcr' 
+    ? 'Royalty Volume Calculation Reports' 
+    : 'Royalty Reports with fees calculation';
+
   return (
     <div>
+      {/* Tab Navigation */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 24, background: '#F1F5F9', padding: 6, borderRadius: 12, width: 'fit-content' }}>
+        <button
+          onClick={() => { setActiveTab('rvcr'); setMessage({ type: '', text: '' }); }}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 8, padding: '12px 20px',
+            background: activeTab === 'rvcr' ? '#fff' : 'transparent',
+            border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 500,
+            color: activeTab === 'rvcr' ? '#059669' : '#64748B',
+            cursor: 'pointer', transition: 'all 0.15s',
+            boxShadow: activeTab === 'rvcr' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+          }}
+        >
+          <FileTextIcon />
+          RVCR Reports
+          <span style={{ padding: '2px 8px', background: '#E2E8F0', borderRadius: 10, fontSize: 12, fontWeight: 600 }}>
+            {rvcrReports.length}
+          </span>
+        </button>
+        <button
+          onClick={() => { setActiveTab('payment'); setMessage({ type: '', text: '' }); }}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 8, padding: '12px 20px',
+            background: activeTab === 'payment' ? '#fff' : 'transparent',
+            border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 500,
+            color: activeTab === 'payment' ? '#059669' : '#64748B',
+            cursor: 'pointer', transition: 'all 0.15s',
+            boxShadow: activeTab === 'payment' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+          }}
+        >
+          <CardIcon />
+          Payment Summary
+          <span style={{ padding: '2px 8px', background: '#E2E8F0', borderRadius: 10, fontSize: 12, fontWeight: 600 }}>
+            {paymentReports.length}
+          </span>
+        </button>
+      </div>
+
       <div style={styles.sectionHeader}>
-        <h3 style={styles.sectionTitle}>RVCR Report Generation</h3>
-        <p style={{ color: '#64748B', fontSize: 14, margin: 0 }}>Royalty Volume Calculation Reports</p>
+        <h3 style={styles.sectionTitle}>{reportTypeTitle} Report Generation</h3>
+        <p style={{ color: '#64748B', fontSize: 14, margin: 0 }}>{reportTypeDesc}</p>
       </div>
 
       {/* Generation Controls */}
@@ -1739,7 +1847,7 @@ function ReportsSection({ clients, backendURL, getAuthHeaders, formatDate }) {
               &nbsp;
             </label>
             <button 
-              onClick={handleGenerateRVCR}
+              onClick={activeTab === 'rvcr' ? handleGenerateRVCR : handleGeneratePaymentSummary}
               disabled={!selectedClient || !selectedDepartment || generating}
               style={{ 
                 width: '100%',
@@ -1804,7 +1912,11 @@ function ReportsSection({ clients, backendURL, getAuthHeaders, formatDate }) {
           color: '#1E40AF' 
         }}>
           <InfoIcon />
-          <span>Reports are named: <code style={{ background: '#F1F5F9', padding: '2px 6px', borderRadius: 4 }}>Franchise # - mmyyyy RVCR</code></span>
+          {activeTab === 'rvcr' ? (
+            <span>Reports are named: <code style={{ background: '#F1F5F9', padding: '2px 6px', borderRadius: 4 }}>Franchise # - mmyyyy RVCR</code></span>
+          ) : (
+            <span>Reports include royalty calculations, fixed fees, and National Brand Fund fees based on tiered rates</span>
+          )}
         </div>
       </div>
 
@@ -1826,9 +1938,9 @@ function ReportsSection({ clients, backendURL, getAuthHeaders, formatDate }) {
 
       {/* Reports List */}
       <div style={styles.sectionHeader}>
-        <h3 style={styles.sectionTitle}>Generated RVCR Reports</h3>
+        <h3 style={styles.sectionTitle}>Generated {reportTypeTitle} Reports</h3>
         <span style={{ fontSize: 13, color: '#64748B', background: '#F1F5F9', padding: '4px 10px', borderRadius: 4 }}>
-          {rvcrReports.length} reports
+          {currentReports.length} reports
         </span>
       </div>
 
@@ -1836,14 +1948,14 @@ function ReportsSection({ clients, backendURL, getAuthHeaders, formatDate }) {
         <EmptyState 
           icon={<FileTextIcon />}
           title="Select a client"
-          description="Choose a client above to view and generate RVCR reports"
+          description={`Choose a client above to view and generate ${reportTypeTitle} reports`}
         />
       ) : loadingReports ? (
         <div style={{ textAlign: 'center', padding: 60, color: '#64748B' }}>Loading reports...</div>
-      ) : rvcrReports.length === 0 ? (
+      ) : currentReports.length === 0 ? (
         <EmptyState 
           icon={<FileTextIcon />}
-          title="No RVCR reports yet"
+          title={`No ${reportTypeTitle} reports yet`}
           description="Generate reports using the controls above"
         />
       ) : (
@@ -1851,41 +1963,30 @@ function ReportsSection({ clients, backendURL, getAuthHeaders, formatDate }) {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
-                <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#64748B', textTransform: 'uppercase', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>Report Name</th>
-                <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#64748B', textTransform: 'uppercase', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>Franchise</th>
+                <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#64748B', textTransform: 'uppercase', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+                  {activeTab === 'rvcr' ? 'Report Name' : 'Franchise'}
+                </th>
+                <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#64748B', textTransform: 'uppercase', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>Franchise #</th>
                 <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#64748B', textTransform: 'uppercase', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>Period</th>
                 <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#64748B', textTransform: 'uppercase', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>Generated</th>
-                <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#64748B', textTransform: 'uppercase', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>Status</th>
                 <th style={{ padding: '14px 20px', textAlign: 'right', fontSize: 12, fontWeight: 600, color: '#64748B', textTransform: 'uppercase', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {rvcrReports.map((report) => (
+              {currentReports.map((report) => (
                 <tr key={report.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                  <td style={{ padding: '16px 20px', fontSize: 14, fontWeight: 600, color: '#0F172A' }}>{report.report_name}</td>
-                  <td style={{ padding: '16px 20px' }}>
-                    <div>
-                      <span style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 600, color: '#059669' }}>{report.franchise_number}</span>
-                      <br />
-                      <span style={{ fontSize: 12, color: '#64748B' }}>{report.qbo_department_name}</span>
-                    </div>
+                  <td style={{ padding: '16px 20px', fontSize: 14, fontWeight: 600, color: '#0F172A' }}>
+                    {activeTab === 'rvcr' ? report.report_name : `${report.franchise_number} Payment Summary`}
                   </td>
                   <td style={{ padding: '16px 20px' }}>
-                    <span style={{ padding: '4px 10px', background: '#F1F5F9', borderRadius: 4, fontSize: 13, fontWeight: 500, color: '#475569' }}>{report.period_month}</span>
+                    <span style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 600, color: '#059669' }}>{report.franchise_number}</span>
                   </td>
-                  <td style={{ padding: '16px 20px', fontSize: 13, color: '#64748B' }}>{formatDateTime(report.generated_at)}</td>
                   <td style={{ padding: '16px 20px' }}>
-                    <span style={{ 
-                      padding: '5px 10px', 
-                      borderRadius: 6, 
-                      fontSize: 12, 
-                      fontWeight: 600, 
-                      textTransform: 'uppercase',
-                      ...(report.status === 'generated' ? { background: '#ECFDF5', color: '#059669' } : { background: '#FFFBEB', color: '#D97706' })
-                    }}>
-                      {report.status}
+                    <span style={{ padding: '4px 10px', background: '#F1F5F9', borderRadius: 4, fontSize: 13, fontWeight: 500, color: '#475569' }}>
+                      {report.period_month ? `${String(report.period_month).padStart(2, '0')}/${report.period_year}` : report.period_month}
                     </span>
                   </td>
+                  <td style={{ padding: '16px 20px', fontSize: 13, color: '#64748B' }}>{formatDateTime(report.generated_at)}</td>
                   <td style={{ padding: '16px 20px', textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                       <button 
@@ -7607,6 +7708,10 @@ function InfoIcon() {
   return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>;
 }
 
+function CardIcon() {
+  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>;
+}
+
 // ============================================================
 // STYLES
 // ============================================================
@@ -8479,3 +8584,4 @@ const styles = {
     margin: 0,
   },
 };
+
