@@ -1332,7 +1332,13 @@ function ReportsSection() {
                     </td>
                     <td style={reportsStyles.td}>
                       <span style={reportsStyles.periodBadge}>
-                        {report.period_month ? `${String(report.period_month).padStart(2, '0')}/${report.period_year}` : report.period_month}
+                        {activeTab === 'rvcr' 
+                          ? (report.period_month && report.period_month.length >= 6 
+                              ? `${report.period_month.slice(0, 2)}/${report.period_month.slice(2)}` 
+                              : report.period_month)
+                          : (report.period_month && report.period_year 
+                              ? `${String(report.period_month).padStart(2, '0')}/${report.period_year}` 
+                              : report.period_month || 'N/A')}
                       </span>
                     </td>
                     <td style={reportsStyles.td}>

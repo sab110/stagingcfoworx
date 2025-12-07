@@ -1983,7 +1983,13 @@ function ReportsSection({ clients, backendURL, getAuthHeaders, formatDate }) {
                   </td>
                   <td style={{ padding: '16px 20px' }}>
                     <span style={{ padding: '4px 10px', background: '#F1F5F9', borderRadius: 4, fontSize: 13, fontWeight: 500, color: '#475569' }}>
-                      {report.period_month ? `${String(report.period_month).padStart(2, '0')}/${report.period_year}` : report.period_month}
+                      {activeTab === 'rvcr' 
+                        ? (report.period_month && report.period_month.length >= 6 
+                            ? `${report.period_month.slice(0, 2)}/${report.period_month.slice(2)}` 
+                            : report.period_month)
+                        : (report.period_month && report.period_year 
+                            ? `${String(report.period_month).padStart(2, '0')}/${report.period_year}` 
+                            : report.period_month || 'N/A')}
                     </span>
                   </td>
                   <td style={{ padding: '16px 20px', fontSize: 13, color: '#64748B' }}>{formatDateTime(report.generated_at)}</td>
