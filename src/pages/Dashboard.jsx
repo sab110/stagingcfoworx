@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Spinner, LoadingScreen, ErrorScreen, Alert, Pagination } from "../components/ui";
 
@@ -12,23 +12,8 @@ export default function Dashboard() {
   const [error, setError] = useState("");
   const [activeSection, setActiveSection] = useState("overview");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [sidebarAnimating, setSidebarAnimating] = useState(false);
-  const [companies, setCompanies] = useState([]);
-  const [showCompanySwitcher, setShowCompanySwitcher] = useState(false);
-  const companySwitcherRef = useRef(null);
   const token = localStorage.getItem("access_token");
   const realmId = localStorage.getItem("realm_id");
-
-  // Close company switcher when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (companySwitcherRef.current && !companySwitcherRef.current.contains(event.target)) {
-        setShowCompanySwitcher(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -87,41 +72,11 @@ export default function Dashboard() {
 
     fetchUserData();
     fetchSubscription();
-    fetchUserCompanies();
   }, [backendURL, token, realmId]);
 
-  // Fetch all companies the user has access to
-  const fetchUserCompanies = async () => {
-    try {
-      const userEmail = localStorage.getItem("user_email");
-      if (!userEmail) return;
-      
-      const response = await fetch(`${backendURL}/api/subscriptions/user-companies?email=${encodeURIComponent(userEmail)}`);
-      if (response.ok) {
-        const data = await response.json();
-        setCompanies(data.companies || []);
-      }
-    } catch (err) {
-      console.error("Error fetching companies:", err);
-    }
-  };
-
-  // Switch to a different company
-  const handleSwitchCompany = (newRealmId, companyName) => {
-    localStorage.setItem("realm_id", newRealmId);
-    setShowCompanySwitcher(false);
-    window.location.reload();
-  };
-
-  // Animated sidebar toggle with slide down/up effect
+  // Simple sidebar toggle
   const handleSidebarToggle = () => {
-    setSidebarAnimating(true);
-    // Delay the state change to midpoint of animation
-    setTimeout(() => {
-      setSidebarCollapsed(!sidebarCollapsed);
-    }, 150);
-    // Clear animating state after full animation
-    setTimeout(() => setSidebarAnimating(false), 350);
+    setSidebarCollapsed(!sidebarCollapsed);
   };
 
   const handleLogout = () => {
@@ -202,66 +157,37 @@ export default function Dashboard() {
     <>
       <style>{keyframes}</style>
       <div style={styles.dashboard}>
-        {/* Sidebar with Slide Animation */}
+        {/* Sidebar */}
         <aside style={{
           ...styles.sidebar,
           width: sidebarCollapsed ? 72 : 260,
-          overflow: 'hidden',
+          transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         }}>
-          {/* Sidebar Inner - animates down and up */}
           <div style={{
             display: 'flex',
             flexDirection: 'column',
             height: '100%',
-            animation: sidebarAnimating ? 'sidebarCollapseDown 0.35s ease-in-out' : 'none',
           }}>
             <div style={styles.sidebarHeader}>
               <div style={{
                 ...styles.logo,
                 transition: 'all 0.2s ease',
               }}>
-                <div style={styles.logoIcon}>
-                  <svg viewBox="0 0 24 24" fill="none" style={{ width: 18, height: 18 }}>
+                <div 
+                  style={styles.logoIcon}
+                  onClick={handleSidebarToggle}
+                  title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" style={{ width: 18, height: 18, cursor: 'pointer' }}>
                     <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </div>
                 {!sidebarCollapsed && <span style={styles.logoText}>RoyaltiesAgent</span>}
               </div>
-              <button
-                style={{
-                  ...styles.collapseBtn,
-                  background: sidebarAnimating ? '#E2E8F0' : '#F8FAFC',
-                  transition: 'all 0.2s ease',
-                }}
-                onClick={handleSidebarToggle}
-                disabled={sidebarAnimating}
-              >
-                <svg 
-                  width="18" 
-                  height="18" 
-                  viewBox="0 0 24 24" 
-                  fill="none" 
-                  stroke="currentColor" 
-                  strokeWidth="2"
-                  style={{
-                    transform: sidebarCollapsed ? 'rotate(0deg)' : 'rotate(0deg)',
-                    transition: 'transform 0.3s ease',
-                  }}
-                >
-                  {sidebarCollapsed ? (
-                    <path d="M9 18l6-6-6-6" />
-                  ) : (
-                    <path d="M15 18l-6-6 6-6" />
-                  )}
-                </svg>
-              </button>
             </div>
 
-            <nav style={{
-              ...styles.sidebarNav,
-              transition: 'all 0.25s ease',
-            }}>
-              {menuItems.map((item, index) => (
+            <nav style={styles.sidebarNav}>
+              {menuItems.map((item) => (
                 <button
                   key={item.id}
                   onClick={() => setActiveSection(item.id)}
@@ -269,8 +195,8 @@ export default function Dashboard() {
                     ...styles.navItem,
                     ...(activeSection === item.id ? styles.navItemActive : {}),
                     justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
-                    animation: !sidebarAnimating && !sidebarCollapsed ? `navItemSlideIn 0.3s ease ${index * 50}ms both` : 'none',
                   }}
+                  title={sidebarCollapsed ? item.label : ''}
                 >
                   <MenuIcon name={item.icon} active={activeSection === item.id} />
                   {!sidebarCollapsed && <span>{item.label}</span>}
@@ -278,10 +204,7 @@ export default function Dashboard() {
               ))}
             </nav>
 
-            <div style={{
-              ...styles.sidebarFooter,
-              transition: 'all 0.25s ease',
-            }}>
+            <div style={styles.sidebarFooter}>
               <div style={{
                 ...styles.connectionStatus,
                 justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
@@ -294,75 +217,42 @@ export default function Dashboard() {
         </aside>
 
       {/* Main Content */}
-        <main style={styles.mainContent}>
+        <main style={{
+          ...styles.mainContent,
+          marginLeft: sidebarCollapsed ? 72 : 260,
+          transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        }}>
           {/* Top Bar */}
           <header style={styles.topBar}>
             <div style={styles.topBarLeft}>
+              {/* Hamburger Menu Button */}
+              <button 
+                onClick={handleSidebarToggle}
+                style={styles.hamburgerBtn}
+                title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  {sidebarCollapsed ? (
+                    <>
+                      <line x1="3" y1="6" x2="21" y2="6" />
+                      <line x1="3" y1="12" x2="21" y2="12" />
+                      <line x1="3" y1="18" x2="21" y2="18" />
+                    </>
+                  ) : (
+                    <>
+                      <line x1="3" y1="6" x2="21" y2="6" />
+                      <line x1="3" y1="12" x2="15" y2="12" />
+                      <line x1="3" y1="18" x2="21" y2="18" />
+                    </>
+                  )}
+                </svg>
+              </button>
               <h1 style={styles.pageTitle}>
                 {menuItems.find(item => item.id === activeSection)?.label || "Dashboard"}
               </h1>
-              {/* Company Switcher */}
-              <div style={{ position: 'relative' }} ref={companySwitcherRef}>
-                <button 
-                  onClick={() => setShowCompanySwitcher(!showCompanySwitcher)}
-                  style={styles.companySwitcherBtn}
-                >
-                  <span style={styles.companyBadgeText}>{user?.company_name || 'Select Company'}</span>
-                  <svg 
-                    width="16" 
-                    height="16" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    strokeWidth="2"
-                    style={{
-                      transform: showCompanySwitcher ? 'rotate(180deg)' : 'rotate(0deg)',
-                      transition: 'transform 0.2s ease',
-                    }}
-                  >
-                    <path d="M6 9l6 6 6-6"/>
-                  </svg>
-                </button>
-                
-                {/* Company Dropdown */}
-                {showCompanySwitcher && (
-                  <div style={styles.companyDropdown}>
-                    <div style={styles.companyDropdownHeader}>
-                      <span style={styles.companyDropdownTitle}>Switch Company</span>
-                    </div>
-                    {companies.length > 0 ? (
-                      companies.map((company) => (
-                        <button
-                          key={company.realm_id}
-                          onClick={() => handleSwitchCompany(company.realm_id, company.company_name)}
-                          style={{
-                            ...styles.companyDropdownItem,
-                            ...(company.realm_id === realmId ? styles.companyDropdownItemActive : {}),
-                          }}
-                        >
-                          <div style={styles.companyDropdownItemIcon}>
-                            {company.company_name?.charAt(0) || 'C'}
-                          </div>
-                          <div style={styles.companyDropdownItemInfo}>
-                            <span style={styles.companyDropdownItemName}>{company.company_name}</span>
-                            <span style={styles.companyDropdownItemStatus}>
-                              {company.realm_id === realmId ? 'Current' : company.subscription_status || 'Active'}
-                            </span>
-                          </div>
-                          {company.realm_id === realmId && (
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5">
-                              <polyline points="20 6 9 17 4 12"/>
-                            </svg>
-                          )}
-                        </button>
-                      ))
-                    ) : (
-                      <div style={styles.companyDropdownEmpty}>
-                        <span>No other companies available</span>
-                      </div>
-                    )}
-                  </div>
-                )}
+              {/* Company Name Badge */}
+              <div style={styles.companyBadge}>
+                <span style={styles.companyBadgeText}>{user?.company_name || 'Company'}</span>
               </div>
             </div>
             <div style={styles.topBarRight}>
@@ -2470,6 +2360,8 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     boxShadow: '0 2px 8px rgba(5, 150, 105, 0.25)',
+    cursor: 'pointer',
+    transition: 'transform 0.15s ease, box-shadow 0.15s ease',
   },
   logoText: {
     fontSize: 16,
@@ -2541,8 +2433,7 @@ const styles = {
   // Main Content
   mainContent: {
     flex: 1,
-    marginLeft: 260,
-    transition: 'margin-left 0.2s ease',
+    minHeight: '100vh',
   },
   topBar: {
     background: '#fff',
@@ -2622,16 +2513,18 @@ const styles = {
     marginLeft: 8,
   },
 
-  // Company Switcher
-  companySwitcherBtn: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    padding: '8px 14px',
+  // Hamburger Menu Button
+  hamburgerBtn: {
+    width: 40,
+    height: 40,
     background: '#F8FAFC',
     border: '1px solid #E2E8F0',
     borderRadius: 10,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
     cursor: 'pointer',
+    color: '#475569',
     transition: 'all 0.15s',
   },
   companyBadgeText: {
@@ -2642,79 +2535,6 @@ const styles = {
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-  },
-  companyDropdown: {
-    position: 'absolute',
-    top: 'calc(100% + 8px)',
-    left: 0,
-    minWidth: 280,
-    background: '#fff',
-    border: '1px solid #E2E8F0',
-    borderRadius: 12,
-    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.12)',
-    zIndex: 100,
-    overflow: 'hidden',
-    animation: 'slideDown 0.2s ease',
-  },
-  companyDropdownHeader: {
-    padding: '12px 16px',
-    borderBottom: '1px solid #F1F5F9',
-    background: '#F8FAFC',
-  },
-  companyDropdownTitle: {
-    fontSize: 12,
-    fontWeight: 600,
-    color: '#64748B',
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px',
-  },
-  companyDropdownItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 12,
-    width: '100%',
-    padding: '12px 16px',
-    background: 'transparent',
-    border: 'none',
-    cursor: 'pointer',
-    transition: 'all 0.15s',
-    textAlign: 'left',
-  },
-  companyDropdownItemActive: {
-    background: '#ECFDF5',
-  },
-  companyDropdownItemIcon: {
-    width: 36,
-    height: 36,
-    background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-    borderRadius: 8,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: '#fff',
-    fontWeight: 600,
-    fontSize: 14,
-  },
-  companyDropdownItemInfo: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 2,
-  },
-  companyDropdownItemName: {
-    fontSize: 14,
-    fontWeight: 600,
-    color: '#0F172A',
-  },
-  companyDropdownItemStatus: {
-    fontSize: 12,
-    color: '#64748B',
-  },
-  companyDropdownEmpty: {
-    padding: '20px 16px',
-    textAlign: 'center',
-    color: '#64748B',
-    fontSize: 13,
   },
   
   // Content
