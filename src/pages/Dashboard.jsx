@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Spinner, LoadingScreen, ErrorScreen, Alert, Pagination } from "../components/ui";
 
@@ -12,8 +12,23 @@ export default function Dashboard() {
   const [error, setError] = useState("");
   const [activeSection, setActiveSection] = useState("overview");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarAnimating, setSidebarAnimating] = useState(false);
+  const [companies, setCompanies] = useState([]);
+  const [showCompanySwitcher, setShowCompanySwitcher] = useState(false);
+  const companySwitcherRef = useRef(null);
   const token = localStorage.getItem("access_token");
   const realmId = localStorage.getItem("realm_id");
+
+  // Close company switcher when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (companySwitcherRef.current && !companySwitcherRef.current.contains(event.target)) {
+        setShowCompanySwitcher(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -72,7 +87,42 @@ export default function Dashboard() {
 
     fetchUserData();
     fetchSubscription();
+    fetchUserCompanies();
   }, [backendURL, token, realmId]);
+
+  // Fetch all companies the user has access to
+  const fetchUserCompanies = async () => {
+    try {
+      const userEmail = localStorage.getItem("user_email");
+      if (!userEmail) return;
+      
+      const response = await fetch(`${backendURL}/api/subscriptions/user-companies?email=${encodeURIComponent(userEmail)}`);
+      if (response.ok) {
+        const data = await response.json();
+        setCompanies(data.companies || []);
+      }
+    } catch (err) {
+      console.error("Error fetching companies:", err);
+    }
+  };
+
+  // Switch to a different company
+  const handleSwitchCompany = (newRealmId, companyName) => {
+    localStorage.setItem("realm_id", newRealmId);
+    setShowCompanySwitcher(false);
+    window.location.reload();
+  };
+
+  // Animated sidebar toggle with slide down/up effect
+  const handleSidebarToggle = () => {
+    setSidebarAnimating(true);
+    // Delay the state change to midpoint of animation
+    setTimeout(() => {
+      setSidebarCollapsed(!sidebarCollapsed);
+    }, 150);
+    // Clear animating state after full animation
+    setTimeout(() => setSidebarAnimating(false), 350);
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("access_token");
@@ -152,59 +202,94 @@ export default function Dashboard() {
     <>
       <style>{keyframes}</style>
       <div style={styles.dashboard}>
-        {/* Sidebar */}
+        {/* Sidebar with Slide Animation */}
         <aside style={{
           ...styles.sidebar,
           width: sidebarCollapsed ? 72 : 260,
-      }}>
-          <div style={styles.sidebarHeader}>
-            <div style={styles.logo}>
-              <div style={styles.logoIcon}>
-                <svg viewBox="0 0 24 24" fill="none" style={{ width: 18, height: 18 }}>
-                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
+          overflow: 'hidden',
+        }}>
+          {/* Sidebar Inner - animates down and up */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100%',
+            animation: sidebarAnimating ? 'sidebarCollapseDown 0.35s ease-in-out' : 'none',
+          }}>
+            <div style={styles.sidebarHeader}>
+              <div style={{
+                ...styles.logo,
+                transition: 'all 0.2s ease',
+              }}>
+                <div style={styles.logoIcon}>
+                  <svg viewBox="0 0 24 24" fill="none" style={{ width: 18, height: 18 }}>
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                {!sidebarCollapsed && <span style={styles.logoText}>RoyaltiesAgent</span>}
               </div>
-              {!sidebarCollapsed && <span style={styles.logoText}>RoyaltiesAgent</span>}
-            </div>
-        <button
-              style={styles.collapseBtn}
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                {sidebarCollapsed ? (
-                  <path d="M9 18l6-6-6-6" />
-                ) : (
-                  <path d="M15 18l-6-6 6-6" />
-                )}
-              </svg>
-            </button>
-          </div>
-
-          <nav style={styles.sidebarNav}>
-            {menuItems.map((item) => (
               <button
-                key={item.id}
-                onClick={() => setActiveSection(item.id)}
-          style={{
-                  ...styles.navItem,
-                  ...(activeSection === item.id ? styles.navItemActive : {}),
-                  justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+                style={{
+                  ...styles.collapseBtn,
+                  background: sidebarAnimating ? '#E2E8F0' : '#F8FAFC',
+                  transition: 'all 0.2s ease',
                 }}
+                onClick={handleSidebarToggle}
+                disabled={sidebarAnimating}
               >
-                <MenuIcon name={item.icon} active={activeSection === item.id} />
-                {!sidebarCollapsed && <span>{item.label}</span>}
-        </button>
-            ))}
-          </nav>
+                <svg 
+                  width="18" 
+                  height="18" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  strokeWidth="2"
+                  style={{
+                    transform: sidebarCollapsed ? 'rotate(0deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.3s ease',
+                  }}
+                >
+                  {sidebarCollapsed ? (
+                    <path d="M9 18l6-6-6-6" />
+                  ) : (
+                    <path d="M15 18l-6-6 6-6" />
+                  )}
+                </svg>
+              </button>
+            </div>
 
-          <div style={styles.sidebarFooter}>
-            <div style={{
-              ...styles.connectionStatus,
-              justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+            <nav style={{
+              ...styles.sidebarNav,
+              transition: 'all 0.25s ease',
             }}>
-              <span style={styles.statusDot}></span>
-              {!sidebarCollapsed && <span style={styles.statusText}>QuickBooks Connected</span>}
-      </div>
+              {menuItems.map((item, index) => (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveSection(item.id)}
+                  style={{
+                    ...styles.navItem,
+                    ...(activeSection === item.id ? styles.navItemActive : {}),
+                    justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+                    animation: !sidebarAnimating && !sidebarCollapsed ? `navItemSlideIn 0.3s ease ${index * 50}ms both` : 'none',
+                  }}
+                >
+                  <MenuIcon name={item.icon} active={activeSection === item.id} />
+                  {!sidebarCollapsed && <span>{item.label}</span>}
+                </button>
+              ))}
+            </nav>
+
+            <div style={{
+              ...styles.sidebarFooter,
+              transition: 'all 0.25s ease',
+            }}>
+              <div style={{
+                ...styles.connectionStatus,
+                justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+              }}>
+                <span style={styles.statusDot}></span>
+                {!sidebarCollapsed && <span style={styles.statusText}>QuickBooks Connected</span>}
+              </div>
+            </div>
           </div>
         </aside>
 
@@ -216,9 +301,69 @@ export default function Dashboard() {
               <h1 style={styles.pageTitle}>
                 {menuItems.find(item => item.id === activeSection)?.label || "Dashboard"}
               </h1>
-              {user?.company_name && (
-                <span style={styles.companyBadge}>{user.company_name}</span>
-              )}
+              {/* Company Switcher */}
+              <div style={{ position: 'relative' }} ref={companySwitcherRef}>
+                <button 
+                  onClick={() => setShowCompanySwitcher(!showCompanySwitcher)}
+                  style={styles.companySwitcherBtn}
+                >
+                  <span style={styles.companyBadgeText}>{user?.company_name || 'Select Company'}</span>
+                  <svg 
+                    width="16" 
+                    height="16" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="2"
+                    style={{
+                      transform: showCompanySwitcher ? 'rotate(180deg)' : 'rotate(0deg)',
+                      transition: 'transform 0.2s ease',
+                    }}
+                  >
+                    <path d="M6 9l6 6 6-6"/>
+                  </svg>
+                </button>
+                
+                {/* Company Dropdown */}
+                {showCompanySwitcher && (
+                  <div style={styles.companyDropdown}>
+                    <div style={styles.companyDropdownHeader}>
+                      <span style={styles.companyDropdownTitle}>Switch Company</span>
+                    </div>
+                    {companies.length > 0 ? (
+                      companies.map((company) => (
+                        <button
+                          key={company.realm_id}
+                          onClick={() => handleSwitchCompany(company.realm_id, company.company_name)}
+                          style={{
+                            ...styles.companyDropdownItem,
+                            ...(company.realm_id === realmId ? styles.companyDropdownItemActive : {}),
+                          }}
+                        >
+                          <div style={styles.companyDropdownItemIcon}>
+                            {company.company_name?.charAt(0) || 'C'}
+                          </div>
+                          <div style={styles.companyDropdownItemInfo}>
+                            <span style={styles.companyDropdownItemName}>{company.company_name}</span>
+                            <span style={styles.companyDropdownItemStatus}>
+                              {company.realm_id === realmId ? 'Current' : company.subscription_status || 'Active'}
+                            </span>
+                          </div>
+                          {company.realm_id === realmId && (
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5">
+                              <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                          )}
+                        </button>
+                      ))
+                    ) : (
+                      <div style={styles.companyDropdownEmpty}>
+                        <span>No other companies available</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
             <div style={styles.topBarRight}>
               <div style={styles.userMenu}>
@@ -290,8 +435,145 @@ function MenuIcon({ name, active }) {
   return icons[name] || null;
 }
 
+// Simple Bar Chart Component
+function SimpleBarChart({ data, height = 200 }) {
+  const maxValue = Math.max(...data.map(d => d.value), 1);
+  
+  return (
+    <div style={{ height, display: 'flex', alignItems: 'flex-end', gap: 8, padding: '20px 0' }}>
+      {data.map((item, index) => (
+        <div key={index} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+          <div 
+            style={{ 
+              width: '100%', 
+              maxWidth: 60,
+              height: `${(item.value / maxValue) * (height - 60)}px`,
+              minHeight: 4,
+              background: `linear-gradient(180deg, ${item.color || '#059669'} 0%, ${item.colorEnd || '#047857'} 100%)`,
+              borderRadius: '6px 6px 0 0',
+              transition: 'height 0.5s ease',
+            }} 
+          />
+          <span style={{ fontSize: 12, color: '#64748B', fontWeight: 500 }}>{item.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Donut Chart Component
+function DonutChart({ value, total, color = '#059669', size = 120 }) {
+  const percentage = total > 0 ? (value / total) * 100 : 0;
+  const strokeWidth = 12;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (percentage / 100) * circumference;
+  
+  return (
+    <div style={{ position: 'relative', width: size, height: size }}>
+      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="#E2E8F0"
+          strokeWidth={strokeWidth}
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke={color}
+          strokeWidth={strokeWidth}
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          style={{ transition: 'stroke-dashoffset 0.5s ease' }}
+        />
+      </svg>
+      <div style={{
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        textAlign: 'center',
+      }}>
+        <div style={{ fontSize: 24, fontWeight: 700, color: '#0F172A' }}>{value}</div>
+        <div style={{ fontSize: 11, color: '#64748B' }}>of {total}</div>
+      </div>
+    </div>
+  );
+}
+
+// Activity Item Component
+function ActivityItem({ icon, title, time, color }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid #F1F5F9' }}>
+      <div style={{ 
+        width: 36, 
+        height: 36, 
+        borderRadius: 10, 
+        background: `${color}15`, 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        color: color,
+      }}>
+        {icon}
+      </div>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 14, fontWeight: 500, color: '#0F172A' }}>{title}</div>
+        <div style={{ fontSize: 12, color: '#64748B' }}>{time}</div>
+      </div>
+    </div>
+  );
+}
+
 // Overview Section
 function OverviewSection({ user, licenses, activeLicenses, subscription, onManageBilling, navigate, setActiveSection }) {
+  const backendURL = import.meta.env.VITE_BACKEND_URL;
+  const realmId = localStorage.getItem("realm_id");
+  const currentMonth = new Date().toLocaleDateString('en-US', { month: 'long' });
+  const inactiveLicenses = licenses.length - activeLicenses.length;
+  const [recentReports, setRecentReports] = useState([]);
+  const [loadingReports, setLoadingReports] = useState(true);
+
+  // Fetch recent reports
+  useEffect(() => {
+    const fetchRecentReports = async () => {
+      try {
+        setLoadingReports(true);
+        const [rvcrRes, paymentRes] = await Promise.all([
+          fetch(`${backendURL}/api/rvcr/list/${realmId}`).catch(() => null),
+          fetch(`${backendURL}/api/payment-summary/list/${realmId}`).catch(() => null),
+        ]);
+
+        const rvcrData = rvcrRes?.ok ? await rvcrRes.json() : { reports: [] };
+        const paymentData = paymentRes?.ok ? await paymentRes.json() : { reports: [] };
+
+        // Combine and sort by date, take last 5
+        const allReports = [
+          ...((rvcrData.reports || []).map(r => ({ ...r, type: 'RVCR' }))),
+          ...((paymentData.reports || []).map(r => ({ ...r, type: 'Payment Summary' }))),
+        ]
+        .sort((a, b) => new Date(b.generated_at) - new Date(a.generated_at))
+        .slice(0, 5);
+
+        setRecentReports(allReports);
+      } catch (err) {
+        console.error('Error fetching reports:', err);
+      } finally {
+        setLoadingReports(false);
+      }
+    };
+
+    if (realmId) {
+      fetchRecentReports();
+    }
+  }, [backendURL, realmId]);
+
   const stats = [
     { 
       label: "Active Franchises", 
@@ -300,6 +582,8 @@ function OverviewSection({ user, licenses, activeLicenses, subscription, onManag
       icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2"><path d="M3 21h18M9 8h1M9 12h1M9 16h1M14 8h1M14 12h1M14 16h1M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16"/></svg>,
       color: "#059669",
       bgColor: "#ECFDF5",
+      trend: "+12%",
+      trendUp: true,
     },
     { 
       label: "Subscription Status", 
@@ -324,25 +608,56 @@ function OverviewSection({ user, licenses, activeLicenses, subscription, onManag
     },
   ];
 
+  // Mock data for charts - replace with real data when available
+  const monthlyData = [
+    { label: 'Jul', value: 3, color: '#059669', colorEnd: '#047857' },
+    { label: 'Aug', value: 5, color: '#059669', colorEnd: '#047857' },
+    { label: 'Sep', value: 4, color: '#059669', colorEnd: '#047857' },
+    { label: 'Oct', value: 7, color: '#059669', colorEnd: '#047857' },
+    { label: 'Nov', value: 6, color: '#059669', colorEnd: '#047857' },
+    { label: 'Dec', value: activeLicenses.length || 8, color: '#059669', colorEnd: '#047857' },
+  ];
+
+  const recentActivities = [
+    { 
+      icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>,
+      title: 'Report Generated',
+      time: 'Just now',
+      color: '#059669',
+    },
+    { 
+      icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 21h18M9 8h1M9 12h1M9 16h1M14 8h1M14 12h1M14 16h1M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16"/></svg>,
+      title: 'Franchise Synced',
+      time: '2 hours ago',
+      color: '#3B82F6',
+    },
+    { 
+      icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>,
+      title: 'QuickBooks Connected',
+      time: '1 day ago',
+      color: '#8B5CF6',
+    },
+  ];
+
   return (
     <div style={styles.section}>
       {/* Welcome Card */}
       <div style={styles.welcomeCard}>
         <div style={styles.welcomeContent}>
           <h2 style={styles.welcomeTitle}>Welcome back, {user?.full_name?.split(' ')[0] || 'User'}</h2>
-          <p style={styles.welcomeText}>Here's an overview of your franchise operations.</p>
+          <p style={styles.welcomeText}>Here's an overview of your franchise operations for {currentMonth}.</p>
         </div>
         {!subscription && (
           <button onClick={() => navigate("/subscribe")} style={styles.subscribeBtn}>
             Subscribe Now
           </button>
-              )}
+        )}
       </div>
 
       {/* Stats Grid */}
       <div style={styles.statsGrid}>
         {stats.map((stat, i) => (
-          <div key={i} style={styles.statCard}>
+          <div key={i} style={{...styles.statCard, animation: `slideUp 0.4s ease ${i * 0.1}s both`}}>
             <div style={{ ...styles.statIcon, background: stat.bgColor }}>
               {stat.icon}
             </div>
@@ -354,53 +669,251 @@ function OverviewSection({ user, licenses, activeLicenses, subscription, onManag
                 )}
               </div>
               <div style={styles.statLabel}>{stat.label}</div>
+              {stat.trend && (
+                <div style={{ 
+                  fontSize: 12, 
+                  fontWeight: 600, 
+                  color: stat.trendUp ? '#059669' : '#EF4444',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  marginTop: 4,
+                }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    {stat.trendUp ? <path d="M7 17l5-5 5 5M7 7l5 5 5-5"/> : <path d="M7 7l5 5 5-5M7 17l5-5 5 5"/>}
+                  </svg>
+                  {stat.trend} this month
+                </div>
+              )}
             </div>
           </div>
         ))}
       </div>
 
-      {/* Quick Actions */}
-      <h3 style={styles.sectionTitle}>Quick Actions</h3>
-      <div style={styles.actionsGrid}>
-        <button onClick={() => setActiveSection("franchises")} style={styles.actionCard}>
-          <div style={{ ...styles.actionIcon, background: '#ECFDF5' }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2">
-              <path d="M3 21h18M9 8h1M9 12h1M9 16h1M14 8h1M14 12h1M14 16h1M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16"/>
-            </svg>
+      {/* Charts Row */}
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24, marginBottom: 32 }}>
+        {/* Activity Chart */}
+        <div style={styles.chartCard}>
+          <div style={styles.chartHeader}>
+            <div>
+              <h3 style={styles.chartTitle}>Franchise Activity</h3>
+              <p style={styles.chartSubtitle}>Monthly active franchises over time</p>
+            </div>
+            <div style={styles.chartLegend}>
+              <span style={styles.legendItem}>
+                <span style={{ ...styles.legendDot, background: '#059669' }}></span>
+                Active
+              </span>
+            </div>
           </div>
-          <span style={styles.actionLabel}>Manage Franchises</span>
-          <span style={styles.actionArrow}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2">
-              <path d="M9 18l6-6-6-6"/>
-            </svg>
-                </span>
-        </button>
-        <button onClick={() => setActiveSection("reports")} style={styles.actionCard}>
-          <div style={{ ...styles.actionIcon, background: '#EFF6FF' }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2">
-              <path d="M18 20V10M12 20V4M6 20v-6"/>
-            </svg>
+          <SimpleBarChart data={monthlyData} height={180} />
+        </div>
+
+        {/* Franchise Distribution */}
+        <div style={styles.chartCard}>
+          <div style={styles.chartHeader}>
+            <div>
+              <h3 style={styles.chartTitle}>Franchise Status</h3>
+              <p style={styles.chartSubtitle}>Active vs Inactive distribution</p>
+            </div>
           </div>
-          <span style={styles.actionLabel}>View Reports</span>
-          <span style={styles.actionArrow}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2">
-              <path d="M9 18l6-6-6-6"/>
-            </svg>
-          </span>
-        </button>
-        <button onClick={onManageBilling} style={styles.actionCard}>
-          <div style={{ ...styles.actionIcon, background: '#F5F3FF' }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2">
-              <rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>
-            </svg>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px 0' }}>
+            <DonutChart value={activeLicenses.length} total={licenses.length || 1} color="#059669" />
           </div>
-          <span style={styles.actionLabel}>Manage Billing</span>
-          <span style={styles.actionArrow}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2">
-              <path d="M9 18l6-6-6-6"/>
-            </svg>
-          </span>
-        </button>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 24, paddingBottom: 16 }}>
+            <span style={styles.legendItem}>
+              <span style={{ ...styles.legendDot, background: '#059669' }}></span>
+              Active ({activeLicenses.length})
+            </span>
+            <span style={styles.legendItem}>
+              <span style={{ ...styles.legendDot, background: '#E2E8F0' }}></span>
+              Inactive ({inactiveLicenses})
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Two Column Layout */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 32 }}>
+        {/* Quick Actions */}
+        <div>
+          <h3 style={styles.sectionTitle}>Quick Actions</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <button onClick={() => setActiveSection("franchises")} style={styles.actionCard}>
+              <div style={{ ...styles.actionIcon, background: '#ECFDF5' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2">
+                  <path d="M3 21h18M9 8h1M9 12h1M9 16h1M14 8h1M14 12h1M14 16h1M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16"/>
+                </svg>
+              </div>
+              <span style={styles.actionLabel}>Manage Franchises</span>
+              <span style={styles.actionArrow}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </span>
+            </button>
+            <button onClick={() => setActiveSection("reports")} style={styles.actionCard}>
+              <div style={{ ...styles.actionIcon, background: '#EFF6FF' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2">
+                  <path d="M18 20V10M12 20V4M6 20v-6"/>
+                </svg>
+              </div>
+              <span style={styles.actionLabel}>Generate Reports</span>
+              <span style={styles.actionArrow}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </span>
+            </button>
+            <button onClick={onManageBilling} style={styles.actionCard}>
+              <div style={{ ...styles.actionIcon, background: '#F5F3FF' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2">
+                  <rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+                </svg>
+              </div>
+              <span style={styles.actionLabel}>Manage Billing</span>
+              <span style={styles.actionArrow}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {/* Recent Activity */}
+        <div>
+          <h3 style={styles.sectionTitle}>Recent Activity</h3>
+          <div style={styles.activityCard}>
+            {recentActivities.map((activity, i) => (
+              <ActivityItem key={i} {...activity} />
+            ))}
+            <div style={{ padding: '16px 0 4px', textAlign: 'center' }}>
+              <button style={{ 
+                background: 'none', 
+                border: 'none', 
+                color: '#059669', 
+                fontSize: 13, 
+                fontWeight: 600, 
+                cursor: 'pointer' 
+              }}>
+                View All Activity →
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Recent Reports Summary */}
+      <div style={{ marginBottom: 32 }}>
+        <div style={styles.sectionHeader}>
+          <h3 style={styles.sectionTitle}>Recent Reports</h3>
+          <button onClick={() => setActiveSection("reports")} style={styles.viewAllBtn}>View All Reports</button>
+        </div>
+        <div style={styles.reportsTableCard}>
+          {loadingReports ? (
+            <div style={{ padding: 40, textAlign: 'center' }}>
+              <div style={{ 
+                width: 32, 
+                height: 32, 
+                border: '3px solid #E2E8F0', 
+                borderTopColor: '#059669', 
+                borderRadius: '50%', 
+                animation: 'spin 1s linear infinite',
+                margin: '0 auto 12px',
+              }} />
+              <span style={{ color: '#64748B', fontSize: 14 }}>Loading reports...</span>
+            </div>
+          ) : recentReports.length > 0 ? (
+            <table style={styles.reportsTable}>
+              <thead>
+                <tr>
+                  <th style={styles.reportsTableHeader}>Franchise</th>
+                  <th style={styles.reportsTableHeader}>Report Type</th>
+                  <th style={styles.reportsTableHeader}>Period</th>
+                  <th style={styles.reportsTableHeader}>Generated</th>
+                  <th style={styles.reportsTableHeader}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentReports.map((report, idx) => {
+                  const periodDisplay = report.period_month 
+                    ? (report.period_month.length === 6 
+                      ? `${report.period_month.slice(0, 2)}/${report.period_month.slice(2)}` 
+                      : `${report.period_month}/${report.period_year || ''}`)
+                    : 'N/A';
+                  return (
+                    <tr key={report.id || idx} style={styles.reportsTableRow}>
+                      <td style={styles.reportsTableCell}>
+                        <span style={{ fontWeight: 600, color: '#0F172A' }}>#{report.franchise_number}</span>
+                      </td>
+                      <td style={styles.reportsTableCell}>
+                        <span style={{
+                          padding: '4px 10px',
+                          borderRadius: 6,
+                          fontSize: 12,
+                          fontWeight: 600,
+                          background: report.type === 'RVCR' ? '#ECFDF5' : '#EFF6FF',
+                          color: report.type === 'RVCR' ? '#059669' : '#3B82F6',
+                        }}>
+                          {report.type}
+                        </span>
+                      </td>
+                      <td style={styles.reportsTableCell}>{periodDisplay}</td>
+                      <td style={styles.reportsTableCell}>
+                        {new Date(report.generated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </td>
+                      <td style={styles.reportsTableCell}>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          {report.excel_download_url && (
+                            <a href={report.excel_download_url} target="_blank" rel="noopener noreferrer" style={styles.reportActionBtn}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                              </svg>
+                              Excel
+                            </a>
+                          )}
+                          {report.pdf_download_url && (
+                            <a href={report.pdf_download_url} target="_blank" rel="noopener noreferrer" style={styles.reportActionBtn}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
+                              </svg>
+                              PDF
+                            </a>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          ) : (
+            <div style={{ padding: 40, textAlign: 'center' }}>
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="1.5" style={{ marginBottom: 12 }}>
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
+              </svg>
+              <p style={{ color: '#64748B', fontSize: 14, margin: 0 }}>No reports generated yet</p>
+              <button 
+                onClick={() => setActiveSection("reports")} 
+                style={{ 
+                  marginTop: 16, 
+                  padding: '8px 16px', 
+                  background: '#059669', 
+                  color: '#fff', 
+                  border: 'none', 
+                  borderRadius: 8, 
+                  fontSize: 13, 
+                  fontWeight: 600, 
+                  cursor: 'pointer' 
+                }}
+              >
+                Generate Your First Report
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Recent Franchises Preview */}
@@ -411,8 +924,14 @@ function OverviewSection({ user, licenses, activeLicenses, subscription, onManag
             <button onClick={() => setActiveSection("franchises")} style={styles.viewAllBtn}>View All</button>
           </div>
           <div style={styles.franchisePreviewGrid}>
-            {activeLicenses.slice(0, 4).map((license) => (
-              <div key={license.franchise_number} style={styles.franchisePreviewCard}>
+            {activeLicenses.slice(0, 4).map((license, index) => (
+              <div 
+                key={license.franchise_number} 
+                style={{
+                  ...styles.franchisePreviewCard,
+                  animation: `slideUp 0.4s ease ${index * 0.1}s both`,
+                }}
+              >
                 <div style={styles.franchisePreviewHeader}>
                   <span style={styles.franchiseNum}>#{license.franchise_number}</span>
                   <span style={styles.activeBadge}>Active</span>
@@ -1774,6 +2293,82 @@ const keyframes = `
   @keyframes spin {
     to { transform: rotate(360deg); }
   }
+  
+  @keyframes slideDown {
+    from { 
+      opacity: 0; 
+      transform: translateY(-10px); 
+    }
+    to { 
+      opacity: 1; 
+      transform: translateY(0); 
+    }
+  }
+  
+  @keyframes slideUp {
+    from { 
+      opacity: 0; 
+      transform: translateY(10px); 
+    }
+    to { 
+      opacity: 1; 
+      transform: translateY(0); 
+    }
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  @keyframes sidebarCollapseDown {
+    0% { 
+      opacity: 1; 
+      transform: translateY(0); 
+    }
+    50% { 
+      opacity: 0; 
+      transform: translateY(100%); 
+    }
+    51% {
+      opacity: 0;
+      transform: translateY(-100%);
+    }
+    100% { 
+      opacity: 1; 
+      transform: translateY(0); 
+    }
+  }
+  
+  @keyframes sidebarExpandUp {
+    0% { 
+      opacity: 1; 
+      transform: translateY(0); 
+    }
+    50% { 
+      opacity: 0; 
+      transform: translateY(100%); 
+    }
+    51% {
+      opacity: 0;
+      transform: translateY(-100%);
+    }
+    100% { 
+      opacity: 1; 
+      transform: translateY(0); 
+    }
+  }
+  
+  @keyframes navItemSlideIn {
+    from {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
 `;
 
 const styles = {
@@ -2026,6 +2621,101 @@ const styles = {
     color: '#64748B',
     marginLeft: 8,
   },
+
+  // Company Switcher
+  companySwitcherBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    padding: '8px 14px',
+    background: '#F8FAFC',
+    border: '1px solid #E2E8F0',
+    borderRadius: 10,
+    cursor: 'pointer',
+    transition: 'all 0.15s',
+  },
+  companyBadgeText: {
+    fontSize: 13,
+    fontWeight: 500,
+    color: '#475569',
+    maxWidth: 200,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  companyDropdown: {
+    position: 'absolute',
+    top: 'calc(100% + 8px)',
+    left: 0,
+    minWidth: 280,
+    background: '#fff',
+    border: '1px solid #E2E8F0',
+    borderRadius: 12,
+    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.12)',
+    zIndex: 100,
+    overflow: 'hidden',
+    animation: 'slideDown 0.2s ease',
+  },
+  companyDropdownHeader: {
+    padding: '12px 16px',
+    borderBottom: '1px solid #F1F5F9',
+    background: '#F8FAFC',
+  },
+  companyDropdownTitle: {
+    fontSize: 12,
+    fontWeight: 600,
+    color: '#64748B',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+  },
+  companyDropdownItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    width: '100%',
+    padding: '12px 16px',
+    background: 'transparent',
+    border: 'none',
+    cursor: 'pointer',
+    transition: 'all 0.15s',
+    textAlign: 'left',
+  },
+  companyDropdownItemActive: {
+    background: '#ECFDF5',
+  },
+  companyDropdownItemIcon: {
+    width: 36,
+    height: 36,
+    background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+    borderRadius: 8,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: '#fff',
+    fontWeight: 600,
+    fontSize: 14,
+  },
+  companyDropdownItemInfo: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 2,
+  },
+  companyDropdownItemName: {
+    fontSize: 14,
+    fontWeight: 600,
+    color: '#0F172A',
+  },
+  companyDropdownItemStatus: {
+    fontSize: 12,
+    color: '#64748B',
+  },
+  companyDropdownEmpty: {
+    padding: '20px 16px',
+    textAlign: 'center',
+    color: '#64748B',
+    fontSize: 13,
+  },
   
   // Content
   content: {
@@ -2036,6 +2726,54 @@ const styles = {
     margin: '0 auto',
   },
   
+  // Chart Styles
+  chartCard: {
+    background: '#fff',
+    border: '1px solid #E2E8F0',
+    borderRadius: 16,
+    padding: 24,
+  },
+  chartHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  chartTitle: {
+    fontSize: 16,
+    fontWeight: 600,
+    color: '#0F172A',
+    margin: 0,
+  },
+  chartSubtitle: {
+    fontSize: 13,
+    color: '#64748B',
+    marginTop: 4,
+    marginBottom: 0,
+  },
+  chartLegend: {
+    display: 'flex',
+    gap: 16,
+  },
+  legendItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    fontSize: 12,
+    color: '#64748B',
+  },
+  legendDot: {
+    width: 8,
+    height: 8,
+    borderRadius: '50%',
+  },
+  activityCard: {
+    background: '#fff',
+    border: '1px solid #E2E8F0',
+    borderRadius: 14,
+    padding: '4px 20px',
+  },
+
   // Welcome Card
   welcomeCard: {
     background: 'linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)',
@@ -2214,6 +2952,52 @@ const styles = {
   franchisePreviewLocation: {
     fontSize: 13,
     color: '#64748B',
+  },
+  
+  // Reports Table (Overview)
+  reportsTableCard: {
+    background: '#fff',
+    border: '1px solid #E2E8F0',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  reportsTable: {
+    width: '100%',
+    borderCollapse: 'collapse',
+  },
+  reportsTableHeader: {
+    padding: '14px 16px',
+    textAlign: 'left',
+    fontSize: 12,
+    fontWeight: 600,
+    color: '#64748B',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+    background: '#F8FAFC',
+    borderBottom: '1px solid #E2E8F0',
+  },
+  reportsTableRow: {
+    borderBottom: '1px solid #F1F5F9',
+    transition: 'background 0.15s ease',
+  },
+  reportsTableCell: {
+    padding: '14px 16px',
+    fontSize: 14,
+    color: '#475569',
+  },
+  reportActionBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 4,
+    padding: '6px 10px',
+    background: '#F8FAFC',
+    border: '1px solid #E2E8F0',
+    borderRadius: 6,
+    color: '#475569',
+    fontSize: 12,
+    fontWeight: 500,
+    textDecoration: 'none',
+    transition: 'all 0.15s ease',
   },
   
   // Franchise Section
