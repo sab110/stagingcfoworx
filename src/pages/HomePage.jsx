@@ -616,14 +616,19 @@ const styles = `
     min-height: 100vh;
     display: flex;
     align-items: center;
+    justify-content: center;
     padding: 120px 32px 80px;
     overflow: hidden;
+    max-width: 1400px;
+    margin: 0 auto;
+    gap: 60px;
   }
 
   .hero-bg {
-    position: absolute;
+    position: fixed;
     inset: 0;
     pointer-events: none;
+    z-index: 0;
   }
 
   .hero-gradient {
@@ -645,6 +650,7 @@ const styles = `
 
   .hero-content {
     position: relative;
+    flex: 1;
     max-width: 600px;
     z-index: 1;
   }
@@ -754,19 +760,28 @@ const styles = `
   }
 
   .hero-visual {
-    position: absolute;
-    right: 5%;
-    top: 50%;
-    transform: translateY(-50%);
+    position: relative;
+    flex: 1;
+    max-width: 520px;
     z-index: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
 
   .dashboard-preview {
-    width: 500px;
+    width: 100%;
+    max-width: 500px;
     background: #fff;
     border-radius: 20px;
     box-shadow: 0 25px 80px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05);
     overflow: hidden;
+    animation: float 6s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-12px); }
   }
 
   .preview-header {
@@ -1261,18 +1276,36 @@ const styles = `
   }
 
   /* Responsive */
+  @media (max-width: 1200px) {
+    .hero {
+      gap: 40px;
+    }
+
+    .dashboard-preview {
+      max-width: 420px;
+    }
+  }
+
   @media (max-width: 1024px) {
-    .hero-visual {
-      display: none;
+    .hero {
+      flex-direction: column;
+      text-align: center;
+      gap: 60px;
+      min-height: auto;
+      padding: 120px 32px 80px;
     }
 
     .hero-content {
-      max-width: 100%;
-      text-align: center;
+      max-width: 600px;
     }
 
-    .hero {
-      justify-content: center;
+    .hero-visual {
+      max-width: 100%;
+      order: 1;
+    }
+
+    .dashboard-preview {
+      max-width: 480px;
     }
 
     .hero-cta {
@@ -1315,7 +1348,10 @@ const styles = `
 
     .hero {
       padding: 100px 20px 60px;
-      min-height: auto;
+    }
+
+    .hero-visual {
+      display: none;
     }
 
     .hero-cta {

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Spinner, LoadingScreen, ErrorScreen, Alert, Pagination } from "../components/ui";
 
 export default function Dashboard() {
   const backendURL = import.meta.env.VITE_BACKEND_URL;
@@ -118,30 +119,23 @@ export default function Dashboard() {
   };
 
   if (loading) {
-  return (
-      <div style={styles.loadingContainer}>
-        <div style={styles.spinner}></div>
-        <p style={styles.loadingText}>Loading your dashboard...</p>
-        <style>{keyframes}</style>
-      </div>
+    return (
+      <LoadingScreen 
+        message="Loading your dashboard..."
+        submessage="Fetching your franchise data"
+        showLogo={true}
+      />
     );
   }
 
   if (error) {
     return (
-      <div style={styles.errorContainer}>
-        <div style={styles.errorIcon}>
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2">
-            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-          </svg>
-        </div>
-        <h2 style={styles.errorTitle}>Something went wrong</h2>
-        <p style={styles.errorText}>{error}</p>
-        <button onClick={() => navigate("/login")} style={styles.errorBtn}>
-          Back to Login
-        </button>
-        <style>{keyframes}</style>
-      </div>
+      <ErrorScreen 
+        title="Something went wrong"
+        message={error}
+        onRetry={() => window.location.reload()}
+        onBack={() => navigate("/login")}
+      />
     );
   }
 
@@ -690,12 +684,13 @@ function FranchisesSection({ licenses, setLicenses, realmId, backendURL, refresh
 
       {/* Messages */}
       {message.text && (
-        <div style={{
-          ...styles.message,
-          ...(message.type === 'success' ? styles.messageSuccess : styles.messageError)
-        }}>
+        <Alert 
+          type={message.type === 'success' ? 'success' : 'error'} 
+          style={{ marginBottom: 24 }}
+          onClose={() => setMessage({ type: '', text: '' })}
+        >
           {message.text}
-        </div>
+        </Alert>
       )}
 
       {/* Table */}
@@ -1096,8 +1091,9 @@ function ReportsSection() {
   if (loading) {
     return (
       <div style={styles.section}>
-        <div style={{ textAlign: 'center', padding: 60, color: '#64748B' }}>
-          Loading reports...
+        <div style={{ textAlign: 'center', padding: 60, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+          <Spinner size="lg" color="primary" />
+          <span style={{ color: '#64748B', fontSize: 15 }}>Loading reports...</span>
         </div>
       </div>
     );
@@ -1215,7 +1211,7 @@ function ReportsSection() {
             >
               {generating ? (
                 <>
-                  <span style={reportsStyles.spinner}></span>
+                  <Spinner size="xs" color="white" />
                   Generating...
                 </>
               ) : (
@@ -1242,7 +1238,7 @@ function ReportsSection() {
             >
               {generatingAll ? (
                 <>
-                  <span style={reportsStyles.spinner}></span>
+                  <Spinner size="xs" color="primary" />
                   Generating All...
                 </>
               ) : (
@@ -1271,13 +1267,13 @@ function ReportsSection() {
 
       {/* Messages */}
       {message.text && (
-        <div style={{
-          ...reportsStyles.message,
-          ...(message.type === 'success' ? reportsStyles.messageSuccess : 
-              message.type === 'warning' ? reportsStyles.messageWarning : reportsStyles.messageError)
-        }}>
+        <Alert 
+          type={message.type === 'success' ? 'success' : message.type === 'warning' ? 'warning' : 'error'} 
+          style={{ marginBottom: 24 }}
+          onClose={() => setMessage({ type: '', text: '' })}
+        >
           {message.text}
-        </div>
+        </Alert>
       )}
 
       {/* Reports List */}
@@ -1501,14 +1497,6 @@ const reportsStyles = {
     fontSize: 14,
     fontWeight: 600,
     cursor: 'pointer',
-  },
-  spinner: {
-    width: 14,
-    height: 14,
-    border: '2px solid transparent',
-    borderTopColor: 'currentColor',
-    borderRadius: '50%',
-    animation: 'spin 1s linear infinite',
   },
   infoNote: {
     display: 'flex',
