@@ -412,12 +412,6 @@ export default function HomePage() {
             <p className="footer-copyright">
               © {new Date().getFullYear()} RoyaltiesAgent by CFOWORX. All rights reserved.
             </p>
-            <div className="footer-secure">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-              </svg>
-              <span>Secured by Stripe</span>
-            </div>
           </div>
         </div>
       </footer>
@@ -625,7 +619,7 @@ const styles = `
   }
 
   .hero-bg {
-    position: fixed;
+    position: absolute;
     inset: 0;
     pointer-events: none;
     z-index: 0;
@@ -1232,9 +1226,6 @@ const styles = `
   }
 
   .footer-bottom {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
     padding-top: 32px;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
   }
@@ -1243,14 +1234,6 @@ const styles = `
     font-size: 14px;
     color: #64748B;
     margin: 0;
-  }
-
-  .footer-secure {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    color: #64748B;
   }
 
   /* Animations */

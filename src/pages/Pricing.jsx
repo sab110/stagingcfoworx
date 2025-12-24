@@ -470,18 +470,18 @@ export default function Pricing() {
             <div style={styles.footerLinkGroup}>
               <h4 style={styles.footerLinkTitle}>Product</h4>
               <a href="/pricing" style={styles.footerLink}>Pricing</a>
-              <a href="/about" style={styles.footerLink}>About</a>
+              <a href="/about" style={styles.footerLink}>Features</a>
               <a href="/contact" style={styles.footerLink}>Contact</a>
             </div>
             <div style={styles.footerLinkGroup}>
-              <h4 style={styles.footerLinkTitle}>Legal</h4>
-              <a href="/privacy" style={styles.footerLink}>Privacy Policy</a>
-              <a href="/terms" style={styles.footerLink}>Terms of Service</a>
+              <h4 style={styles.footerLinkTitle}>Company</h4>
+              <a href="/about" style={styles.footerLink}>About Us</a>
+              <a href="https://cfoworx.com" target="_blank" rel="noopener noreferrer" style={styles.footerLink}>CFOWORX</a>
             </div>
             <div style={styles.footerLinkGroup}>
-              <h4 style={styles.footerLinkTitle}>Support</h4>
-              <a href="/contact" style={styles.footerLink}>Help Center</a>
-              <a href="mailto:support@cfoworx.com" style={styles.footerLink}>support@cfoworx.com</a>
+              <h4 style={styles.footerLinkTitle}>Legal</h4>
+              <a href="/privacy-policy" style={styles.footerLink}>Privacy Policy</a>
+              <a href="/terms-of-service" style={styles.footerLink}>Terms of Service</a>
             </div>
           </div>
         </div>
@@ -490,14 +490,6 @@ export default function Pricing() {
           <p style={styles.footerCopyright}>
             © {new Date().getFullYear()} RoyaltiesAgent by CFOWORX. All rights reserved.
           </p>
-          <div style={styles.footerSocial}>
-            <span style={styles.footerSecure}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-              </svg>
-              Secured by Stripe
-            </span>
-          </div>
         </div>
       </footer>
     </div>
@@ -1314,28 +1306,11 @@ const styles = {
     margin: '0 auto',
     paddingTop: '32px',
     borderTop: '1px solid rgba(255,255,255,0.1)',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: '16px',
   },
   footerCopyright: {
     fontSize: '14px',
     color: '#64748B',
     margin: 0,
-  },
-  footerSocial: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px',
-  },
-  footerSecure: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    fontSize: '13px',
-    color: '#64748B',
   },
 };
 

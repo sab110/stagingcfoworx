@@ -357,7 +357,7 @@ export default function ContactPage() {
                 </div>
               </Link>
               <p className="footer-brand-desc">
-                Automated royalty reporting for franchise businesses.
+                Automated royalty reporting for franchise businesses. Seamlessly integrated with QuickBooks.
               </p>
             </div>
 
@@ -366,6 +366,12 @@ export default function ContactPage() {
                 <h4 className="footer-link-title">Product</h4>
                 <Link to="/pricing" className="footer-link">Pricing</Link>
                 <Link to="/about" className="footer-link">Features</Link>
+                <Link to="/contact" className="footer-link">Contact</Link>
+              </div>
+              <div className="footer-link-group">
+                <h4 className="footer-link-title">Company</h4>
+                <Link to="/about" className="footer-link">About Us</Link>
+                <a href="https://cfoworx.com" target="_blank" rel="noopener noreferrer" className="footer-link">CFOWORX</a>
               </div>
               <div className="footer-link-group">
                 <h4 className="footer-link-title">Legal</h4>
@@ -955,7 +961,7 @@ const styles = `
   .footer {
     background: #0F172A;
     color: #fff;
-    padding: 60px 32px 32px;
+    padding: 80px 32px 32px;
   }
 
   .footer-container {
@@ -967,11 +973,11 @@ const styles = `
     display: flex;
     justify-content: space-between;
     gap: 60px;
-    margin-bottom: 40px;
+    margin-bottom: 60px;
   }
 
   .footer-brand { max-width: 320px; }
-  .footer-brand .logo { margin-bottom: 16px; }
+  .footer-brand .logo { margin-bottom: 20px; }
   .footer-brand .logo-icon { background: linear-gradient(135deg, #059669 0%, #047857 100%); }
   .footer-brand .logo-text { color: #fff; }
   .footer-brand .logo-subtext { color: #64748B; }
@@ -979,16 +985,16 @@ const styles = `
   .footer-brand-desc {
     font-size: 14px;
     color: #94A3B8;
-    line-height: 1.6;
+    line-height: 1.7;
     margin: 0;
   }
 
-  .footer-links { display: flex; gap: 60px; }
+  .footer-links { display: flex; gap: 80px; }
 
   .footer-link-group {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 14px;
   }
 
   .footer-link-title {
@@ -997,7 +1003,7 @@ const styles = `
     color: #fff;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin: 0 0 4px;
+    margin: 0 0 8px;
   }
 
   .footer-link {
@@ -1010,7 +1016,7 @@ const styles = `
   .footer-link:hover { color: #fff; }
 
   .footer-bottom {
-    padding-top: 24px;
+    padding-top: 32px;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
   }
 
@@ -1033,5 +1039,6 @@ const styles = `
     .section-title { font-size: 32px; }
     .form-row { grid-template-columns: 1fr; }
     .footer-top { flex-direction: column; gap: 40px; }
+    .footer-links { flex-wrap: wrap; gap: 40px; }
   }
 `;
