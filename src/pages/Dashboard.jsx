@@ -334,23 +334,140 @@ function SimpleBarChart({ data, height = 200 }) {
   const maxValue = Math.max(...data.map(d => d.value), 1);
   
   return (
-    <div style={{ height, display: 'flex', alignItems: 'flex-end', gap: 8, padding: '20px 0' }}>
+    <div style={{ height, display: 'flex', alignItems: 'flex-end', gap: 12, padding: '20px 10px' }}>
       {data.map((item, index) => (
         <div key={index} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: '#0F172A' }}>{item.value}</span>
           <div 
             style={{ 
               width: '100%', 
-              maxWidth: 60,
-              height: `${(item.value / maxValue) * (height - 60)}px`,
-              minHeight: 4,
+              maxWidth: 50,
+              height: `${Math.max((item.value / maxValue) * (height - 80), 8)}px`,
               background: `linear-gradient(180deg, ${item.color || '#059669'} 0%, ${item.colorEnd || '#047857'} 100%)`,
-              borderRadius: '6px 6px 0 0',
+              borderRadius: 6,
               transition: 'height 0.5s ease',
+              boxShadow: '0 2px 8px rgba(5, 150, 105, 0.2)',
             }} 
           />
-          <span style={{ fontSize: 12, color: '#64748B', fontWeight: 500 }}>{item.label}</span>
+          <span style={{ fontSize: 11, color: '#64748B', fontWeight: 500 }}>{item.label}</span>
         </div>
       ))}
+    </div>
+  );
+}
+
+// Line Chart Component
+function LineChart({ data, height = 150, color = '#059669' }) {
+  const maxValue = Math.max(...data.map(d => d.value), 1);
+  const minValue = Math.min(...data.map(d => d.value), 0);
+  const range = maxValue - minValue || 1;
+  const padding = 30;
+  const chartWidth = 100;
+  const chartHeight = height - padding * 2;
+  
+  const points = data.map((item, index) => {
+    const x = (index / (data.length - 1)) * chartWidth;
+    const y = chartHeight - ((item.value - minValue) / range) * chartHeight;
+    return `${x},${y}`;
+  }).join(' ');
+  
+  const areaPoints = `0,${chartHeight} ${points} ${chartWidth},${chartHeight}`;
+  
+  return (
+    <div style={{ height, padding: '10px 0' }}>
+      <svg width="100%" height={height} viewBox={`-5 -10 110 ${height}`} preserveAspectRatio="none">
+        {/* Grid lines */}
+        {[0, 25, 50, 75, 100].map(y => (
+          <line key={y} x1="0" y1={(y / 100) * chartHeight} x2="100" y2={(y / 100) * chartHeight} 
+            stroke="#E2E8F0" strokeWidth="0.5" strokeDasharray="2,2" />
+        ))}
+        {/* Area fill */}
+        <polygon points={areaPoints} fill={`${color}15`} />
+        {/* Line */}
+        <polyline points={points} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        {/* Data points */}
+        {data.map((item, index) => {
+          const x = (index / (data.length - 1)) * chartWidth;
+          const y = chartHeight - ((item.value - minValue) / range) * chartHeight;
+          return (
+            <circle key={index} cx={x} cy={y} r="3" fill="white" stroke={color} strokeWidth="2" />
+          );
+        })}
+      </svg>
+      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0 0' }}>
+        {data.map((item, i) => (
+          <span key={i} style={{ fontSize: 10, color: '#64748B' }}>{item.label}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Horizontal Bar Chart Component
+function HorizontalBarChart({ data, height = 200 }) {
+  const maxValue = Math.max(...data.map(d => d.value), 1);
+  
+  return (
+    <div style={{ padding: '10px 0' }}>
+      {data.map((item, index) => (
+        <div key={index} style={{ marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 500, color: '#334155' }}>{item.label}</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: item.color || '#059669' }}>{item.value}</span>
+          </div>
+          <div style={{ height: 8, background: '#E2E8F0', borderRadius: 4, overflow: 'hidden' }}>
+            <div style={{
+              height: '100%',
+              width: `${(item.value / maxValue) * 100}%`,
+              background: `linear-gradient(90deg, ${item.color || '#059669'}, ${item.colorEnd || '#047857'})`,
+              borderRadius: 4,
+              transition: 'width 0.5s ease',
+            }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Mini Sparkline Component
+function Sparkline({ data, color = '#059669', width = 80, height = 30 }) {
+  if (!data || data.length < 2) return null;
+  const max = Math.max(...data);
+  const min = Math.min(...data);
+  const range = max - min || 1;
+  
+  const points = data.map((val, i) => {
+    const x = (i / (data.length - 1)) * width;
+    const y = height - ((val - min) / range) * height;
+    return `${x},${y}`;
+  }).join(' ');
+  
+  return (
+    <svg width={width} height={height} style={{ display: 'block' }}>
+      <polyline points={points} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// Progress Ring Component
+function ProgressRing({ value, max, color = '#059669', size = 60, strokeWidth = 6 }) {
+  const percentage = max > 0 ? (value / max) * 100 : 0;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (percentage / 100) * circumference;
+  
+  return (
+    <div style={{ position: 'relative', width: size, height: size }}>
+      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+        <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke="#E2E8F0" strokeWidth={strokeWidth} />
+        <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke={color} strokeWidth={strokeWidth}
+          strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round"
+          style={{ transition: 'stroke-dashoffset 0.5s ease' }} />
+      </svg>
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color }}>{Math.round(percentage)}%</span>
+      </div>
     </div>
   );
 }
@@ -608,87 +725,169 @@ function OverviewSection({ user, licenses, activeLicenses, subscription, onManag
     color: activity.type === 'report' ? '#059669' : '#3B82F6',
   })) || [];
 
+  // Report breakdown data for charts
+  const reportBreakdown = [
+    { label: 'RVCR Reports', value: reportData.total_rvcr, color: '#059669', colorEnd: '#047857' },
+    { label: 'Payment Summary', value: reportData.total_payment_summary, color: '#3B82F6', colorEnd: '#2563EB' },
+  ];
+
+  // Simulated trend data for line chart (would come from analytics in production)
+  const trendData = monthlyData.map((item, i) => ({
+    label: item.label,
+    value: item.value + Math.floor(Math.random() * 2), // Simulated cumulative
+  }));
+
   return (
     <div style={styles.section}>
-      {/* Welcome Card */}
-      <div style={styles.welcomeCard}>
-        <div style={styles.welcomeContent}>
-          <h2 style={styles.welcomeTitle}>Welcome back, {user?.full_name?.split(' ')[0] || 'User'}</h2>
-          <p style={styles.welcomeText}>Here's an overview of your franchise operations for {currentMonth}.</p>
+      {/* Hero Section - Welcome + Key Metrics */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 2fr',
+        gap: 24,
+        marginBottom: 24,
+      }}>
+        {/* Welcome Card */}
+        <div style={{
+          ...styles.welcomeCard,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          minHeight: 180,
+        }}>
+          <h2 style={{ ...styles.welcomeTitle, marginBottom: 8 }}>
+            Welcome back, {user?.full_name?.split(' ')[0] || 'User'}
+          </h2>
+          <p style={{ ...styles.welcomeText, marginBottom: 20 }}>
+            Here's your franchise overview for {currentMonth}.
+          </p>
+          {!subscription ? (
+            <button onClick={() => navigate("/subscribe")} style={styles.subscribeBtn}>
+              Subscribe Now
+            </button>
+          ) : (
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button onClick={() => setActiveSection("reports")} style={{
+                padding: '10px 20px',
+                background: '#059669',
+                color: 'white',
+                border: 'none',
+                borderRadius: 8,
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontSize: 13,
+              }}>
+                Generate Report
+              </button>
+              <button onClick={() => setActiveSection("franchises")} style={{
+                padding: '10px 20px',
+                background: 'rgba(255,255,255,0.2)',
+                color: '#065F46',
+                border: '1px solid rgba(5,150,105,0.3)',
+                borderRadius: 8,
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontSize: 13,
+              }}>
+                View Franchises
+              </button>
+            </div>
+          )}
         </div>
-        {!subscription && (
-          <button onClick={() => navigate("/subscribe")} style={styles.subscribeBtn}>
-            Subscribe Now
-          </button>
-        )}
-      </div>
 
-      {/* Primary Stats Grid */}
-      <div style={styles.statsGrid}>
-        {stats.map((stat, i) => (
-          <div key={i} style={{...styles.statCard, animation: `slideUp 0.4s ease ${i * 0.1}s both`}}>
-            <div style={{ ...styles.statIcon, background: stat.bgColor }}>
-              {stat.icon}
-            </div>
-            <div style={styles.statContent}>
-              <div style={{ ...styles.statValue, color: stat.color }}>
-                {loadingAnalytics ? <Spinner size="sm" /> : stat.value}
-                {stat.total !== undefined && !loadingAnalytics && (
-                  <span style={styles.statTotal}>/{stat.total}</span>
-                )}
+        {/* Key Metrics Row */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: 16,
+        }}>
+          {/* Active Franchises Card */}
+          <div style={{ ...styles.chartCard, padding: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+              <div>
+                <p style={{ fontSize: 12, color: '#64748B', margin: 0, marginBottom: 4 }}>Active Franchises</p>
+                <h3 style={{ fontSize: 28, fontWeight: 700, color: '#059669', margin: 0 }}>
+                  {loadingAnalytics ? <Spinner size="sm" /> : franchiseData.active}
+                  <span style={{ fontSize: 14, color: '#94A3B8', fontWeight: 500 }}>/{franchiseData.total}</span>
+                </h3>
               </div>
-              <div style={styles.statLabel}>{stat.label}</div>
-              {stat.subtext && (
-                <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
-                  {stat.subtext}
-                </div>
-              )}
+              <ProgressRing value={franchiseData.active} max={franchiseData.total} color="#059669" size={50} strokeWidth={5} />
+            </div>
+            <div style={{ fontSize: 11, color: '#64748B' }}>
+              <span style={{ color: '#059669', fontWeight: 600 }}>{franchiseData.inactive}</span> inactive franchises
             </div>
           </div>
-        ))}
-      </div>
 
-      {/* Secondary KPI Stats */}
-      <div style={{ ...styles.statsGrid, marginBottom: 24 }}>
-        {kpiStats.map((stat, i) => (
-          <div key={i} style={{...styles.statCard, animation: `slideUp 0.4s ease ${(i + 4) * 0.1}s both`}}>
-            <div style={{ ...styles.statIcon, background: stat.bgColor }}>
-              {stat.icon}
-            </div>
-            <div style={styles.statContent}>
-              <div style={{ ...styles.statValue, color: stat.color }}>
-                {loadingAnalytics ? <Spinner size="sm" /> : stat.value}
+          {/* Reports This Month Card */}
+          <div style={{ ...styles.chartCard, padding: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+              <div>
+                <p style={{ fontSize: 12, color: '#64748B', margin: 0, marginBottom: 4 }}>Reports This Month</p>
+                <h3 style={{ fontSize: 28, fontWeight: 700, color: '#3B82F6', margin: 0 }}>
+                  {loadingAnalytics ? <Spinner size="sm" /> : reportData.this_month}
+                </h3>
               </div>
-              <div style={styles.statLabel}>{stat.label}</div>
-              {stat.trend !== undefined && !loadingAnalytics && (
-                <div style={{ 
-                  fontSize: 11, 
-                  fontWeight: 600, 
-                  color: stat.trendUp ? '#059669' : '#EF4444',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4,
-                  marginTop: 2,
+              <div style={{ padding: 10, background: '#EFF6FF', borderRadius: 10 }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2">
+                  <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/>
+                </svg>
+              </div>
+            </div>
+            {reportData.trend_percent !== 0 && (
+              <div style={{ 
+                fontSize: 11, 
+                fontWeight: 600, 
+                color: reportData.trend_percent >= 0 ? '#059669' : '#EF4444',
+                display: 'flex', alignItems: 'center', gap: 4 
+              }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  {reportData.trend_percent >= 0 ? <path d="M18 15l-6-6-6 6"/> : <path d="M6 9l6 6 6-6"/>}
+                </svg>
+                {reportData.trend_percent > 0 ? '+' : ''}{reportData.trend_percent}% vs last month
+              </div>
+            )}
+          </div>
+
+          {/* QuickBooks Status Card */}
+          <div style={{ ...styles.chartCard, padding: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+              <div>
+                <p style={{ fontSize: 12, color: '#64748B', margin: 0, marginBottom: 4 }}>QuickBooks</p>
+                <h3 style={{ 
+                  fontSize: 20, 
+                  fontWeight: 700, 
+                  color: analytics?.quickbooks?.connected ? '#059669' : '#EF4444', 
+                  margin: 0 
                 }}>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    {stat.trendUp ? <path d="M18 15l-6-6-6 6"/> : <path d="M6 9l6 6 6-6"/>}
-                  </svg>
-                  {stat.trend > 0 ? '+' : ''}{stat.trend}% vs last month
-                </div>
-              )}
-              {stat.subtext && !stat.trend && (
-                <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
-                  {stat.subtext}
-                </div>
-              )}
+                  {loadingAnalytics ? <Spinner size="sm" /> : (analytics?.quickbooks?.connected ? 'Connected' : 'Disconnected')}
+                </h3>
+              </div>
+              <div style={{ 
+                padding: 10, 
+                background: analytics?.quickbooks?.connected ? '#ECFDF5' : '#FEF2F2', 
+                borderRadius: 10 
+              }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={analytics?.quickbooks?.connected ? '#059669' : '#EF4444'} strokeWidth="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+              </div>
             </div>
+            {analytics?.quickbooks?.last_sync && (
+              <div style={{ fontSize: 11, color: '#64748B' }}>
+                Last sync: {new Date(analytics.quickbooks.last_sync).toLocaleDateString()}
+              </div>
+            )}
           </div>
-        ))}
+        </div>
       </div>
 
-      {/* Charts Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24, marginBottom: 32 }}>
-        {/* Activity Chart */}
+      {/* Main Charts Section */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '2fr 1fr 1fr',
+        gap: 20,
+        marginBottom: 24,
+      }}>
+        {/* Report Activity - Bar Chart */}
         <div style={styles.chartCard}>
           <div style={styles.chartHeader}>
             <div>
@@ -711,127 +910,192 @@ function OverviewSection({ user, licenses, activeLicenses, subscription, onManag
           )}
         </div>
 
-        {/* Franchise Distribution */}
+        {/* Franchise Distribution - Donut */}
         <div style={styles.chartCard}>
           <div style={styles.chartHeader}>
             <div>
               <h3 style={styles.chartTitle}>Franchise Status</h3>
-              <p style={styles.chartSubtitle}>Active vs Inactive distribution</p>
+              <p style={styles.chartSubtitle}>Distribution</p>
             </div>
           </div>
           {loadingAnalytics ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 180 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 160 }}>
               <Spinner size="lg" />
             </div>
           ) : (
             <>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px 0' }}>
-                <DonutChart value={franchiseData.active} total={franchiseData.total || 1} color="#059669" />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '15px 0' }}>
+                <DonutChart value={franchiseData.active} total={franchiseData.total || 1} color="#059669" size={100} />
               </div>
-              <div style={{ display: 'flex', justifyContent: 'center', gap: 24, paddingBottom: 16 }}>
-                <span style={styles.legendItem}>
-                  <span style={{ ...styles.legendDot, background: '#059669' }}></span>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 16, paddingBottom: 8 }}>
+                <span style={{ ...styles.legendItem, fontSize: 11 }}>
+                  <span style={{ ...styles.legendDot, background: '#059669', width: 8, height: 8 }}></span>
                   Active ({franchiseData.active})
                 </span>
-                <span style={styles.legendItem}>
-                  <span style={{ ...styles.legendDot, background: '#E2E8F0' }}></span>
+                <span style={{ ...styles.legendItem, fontSize: 11 }}>
+                  <span style={{ ...styles.legendDot, background: '#E2E8F0', width: 8, height: 8 }}></span>
                   Inactive ({franchiseData.inactive})
                 </span>
               </div>
             </>
           )}
         </div>
+
+        {/* Report Breakdown - Horizontal Bars */}
+        <div style={styles.chartCard}>
+          <div style={styles.chartHeader}>
+            <div>
+              <h3 style={styles.chartTitle}>Report Types</h3>
+              <p style={styles.chartSubtitle}>Breakdown by type</p>
+            </div>
+          </div>
+          {loadingAnalytics ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 160 }}>
+              <Spinner size="lg" />
+            </div>
+          ) : (
+            <HorizontalBarChart data={reportBreakdown} />
+          )}
+        </div>
       </div>
 
-      {/* Two Column Layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 32 }}>
+      {/* Secondary Charts Row */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: 20,
+        marginBottom: 24,
+      }}>
+        {/* Trend Line Chart */}
+        <div style={styles.chartCard}>
+          <div style={styles.chartHeader}>
+            <div>
+              <h3 style={styles.chartTitle}>Activity Trend</h3>
+              <p style={styles.chartSubtitle}>6-month performance overview</p>
+            </div>
+          </div>
+          {loadingAnalytics ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 150 }}>
+              <Spinner size="lg" />
+            </div>
+          ) : (
+            <LineChart data={trendData} height={150} color="#3B82F6" />
+          )}
+        </div>
+
+        {/* Summary Stats */}
+        <div style={styles.chartCard}>
+          <div style={styles.chartHeader}>
+            <div>
+              <h3 style={styles.chartTitle}>Summary</h3>
+              <p style={styles.chartSubtitle}>Key metrics at a glance</p>
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, padding: '10px 0' }}>
+            {[
+              { label: 'Total Reports', value: reportData.total, color: '#F59E0B', icon: '📊' },
+              { label: 'Licensed Seats', value: subscription?.quantity || 0, color: '#3B82F6', icon: '👥' },
+              { label: 'Next Billing', value: subscription?.end_date ? new Date(subscription.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A', color: '#8B5CF6', icon: '📅' },
+              { label: 'Last Report', value: reportData.last_generated ? new Date(reportData.last_generated).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A', color: '#6366F1', icon: '⏰' },
+            ].map((item, i) => (
+              <div key={i} style={{
+                padding: 12,
+                background: '#F8FAFC',
+                borderRadius: 10,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+              }}>
+                <span style={{ fontSize: 20 }}>{item.icon}</span>
+                <div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: item.color }}>{item.value}</div>
+                  <div style={{ fontSize: 11, color: '#64748B' }}>{item.label}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Row - Quick Actions & Activity */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: 20, marginBottom: 24 }}>
         {/* Quick Actions */}
-        <div>
-          <h3 style={styles.sectionTitle}>Quick Actions</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <button onClick={() => setActiveSection("franchises")} style={styles.actionCard}>
-              <div style={{ ...styles.actionIcon, background: '#ECFDF5' }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2">
-                  <path d="M3 21h18M9 8h1M9 12h1M9 16h1M14 8h1M14 12h1M14 16h1M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16"/>
-                </svg>
-              </div>
-              <span style={styles.actionLabel}>Manage Franchises</span>
-              <span style={styles.actionArrow}>
+        <div style={styles.chartCard}>
+          <div style={styles.chartHeader}>
+            <div>
+              <h3 style={styles.chartTitle}>Quick Actions</h3>
+              <p style={styles.chartSubtitle}>Common tasks</p>
+            </div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {[
+              { label: 'Manage Franchises', icon: '🏢', color: '#059669', bg: '#ECFDF5', action: () => setActiveSection("franchises") },
+              { label: 'Generate Reports', icon: '📈', color: '#3B82F6', bg: '#EFF6FF', action: () => setActiveSection("reports") },
+              { label: 'Manage Billing', icon: '💳', color: '#8B5CF6', bg: '#F5F3FF', action: onManageBilling },
+            ].map((item, i) => (
+              <button key={i} onClick={item.action} style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                padding: '12px 16px',
+                background: item.bg,
+                border: 'none',
+                borderRadius: 10,
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+                textAlign: 'left',
+              }}>
+                <span style={{ fontSize: 20 }}>{item.icon}</span>
+                <span style={{ flex: 1, fontWeight: 600, color: '#0F172A', fontSize: 13 }}>{item.label}</span>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2">
                   <path d="M9 18l6-6-6-6"/>
                 </svg>
-              </span>
-            </button>
-            <button onClick={() => setActiveSection("reports")} style={styles.actionCard}>
-              <div style={{ ...styles.actionIcon, background: '#EFF6FF' }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2">
-                  <path d="M18 20V10M12 20V4M6 20v-6"/>
-                </svg>
-              </div>
-              <span style={styles.actionLabel}>Generate Reports</span>
-              <span style={styles.actionArrow}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2">
-                  <path d="M9 18l6-6-6-6"/>
-                </svg>
-              </span>
-            </button>
-            <button onClick={onManageBilling} style={styles.actionCard}>
-              <div style={{ ...styles.actionIcon, background: '#F5F3FF' }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2">
-                  <rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>
-                </svg>
-              </div>
-              <span style={styles.actionLabel}>Manage Billing</span>
-              <span style={styles.actionArrow}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2">
-                  <path d="M9 18l6-6-6-6"/>
-                </svg>
-              </span>
-            </button>
+              </button>
+            ))}
           </div>
         </div>
 
         {/* Recent Activity */}
-        <div>
-          <h3 style={styles.sectionTitle}>Recent Activity</h3>
-          <div style={styles.activityCard}>
-            {loadingAnalytics ? (
-              <div style={{ padding: 32, textAlign: 'center' }}>
-                <Spinner size="md" />
-                <p style={{ marginTop: 12, color: '#64748B', fontSize: 13 }}>Loading activity...</p>
-              </div>
-            ) : recentActivities.length > 0 ? (
-              <>
-                {recentActivities.map((activity, i) => (
-                  <ActivityItem key={i} {...activity} />
-                ))}
-                <div style={{ padding: '16px 0 4px', textAlign: 'center' }}>
-                  <button 
-                    onClick={() => setActiveSection("reports")}
-                    style={{ 
-                      background: 'none', 
-                      border: 'none', 
-                      color: '#059669', 
-                      fontSize: 13, 
-                      fontWeight: 600, 
-                      cursor: 'pointer' 
-                    }}
-                  >
-                    View All Reports →
-                  </button>
-                </div>
-              </>
-            ) : (
-              <div style={{ padding: 32, textAlign: 'center' }}>
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="1.5" style={{ marginBottom: 12 }}>
-                  <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-                  <path d="M14 2v6h6"/>
-                </svg>
-                <p style={{ color: '#64748B', fontSize: 13, margin: 0 }}>No recent activity</p>
-                <p style={{ color: '#94A3B8', fontSize: 12, marginTop: 4 }}>Generate a report to see activity here</p>
-              </div>
-            )}
+        <div style={styles.chartCard}>
+          <div style={styles.chartHeader}>
+            <div>
+              <h3 style={styles.chartTitle}>Recent Activity</h3>
+              <p style={styles.chartSubtitle}>Latest report generations</p>
+            </div>
+            <button 
+              onClick={() => setActiveSection("reports")}
+              style={{ 
+                background: 'none', 
+                border: 'none', 
+                color: '#059669', 
+                fontSize: 12, 
+                fontWeight: 600, 
+                cursor: 'pointer' 
+              }}
+            >
+              View All →
+            </button>
           </div>
+          {loadingAnalytics ? (
+            <div style={{ padding: 32, textAlign: 'center' }}>
+              <Spinner size="md" />
+            </div>
+          ) : recentActivities.length > 0 ? (
+            <div style={{ maxHeight: 200, overflow: 'auto' }}>
+              {recentActivities.map((activity, i) => (
+                <ActivityItem key={i} {...activity} />
+              ))}
+            </div>
+          ) : (
+            <div style={{ padding: 32, textAlign: 'center' }}>
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="1.5" style={{ marginBottom: 12 }}>
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                <path d="M14 2v6h6"/>
+              </svg>
+              <p style={{ color: '#64748B', fontSize: 13, margin: 0 }}>No recent activity</p>
+              <p style={{ color: '#94A3B8', fontSize: 12, marginTop: 4 }}>Generate a report to see activity here</p>
+            </div>
+          )}
         </div>
       </div>
 
