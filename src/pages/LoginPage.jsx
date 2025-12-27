@@ -10,6 +10,7 @@ export default function LoginPage() {
     try {
       setLoading(true);
       const backendURL = import.meta.env.VITE_BACKEND_URL;
+      console.log(backendURL)
       window.location.href = `${backendURL}/api/quickbooks/connect`;
     } catch (err) {
       console.error("Login redirect failed:", err);

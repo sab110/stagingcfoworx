@@ -628,7 +628,9 @@ function OverviewSection({ user, licenses, activeLicenses, subscription, onManag
     total_rvcr: 0,
     total_payment_summary: 0,
     this_month: 0,
+    last_month: 0,
     trend_percent: 0,
+    last_generated: null,
   };
 
   const stats = [
@@ -969,7 +971,7 @@ function OverviewSection({ user, licenses, activeLicenses, subscription, onManag
               <div style={{ height: 12, background: '#E2E8F0', borderRadius: 6, overflow: 'hidden' }}>
                 <div style={{
                   height: '100%',
-                  width: `${Math.min((reportData.this_month / Math.max(reportData.this_month, 10)) * 100, 100)}%`,
+                  width: `${Math.min((reportData.this_month / Math.max(reportData.this_month, reportData.last_month, 1)) * 100, 100)}%`,
                   background: 'linear-gradient(90deg, #059669, #047857)',
                   borderRadius: 6,
                   transition: 'width 0.5s ease',
@@ -981,13 +983,13 @@ function OverviewSection({ user, licenses, activeLicenses, subscription, onManag
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                 <span style={{ fontSize: 12, fontWeight: 500, color: '#334155' }}>Last Month</span>
                 <span style={{ fontSize: 14, fontWeight: 700, color: '#94A3B8' }}>
-                  {reportData.trend_percent !== 0 ? Math.round(reportData.this_month / (1 + reportData.trend_percent / 100)) : reportData.this_month} reports
+                  {reportData.last_month} reports
                 </span>
               </div>
               <div style={{ height: 12, background: '#E2E8F0', borderRadius: 6, overflow: 'hidden' }}>
                 <div style={{
                   height: '100%',
-                  width: `${Math.min(((reportData.trend_percent !== 0 ? reportData.this_month / (1 + reportData.trend_percent / 100) : reportData.this_month) / Math.max(reportData.this_month, 10)) * 100, 100)}%`,
+                  width: `${Math.min((reportData.last_month / Math.max(reportData.this_month, reportData.last_month, 1)) * 100, 100)}%`,
                   background: '#94A3B8',
                   borderRadius: 6,
                   transition: 'width 0.5s ease',
