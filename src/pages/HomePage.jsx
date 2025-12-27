@@ -286,7 +286,15 @@ export default function HomePage() {
           <div className="features-grid">
             {features.map((feature, i) => (
               <div key={i} className="feature-card">
-                <div className="feature-icon" style={{ backgroundColor: `${feature.color}15`, color: feature.color }}>
+                <div 
+                  className="feature-icon" 
+                  style={{ 
+                    background: `linear-gradient(135deg, ${feature.color}18 0%, ${feature.color}10 100%)`,
+                    color: feature.color,
+                    boxShadow: `0 8px 20px ${feature.color}15, inset 0 1px 0 rgba(255,255,255,0.5)`,
+                    border: `1px solid ${feature.color}20`,
+                  }}
+                >
                   {feature.icon}
                 </div>
                 <h3 className="feature-title">{feature.title}</h3>
@@ -984,20 +992,18 @@ const styles = `
   .features-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 28px;
+    gap: 24px;
   }
 
   .feature-card {
-    background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border-radius: 24px;
-    padding: 42px 38px;
-    border: 1px solid rgba(226, 232, 240, 0.8);
-    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    background: linear-gradient(180deg, #FFFFFF 0%, #FAFBFC 100%);
+    border-radius: 28px;
+    padding: 44px 38px 48px;
+    border: 1px solid rgba(226, 232, 240, 0.7);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02), 0 4px 16px rgba(0, 0, 0, 0.03);
   }
 
   .feature-card::before {
@@ -1006,58 +1012,95 @@ const styles = `
     top: 0;
     left: 0;
     right: 0;
-    height: 4px;
+    bottom: 0;
+    background: radial-gradient(circle at 0% 0%, transparent 0%, transparent 100%);
+    opacity: 0;
+    transition: all 0.4s ease;
+    pointer-events: none;
+  }
+
+  .feature-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 5px;
     background: linear-gradient(90deg, transparent, transparent);
-    transition: all 0.35s ease;
+    transition: all 0.4s ease;
     opacity: 0;
   }
 
   .feature-card:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0, 0, 0, 0.03);
-    border-color: rgba(203, 213, 225, 0.6);
+    transform: translateY(-10px);
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.1), 0 12px 24px rgba(0, 0, 0, 0.06);
+    border-color: transparent;
   }
 
-  .feature-card:hover::before {
+  .feature-card:hover::after {
     opacity: 1;
   }
 
-  .feature-card:nth-child(1):hover::before { background: linear-gradient(90deg, #10B981, #34D399); }
-  .feature-card:nth-child(2):hover::before { background: linear-gradient(90deg, #0EA5E9, #38BDF8); }
-  .feature-card:nth-child(3):hover::before { background: linear-gradient(90deg, #8B5CF6, #A78BFA); }
-  .feature-card:nth-child(4):hover::before { background: linear-gradient(90deg, #F59E0B, #FBBF24); }
-  .feature-card:nth-child(5):hover::before { background: linear-gradient(90deg, #EF4444, #F87171); }
-  .feature-card:nth-child(6):hover::before { background: linear-gradient(90deg, #06B6D4, #22D3EE); }
+  .feature-card:nth-child(1) { --accent: #10B981; --accent-light: rgba(16, 185, 129, 0.08); --accent-glow: rgba(16, 185, 129, 0.15); }
+  .feature-card:nth-child(2) { --accent: #0EA5E9; --accent-light: rgba(14, 165, 233, 0.08); --accent-glow: rgba(14, 165, 233, 0.15); }
+  .feature-card:nth-child(3) { --accent: #8B5CF6; --accent-light: rgba(139, 92, 246, 0.08); --accent-glow: rgba(139, 92, 246, 0.15); }
+  .feature-card:nth-child(4) { --accent: #F59E0B; --accent-light: rgba(245, 158, 11, 0.08); --accent-glow: rgba(245, 158, 11, 0.15); }
+  .feature-card:nth-child(5) { --accent: #EF4444; --accent-light: rgba(239, 68, 68, 0.08); --accent-glow: rgba(239, 68, 68, 0.15); }
+  .feature-card:nth-child(6) { --accent: #06B6D4; --accent-light: rgba(6, 182, 212, 0.08); --accent-glow: rgba(6, 182, 212, 0.15); }
+
+  .feature-card:hover::before {
+    opacity: 1;
+    background: radial-gradient(circle at 30% 20%, var(--accent-light) 0%, transparent 50%);
+  }
+
+  .feature-card:hover::after {
+    background: linear-gradient(90deg, var(--accent), transparent 80%);
+  }
 
   .feature-icon {
-    width: 68px;
-    height: 68px;
-    border-radius: 18px;
+    width: 72px;
+    height: 72px;
+    border-radius: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
     margin-bottom: 28px;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    z-index: 1;
   }
 
   .feature-card:hover .feature-icon {
-    transform: scale(1.08) translateY(-2px);
+    transform: scale(1.1) translateY(-4px);
+    box-shadow: 0 12px 28px var(--accent-glow), 0 4px 12px rgba(0, 0, 0, 0.08);
   }
 
   .feature-title {
-    font-size: 21px;
+    font-size: 22px;
     font-weight: 700;
     color: #0F172A;
     margin: 0 0 14px;
     letter-spacing: -0.02em;
+    position: relative;
+    z-index: 1;
+    transition: color 0.3s ease;
+  }
+
+  .feature-card:hover .feature-title {
+    color: #020617;
   }
 
   .feature-desc {
     font-size: 15px;
     color: #64748B;
-    line-height: 1.75;
+    line-height: 1.8;
     margin: 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  .feature-card:hover .feature-desc {
+    color: #475569;
   }
 
   /* How It Works */
