@@ -402,7 +402,7 @@ function DonutChart({ value, total, color = '#059669', size = 120 }) {
 }
 
 // Activity Item Component
-function ActivityItem({ icon, title, time, color }) {
+function ActivityItem({ icon, title, subtitle, time, color }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid #F1F5F9' }}>
       <div style={{ 
@@ -419,7 +419,8 @@ function ActivityItem({ icon, title, time, color }) {
       </div>
       <div style={{ flex: 1 }}>
         <div style={{ fontSize: 14, fontWeight: 500, color: '#0F172A' }}>{title}</div>
-        <div style={{ fontSize: 12, color: '#64748B' }}>{time}</div>
+        {subtitle && <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 1 }}>{subtitle}</div>}
+        <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>{time}</div>
       </div>
     </div>
   );
@@ -430,9 +431,39 @@ function OverviewSection({ user, licenses, activeLicenses, subscription, onManag
   const backendURL = import.meta.env.VITE_BACKEND_URL;
   const realmId = localStorage.getItem("realm_id");
   const currentMonth = new Date().toLocaleDateString('en-US', { month: 'long' });
-  const inactiveLicenses = licenses.length - activeLicenses.length;
+  
+  // Real-time dashboard analytics state
+  const [analytics, setAnalytics] = useState(null);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(true);
   const [recentReports, setRecentReports] = useState([]);
   const [loadingReports, setLoadingReports] = useState(true);
+
+  // Fetch dashboard analytics
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        setLoadingAnalytics(true);
+        const res = await fetch(`${backendURL}/api/subscriptions/dashboard-analytics/${realmId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) {
+            setAnalytics(data.data);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching dashboard analytics:', err);
+      } finally {
+        setLoadingAnalytics(false);
+      }
+    };
+
+    if (realmId) {
+      fetchAnalytics();
+      // Refresh every 30 seconds
+      const interval = setInterval(fetchAnalytics, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [backendURL, realmId]);
 
   // Fetch recent reports
   useEffect(() => {
@@ -468,16 +499,30 @@ function OverviewSection({ user, licenses, activeLicenses, subscription, onManag
     }
   }, [backendURL, realmId]);
 
+  // Use analytics data if available, fallback to props
+  const franchiseData = analytics?.franchises || {
+    total: licenses.length,
+    active: activeLicenses.length,
+    inactive: licenses.length - activeLicenses.length,
+  };
+  
+  const reportData = analytics?.reports || {
+    total: 0,
+    total_rvcr: 0,
+    total_payment_summary: 0,
+    this_month: 0,
+    trend_percent: 0,
+  };
+
   const stats = [
     { 
       label: "Active Franchises", 
-      value: activeLicenses.length, 
-      total: licenses.length,
+      value: franchiseData.active, 
+      total: franchiseData.total,
       icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2"><path d="M3 21h18M9 8h1M9 12h1M9 16h1M14 8h1M14 12h1M14 16h1M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16"/></svg>,
       color: "#059669",
       bgColor: "#ECFDF5",
-      trend: "+12%",
-      trendUp: true,
+      subtext: `${franchiseData.inactive} inactive`,
     },
     { 
       label: "Subscription Status", 
@@ -502,36 +547,66 @@ function OverviewSection({ user, licenses, activeLicenses, subscription, onManag
     },
   ];
 
-  // Mock data for charts - replace with real data when available
-  const monthlyData = [
-    { label: 'Jul', value: 3, color: '#059669', colorEnd: '#047857' },
-    { label: 'Aug', value: 5, color: '#059669', colorEnd: '#047857' },
-    { label: 'Sep', value: 4, color: '#059669', colorEnd: '#047857' },
-    { label: 'Oct', value: 7, color: '#059669', colorEnd: '#047857' },
-    { label: 'Nov', value: 6, color: '#059669', colorEnd: '#047857' },
-    { label: 'Dec', value: activeLicenses.length || 8, color: '#059669', colorEnd: '#047857' },
+  // Additional KPI stats row
+  const kpiStats = [
+    {
+      label: "Total Reports",
+      value: reportData.total,
+      subtext: `${reportData.total_rvcr} RVCR, ${reportData.total_payment_summary} Payment`,
+      icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
+      color: "#F59E0B",
+      bgColor: "#FFFBEB",
+    },
+    {
+      label: "Reports This Month",
+      value: reportData.this_month,
+      trend: reportData.trend_percent,
+      trendUp: reportData.trend_percent >= 0,
+      icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>,
+      color: "#10B981",
+      bgColor: "#ECFDF5",
+    },
+    {
+      label: "QuickBooks Status",
+      value: analytics?.quickbooks?.connected ? "Connected" : "Disconnected",
+      subtext: analytics?.quickbooks?.last_sync ? `Last sync: ${new Date(analytics.quickbooks.last_sync).toLocaleDateString()}` : null,
+      icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={analytics?.quickbooks?.connected ? "#059669" : "#EF4444"} strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
+      color: analytics?.quickbooks?.connected ? "#059669" : "#EF4444",
+      bgColor: analytics?.quickbooks?.connected ? "#ECFDF5" : "#FEF2F2",
+    },
+    {
+      label: "Last Report",
+      value: reportData.last_generated ? new Date(reportData.last_generated).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : "N/A",
+      subtext: reportData.last_generated ? new Date(reportData.last_generated).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : null,
+      icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6366F1" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+      color: "#6366F1",
+      bgColor: "#EEF2FF",
+    },
   ];
 
-  const recentActivities = [
-    { 
-      icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>,
-      title: 'Report Generated',
-      time: 'Just now',
-      color: '#059669',
-    },
-    { 
-      icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 21h18M9 8h1M9 12h1M9 16h1M14 8h1M14 12h1M14 16h1M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16"/></svg>,
-      title: 'Franchise Synced',
-      time: '2 hours ago',
-      color: '#3B82F6',
-    },
-    { 
-      icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>,
-      title: 'QuickBooks Connected',
-      time: '1 day ago',
-      color: '#8B5CF6',
-    },
+  // Use real monthly activity data from analytics
+  const monthlyData = analytics?.monthly_activity?.map(item => ({
+    label: item.month,
+    value: item.reports || item.active_franchises,
+    color: '#059669',
+    colorEnd: '#047857',
+  })) || [
+    { label: 'Jul', value: 0, color: '#059669', colorEnd: '#047857' },
+    { label: 'Aug', value: 0, color: '#059669', colorEnd: '#047857' },
+    { label: 'Sep', value: 0, color: '#059669', colorEnd: '#047857' },
+    { label: 'Oct', value: 0, color: '#059669', colorEnd: '#047857' },
+    { label: 'Nov', value: 0, color: '#059669', colorEnd: '#047857' },
+    { label: 'Dec', value: franchiseData.active, color: '#059669', colorEnd: '#047857' },
   ];
+
+  // Use real recent activity from analytics
+  const recentActivities = analytics?.recent_activity?.map(activity => ({
+    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>,
+    title: activity.title,
+    subtitle: activity.subtitle,
+    time: activity.time,
+    color: activity.type === 'report' ? '#059669' : '#3B82F6',
+  })) || [];
 
   return (
     <div style={styles.section}>
@@ -548,7 +623,7 @@ function OverviewSection({ user, licenses, activeLicenses, subscription, onManag
         )}
       </div>
 
-      {/* Stats Grid */}
+      {/* Primary Stats Grid */}
       <div style={styles.statsGrid}>
         {stats.map((stat, i) => (
           <div key={i} style={{...styles.statCard, animation: `slideUp 0.4s ease ${i * 0.1}s both`}}>
@@ -557,26 +632,53 @@ function OverviewSection({ user, licenses, activeLicenses, subscription, onManag
             </div>
             <div style={styles.statContent}>
               <div style={{ ...styles.statValue, color: stat.color }}>
-                {stat.value}
-                {stat.total !== undefined && (
-                  <span style={styles.statTotal}>/ {stat.total}</span>
+                {loadingAnalytics ? <Spinner size="sm" /> : stat.value}
+                {stat.total !== undefined && !loadingAnalytics && (
+                  <span style={styles.statTotal}>/{stat.total}</span>
                 )}
               </div>
               <div style={styles.statLabel}>{stat.label}</div>
-              {stat.trend && (
+              {stat.subtext && (
+                <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
+                  {stat.subtext}
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Secondary KPI Stats */}
+      <div style={{ ...styles.statsGrid, marginBottom: 24 }}>
+        {kpiStats.map((stat, i) => (
+          <div key={i} style={{...styles.statCard, animation: `slideUp 0.4s ease ${(i + 4) * 0.1}s both`}}>
+            <div style={{ ...styles.statIcon, background: stat.bgColor }}>
+              {stat.icon}
+            </div>
+            <div style={styles.statContent}>
+              <div style={{ ...styles.statValue, color: stat.color }}>
+                {loadingAnalytics ? <Spinner size="sm" /> : stat.value}
+              </div>
+              <div style={styles.statLabel}>{stat.label}</div>
+              {stat.trend !== undefined && !loadingAnalytics && (
                 <div style={{ 
-                  fontSize: 12, 
+                  fontSize: 11, 
                   fontWeight: 600, 
                   color: stat.trendUp ? '#059669' : '#EF4444',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 4,
-                  marginTop: 4,
+                  marginTop: 2,
                 }}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    {stat.trendUp ? <path d="M7 17l5-5 5 5M7 7l5 5 5-5"/> : <path d="M7 7l5 5 5-5M7 17l5-5 5 5"/>}
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    {stat.trendUp ? <path d="M18 15l-6-6-6 6"/> : <path d="M6 9l6 6 6-6"/>}
                   </svg>
-                  {stat.trend} this month
+                  {stat.trend > 0 ? '+' : ''}{stat.trend}% vs last month
+                </div>
+              )}
+              {stat.subtext && !stat.trend && (
+                <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
+                  {stat.subtext}
                 </div>
               )}
             </div>
@@ -590,17 +692,23 @@ function OverviewSection({ user, licenses, activeLicenses, subscription, onManag
         <div style={styles.chartCard}>
           <div style={styles.chartHeader}>
             <div>
-              <h3 style={styles.chartTitle}>Franchise Activity</h3>
-              <p style={styles.chartSubtitle}>Monthly active franchises over time</p>
+              <h3 style={styles.chartTitle}>Report Activity</h3>
+              <p style={styles.chartSubtitle}>Reports generated over the last 6 months</p>
             </div>
             <div style={styles.chartLegend}>
               <span style={styles.legendItem}>
                 <span style={{ ...styles.legendDot, background: '#059669' }}></span>
-                Active
+                Reports
               </span>
             </div>
           </div>
-          <SimpleBarChart data={monthlyData} height={180} />
+          {loadingAnalytics ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 180 }}>
+              <Spinner size="lg" />
+            </div>
+          ) : (
+            <SimpleBarChart data={monthlyData} height={180} />
+          )}
         </div>
 
         {/* Franchise Distribution */}
@@ -611,19 +719,27 @@ function OverviewSection({ user, licenses, activeLicenses, subscription, onManag
               <p style={styles.chartSubtitle}>Active vs Inactive distribution</p>
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px 0' }}>
-            <DonutChart value={activeLicenses.length} total={licenses.length || 1} color="#059669" />
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 24, paddingBottom: 16 }}>
-            <span style={styles.legendItem}>
-              <span style={{ ...styles.legendDot, background: '#059669' }}></span>
-              Active ({activeLicenses.length})
-            </span>
-            <span style={styles.legendItem}>
-              <span style={{ ...styles.legendDot, background: '#E2E8F0' }}></span>
-              Inactive ({inactiveLicenses})
-            </span>
-          </div>
+          {loadingAnalytics ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 180 }}>
+              <Spinner size="lg" />
+            </div>
+          ) : (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px 0' }}>
+                <DonutChart value={franchiseData.active} total={franchiseData.total || 1} color="#059669" />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 24, paddingBottom: 16 }}>
+                <span style={styles.legendItem}>
+                  <span style={{ ...styles.legendDot, background: '#059669' }}></span>
+                  Active ({franchiseData.active})
+                </span>
+                <span style={styles.legendItem}>
+                  <span style={{ ...styles.legendDot, background: '#E2E8F0' }}></span>
+                  Inactive ({franchiseData.inactive})
+                </span>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -679,21 +795,42 @@ function OverviewSection({ user, licenses, activeLicenses, subscription, onManag
         <div>
           <h3 style={styles.sectionTitle}>Recent Activity</h3>
           <div style={styles.activityCard}>
-            {recentActivities.map((activity, i) => (
-              <ActivityItem key={i} {...activity} />
-            ))}
-            <div style={{ padding: '16px 0 4px', textAlign: 'center' }}>
-              <button style={{ 
-                background: 'none', 
-                border: 'none', 
-                color: '#059669', 
-                fontSize: 13, 
-                fontWeight: 600, 
-                cursor: 'pointer' 
-              }}>
-                View All Activity →
-              </button>
-            </div>
+            {loadingAnalytics ? (
+              <div style={{ padding: 32, textAlign: 'center' }}>
+                <Spinner size="md" />
+                <p style={{ marginTop: 12, color: '#64748B', fontSize: 13 }}>Loading activity...</p>
+              </div>
+            ) : recentActivities.length > 0 ? (
+              <>
+                {recentActivities.map((activity, i) => (
+                  <ActivityItem key={i} {...activity} />
+                ))}
+                <div style={{ padding: '16px 0 4px', textAlign: 'center' }}>
+                  <button 
+                    onClick={() => setActiveSection("reports")}
+                    style={{ 
+                      background: 'none', 
+                      border: 'none', 
+                      color: '#059669', 
+                      fontSize: 13, 
+                      fontWeight: 600, 
+                      cursor: 'pointer' 
+                    }}
+                  >
+                    View All Reports →
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div style={{ padding: 32, textAlign: 'center' }}>
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="1.5" style={{ marginBottom: 12 }}>
+                  <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                  <path d="M14 2v6h6"/>
+                </svg>
+                <p style={{ color: '#64748B', fontSize: 13, margin: 0 }}>No recent activity</p>
+                <p style={{ color: '#94A3B8', fontSize: 12, marginTop: 4 }}>Generate a report to see activity here</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
