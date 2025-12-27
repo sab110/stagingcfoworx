@@ -2541,30 +2541,38 @@ const keyframes = `
   }
   
   @keyframes slideDown {
-    from { 
-      opacity: 0; 
-      transform: translateY(-10px); 
-    }
-    to { 
-      opacity: 1; 
-      transform: translateY(0); 
-    }
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
   }
   
   @keyframes slideUp {
-    from { 
-      opacity: 0; 
-      transform: translateY(10px); 
-    }
-    to { 
-      opacity: 1; 
-      transform: translateY(0); 
-    }
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
   }
   
   @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
+  }
+  
+  @keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.96); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+  
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  
+  @keyframes glow {
+    0%, 100% { box-shadow: 0 0 20px rgba(16, 185, 129, 0.15); }
+    50% { box-shadow: 0 0 30px rgba(16, 185, 129, 0.25); }
   }
   
   @keyframes sidebarCollapseDown {
@@ -2618,12 +2626,13 @@ const keyframes = `
 `;
 
 const styles = {
-  // Layout
+  // Layout - Modern & Refined
   dashboard: {
     display: 'flex',
     minHeight: '100vh',
-    background: '#F8FAFC',
-    fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    background: 'linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 50%, #EFF6FF 100%)',
+    fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    position: 'relative',
   },
   
   // Loading & Error
@@ -2682,25 +2691,28 @@ const styles = {
     cursor: 'pointer',
   },
   
-  // Sidebar
+  // Sidebar - Modern Glass Design
   sidebar: {
-    background: '#fff',
-    borderRight: '1px solid #E2E8F0',
+    background: 'rgba(255, 255, 255, 0.95)',
+    backdropFilter: 'blur(20px)',
+    WebkitBackdropFilter: 'blur(20px)',
+    borderRight: '1px solid rgba(226, 232, 240, 0.8)',
     display: 'flex',
     flexDirection: 'column',
-    transition: 'width 0.2s ease',
+    transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
     position: 'fixed',
     left: 0,
     top: 0,
     bottom: 0,
     zIndex: 40,
+    boxShadow: '4px 0 24px rgba(0, 0, 0, 0.03)',
   },
   sidebarHeader: {
-    padding: 20,
+    padding: '20px 16px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottom: '1px solid #F1F5F9',
+    borderBottom: '1px solid rgba(241, 245, 249, 0.8)',
   },
   logo: {
     display: 'flex',
@@ -2708,21 +2720,22 @@ const styles = {
     gap: 12,
   },
   logoIcon: {
-    width: 36,
-    height: 36,
-    background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-    borderRadius: 10,
+    width: 38,
+    height: 38,
+    background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+    borderRadius: 12,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    boxShadow: '0 2px 8px rgba(5, 150, 105, 0.25)',
+    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3), 0 2px 4px rgba(0, 0, 0, 0.05)',
     cursor: 'pointer',
-    transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+    transition: 'all 0.2s ease',
   },
   logoText: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: 700,
     color: '#0F172A',
+    letterSpacing: '-0.02em',
   },
   collapseBtn: {
     width: 32,
@@ -2735,37 +2748,40 @@ const styles = {
     justifyContent: 'center',
     cursor: 'pointer',
     color: '#64748B',
+    transition: 'all 0.15s ease',
   },
   sidebarNav: {
     flex: 1,
-    padding: '16px 12px',
+    padding: '20px 12px',
     display: 'flex',
     flexDirection: 'column',
-    gap: 4,
+    gap: 6,
   },
   navItem: {
     display: 'flex',
     alignItems: 'center',
     gap: 12,
-    padding: '12px 16px',
+    padding: '13px 16px',
     background: 'transparent',
     border: 'none',
-    borderRadius: 10,
+    borderRadius: 12,
     fontSize: 14,
     fontWeight: 500,
     color: '#64748B',
     cursor: 'pointer',
-    transition: 'all 0.15s',
+    transition: 'all 0.2s ease',
     width: '100%',
     textAlign: 'left',
+    position: 'relative',
   },
   navItemActive: {
-    background: '#ECFDF5',
+    background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(16, 185, 129, 0.08) 100%)',
     color: '#059669',
+    fontWeight: 600,
   },
   sidebarFooter: {
-    padding: 16,
-    borderTop: '1px solid #F1F5F9',
+    padding: '16px 12px',
+    borderTop: '1px solid rgba(241, 245, 249, 0.8)',
   },
   sidebarToggleBtn: {
     display: 'flex',
@@ -2773,47 +2789,50 @@ const styles = {
     width: '100%',
     padding: '12px 16px',
     marginBottom: 12,
-    background: 'transparent',
-    border: '1px solid #E2E8F0',
-    borderRadius: 10,
+    background: 'rgba(248, 250, 252, 0.6)',
+    border: '1px solid rgba(226, 232, 240, 0.8)',
+    borderRadius: 12,
     cursor: 'pointer',
     color: '#64748B',
     fontSize: 13,
     fontWeight: 500,
-    transition: 'all 0.15s ease',
-    ':hover': {
-      background: '#F1F5F9',
-      color: '#10B981',
-    },
+    transition: 'all 0.2s ease',
   },
   connectionStatus: {
     display: 'flex',
     alignItems: 'center',
     gap: 10,
-    padding: '12px 16px',
-    background: '#F8FAFC',
-    borderRadius: 10,
+    padding: '14px 16px',
+    background: 'linear-gradient(135deg, rgba(236, 253, 245, 0.8) 0%, rgba(220, 252, 231, 0.6) 100%)',
+    borderRadius: 12,
+    border: '1px solid rgba(167, 243, 208, 0.5)',
   },
   statusDot: {
     width: 8,
     height: 8,
-    background: '#059669',
+    background: '#10B981',
     borderRadius: '50%',
+    boxShadow: '0 0 8px rgba(16, 185, 129, 0.5)',
+    animation: 'pulse 2s ease-in-out infinite',
   },
   statusText: {
     fontSize: 13,
     color: '#64748B',
   },
   
-  // Main Content
+  // Main Content - Clean & Spacious
   mainContent: {
     flex: 1,
     minHeight: '100vh',
+    display: 'flex',
+    flexDirection: 'column',
   },
   topBar: {
-    background: '#fff',
-    borderBottom: '1px solid #E2E8F0',
-    padding: '16px 32px',
+    background: 'rgba(255, 255, 255, 0.9)',
+    backdropFilter: 'blur(12px)',
+    WebkitBackdropFilter: 'blur(12px)',
+    borderBottom: '1px solid rgba(226, 232, 240, 0.7)',
+    padding: '18px 32px',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -2827,17 +2846,19 @@ const styles = {
     gap: 16,
   },
   pageTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 700,
     color: '#0F172A',
     margin: 0,
+    letterSpacing: '-0.02em',
   },
   companyBadge: {
-    padding: '6px 12px',
-    background: '#F1F5F9',
-    borderRadius: 6,
+    padding: '8px 14px',
+    background: 'linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)',
+    borderRadius: 10,
     fontSize: 13,
     color: '#64748B',
+    border: '1px solid rgba(226, 232, 240, 0.8)',
   },
   topBarRight: {
     display: 'flex',
@@ -2847,45 +2868,54 @@ const styles = {
   userMenu: {
     display: 'flex',
     alignItems: 'center',
-    gap: 12,
+    gap: 14,
+    padding: '6px 8px 6px 16px',
+    background: 'rgba(248, 250, 252, 0.6)',
+    borderRadius: 14,
+    border: '1px solid rgba(226, 232, 240, 0.8)',
   },
   userAvatar: {
-    width: 40,
-    height: 40,
-    background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-    borderRadius: 10,
+    width: 42,
+    height: 42,
+    background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+    borderRadius: 12,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     color: '#fff',
     fontWeight: 600,
     fontSize: 16,
+    boxShadow: '0 2px 8px rgba(16, 185, 129, 0.25)',
+    letterSpacing: '-0.01em',
   },
   userInfo: {
     display: 'flex',
     flexDirection: 'column',
+    gap: 2,
   },
   userName: {
     fontSize: 14,
     fontWeight: 600,
     color: '#0F172A',
+    letterSpacing: '-0.01em',
   },
   userEmail: {
     fontSize: 12,
     color: '#64748B',
   },
   logoutBtn: {
-    width: 40,
-    height: 40,
-    background: '#F8FAFC',
-    border: '1px solid #E2E8F0',
-    borderRadius: 10,
+    width: 42,
+    height: 42,
+    background: 'rgba(248, 250, 252, 0.8)',
+    border: '1px solid rgba(226, 232, 240, 0.8)',
+    borderRadius: 12,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     cursor: 'pointer',
     color: '#64748B',
-    marginLeft: 8,
+    marginLeft: 4,
+    transition: 'all 0.2s ease',
   },
 
   // Hamburger Menu Button
@@ -2912,33 +2942,39 @@ const styles = {
     whiteSpace: 'nowrap',
   },
   
-  // Content
+  // Content - Refined Spacing
   content: {
-    padding: 32,
+    padding: '32px 36px',
+    flex: 1,
   },
   section: {
-    maxWidth: 1200,
+    maxWidth: 1280,
     margin: '0 auto',
   },
   
-  // Chart Styles
+  // Chart Cards - Elevated Glass Style
   chartCard: {
-    background: '#fff',
-    border: '1px solid #E2E8F0',
-    borderRadius: 16,
-    padding: 24,
+    background: 'rgba(255, 255, 255, 0.9)',
+    backdropFilter: 'blur(8px)',
+    WebkitBackdropFilter: 'blur(8px)',
+    border: '1px solid rgba(226, 232, 240, 0.8)',
+    borderRadius: 20,
+    padding: 28,
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04), 0 6px 16px rgba(0, 0, 0, 0.03)',
+    transition: 'all 0.2s ease',
   },
   chartHeader: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   chartTitle: {
     fontSize: 16,
     fontWeight: 600,
     color: '#0F172A',
     margin: 0,
+    letterSpacing: '-0.01em',
   },
   chartSubtitle: {
     fontSize: 13,
@@ -2956,6 +2992,7 @@ const styles = {
     gap: 6,
     fontSize: 12,
     color: '#64748B',
+    fontWeight: 500,
   },
   legendDot: {
     width: 8,
@@ -2963,47 +3000,55 @@ const styles = {
     borderRadius: '50%',
   },
   activityCard: {
-    background: '#fff',
-    border: '1px solid #E2E8F0',
-    borderRadius: 14,
-    padding: '4px 20px',
+    background: 'rgba(255, 255, 255, 0.9)',
+    border: '1px solid rgba(226, 232, 240, 0.8)',
+    borderRadius: 16,
+    padding: '6px 22px',
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)',
   },
 
-  // Welcome Card
+  // Welcome Card - Modern Gradient
   welcomeCard: {
-    background: 'linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)',
-    borderRadius: 16,
-    padding: 32,
+    background: 'linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 50%, #A7F3D0 100%)',
+    borderRadius: 24,
+    padding: '36px 40px',
     marginBottom: 32,
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    border: '1px solid #A7F3D0',
+    border: '1px solid rgba(167, 243, 208, 0.6)',
+    boxShadow: '0 4px 20px rgba(16, 185, 129, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.5)',
+    position: 'relative',
+    overflow: 'hidden',
   },
   welcomeContent: {},
   welcomeTitle: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 700,
     color: '#064E3B',
     marginBottom: 8,
+    letterSpacing: '-0.02em',
   },
   welcomeText: {
     fontSize: 15,
     color: '#047857',
     margin: 0,
+    opacity: 0.9,
   },
   subscribeBtn: {
-    padding: '12px 24px',
-    background: '#059669',
+    padding: '14px 28px',
+    background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
     color: '#fff',
     border: 'none',
-    borderRadius: 10,
-    fontSize: 14,
+    borderRadius: 14,
+    fontSize: 15,
     fontWeight: 600,
     cursor: 'pointer',
+    boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)',
+    transition: 'all 0.2s ease',
   },
   
-  // Stats Grid
+  // Stats Grid - Refined Cards
   statsGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(4, 1fr)',
@@ -3011,27 +3056,35 @@ const styles = {
     marginBottom: 40,
   },
   statCard: {
-    background: '#fff',
-    border: '1px solid #E2E8F0',
-    borderRadius: 14,
-    padding: 24,
+    background: 'rgba(255, 255, 255, 0.9)',
+    backdropFilter: 'blur(8px)',
+    WebkitBackdropFilter: 'blur(8px)',
+    border: '1px solid rgba(226, 232, 240, 0.8)',
+    borderRadius: 18,
+    padding: 26,
     display: 'flex',
     alignItems: 'flex-start',
-    gap: 16,
+    gap: 18,
+    transition: 'all 0.2s ease',
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.02)',
   },
   statIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
+    width: 52,
+    height: 52,
+    borderRadius: 14,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
   },
-  statContent: {},
+  statContent: {
+    flex: 1,
+  },
   statValue: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: 700,
     marginBottom: 4,
+    letterSpacing: '-0.02em',
   },
   statTotal: {
     fontSize: 16,
@@ -3041,6 +3094,7 @@ const styles = {
   statLabel: {
     fontSize: 14,
     color: '#64748B',
+    fontWeight: 500,
   },
   
   // Section Titles
@@ -3067,42 +3121,46 @@ const styles = {
     cursor: 'pointer',
   },
   
-  // Actions Grid
+  // Actions Grid - Interactive Cards
   actionsGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(3, 1fr)',
-    gap: 16,
+    gap: 18,
     marginBottom: 40,
   },
   actionCard: {
-    background: '#fff',
-    border: '1px solid #E2E8F0',
-    borderRadius: 14,
-    padding: 20,
+    background: 'rgba(255, 255, 255, 0.9)',
+    border: '1px solid rgba(226, 232, 240, 0.8)',
+    borderRadius: 18,
+    padding: 22,
     display: 'flex',
     alignItems: 'center',
-    gap: 16,
+    gap: 18,
     cursor: 'pointer',
-    transition: 'all 0.15s',
+    transition: 'all 0.2s ease',
     width: '100%',
     textAlign: 'left',
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)',
   },
   actionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
+    width: 52,
+    height: 52,
+    borderRadius: 14,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.04)',
   },
   actionLabel: {
     flex: 1,
     fontSize: 15,
     fontWeight: 600,
     color: '#0F172A',
+    letterSpacing: '-0.01em',
   },
   actionArrow: {
     color: '#94A3B8',
+    transition: 'transform 0.2s ease',
   },
   
   // Franchise Preview Grid
@@ -3309,35 +3367,37 @@ const styles = {
     border: '1px solid #FECACA',
   },
   
-  // Table
+  // Table - Clean & Modern
   tableContainer: {
-    background: '#fff',
-    border: '1px solid #E2E8F0',
-    borderRadius: 14,
+    background: 'rgba(255, 255, 255, 0.9)',
+    border: '1px solid rgba(226, 232, 240, 0.8)',
+    borderRadius: 18,
     overflow: 'hidden',
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03), 0 4px 12px rgba(0, 0, 0, 0.02)',
   },
   table: {
     width: '100%',
     borderCollapse: 'collapse',
   },
   th: {
-    padding: '14px 20px',
+    padding: '16px 22px',
     textAlign: 'left',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 600,
     color: '#64748B',
     textTransform: 'uppercase',
-    letterSpacing: '0.5px',
-    background: '#F8FAFC',
-    borderBottom: '1px solid #E2E8F0',
+    letterSpacing: '0.05em',
+    background: 'linear-gradient(180deg, #FAFBFC 0%, #F8FAFC 100%)',
+    borderBottom: '1px solid rgba(226, 232, 240, 0.8)',
   },
   tr: {
-    borderBottom: '1px solid #F1F5F9',
+    borderBottom: '1px solid rgba(241, 245, 249, 0.8)',
+    transition: 'background 0.15s ease',
   },
   td: {
-    padding: '16px 20px',
+    padding: '18px 22px',
     fontSize: 14,
-    color: '#0F172A',
+    color: '#1E293B',
   },
   franchiseNumber: {
     fontFamily: "'SF Mono', Monaco, monospace",
@@ -3388,25 +3448,28 @@ const styles = {
     border: '1px solid #DC2626',
   },
   
-  // Empty State
+  // Empty State - Centered & Clean
   emptyState: {
-    background: '#fff',
-    border: '1px solid #E2E8F0',
-    borderRadius: 14,
-    padding: 60,
+    background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%)',
+    border: '1px solid rgba(226, 232, 240, 0.8)',
+    borderRadius: 24,
+    padding: '70px 40px',
     textAlign: 'center',
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)',
   },
   emptyTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 600,
     color: '#0F172A',
-    marginTop: 20,
-    marginBottom: 8,
+    marginTop: 24,
+    marginBottom: 10,
+    letterSpacing: '-0.01em',
   },
   emptyText: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#64748B',
     margin: 0,
+    lineHeight: 1.6,
   },
   
   // Coming Soon
