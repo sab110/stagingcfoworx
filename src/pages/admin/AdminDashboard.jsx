@@ -394,7 +394,12 @@ export default function AdminDashboard() {
         }}
       >
         {/* Logo */}
-        <div style={styles.sidebarHeader}>
+        <div style={{
+          ...styles.sidebarHeader,
+          flexDirection: sidebarCollapsed ? 'column' : 'row',
+          gap: sidebarCollapsed ? '12px' : '0',
+          padding: sidebarCollapsed ? '16px 12px' : '20px 16px',
+        }}>
           <div style={styles.logo}>
             <div style={styles.logoIcon}>
               <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
@@ -412,6 +417,7 @@ export default function AdminDashboard() {
           <button 
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
             style={styles.collapseBtn}
+            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             {sidebarCollapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
           </button>
