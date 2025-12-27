@@ -701,10 +701,10 @@ function OverviewSection({ user, licenses, activeLicenses, subscription, onManag
     },
   ];
 
-  // Use real monthly activity data from analytics
+  // Use real monthly activity data from analytics - only show actual report counts
   const monthlyData = analytics?.monthly_activity?.map(item => ({
     label: item.month,
-    value: item.reports || item.active_franchises,
+    value: item.reports ?? 0,  // Only use reports count, default to 0
     color: '#059669',
     colorEnd: '#047857',
   })) || [
@@ -713,7 +713,7 @@ function OverviewSection({ user, licenses, activeLicenses, subscription, onManag
     { label: 'Sep', value: 0, color: '#059669', colorEnd: '#047857' },
     { label: 'Oct', value: 0, color: '#059669', colorEnd: '#047857' },
     { label: 'Nov', value: 0, color: '#059669', colorEnd: '#047857' },
-    { label: 'Dec', value: franchiseData.active, color: '#059669', colorEnd: '#047857' },
+    { label: 'Dec', value: 0, color: '#059669', colorEnd: '#047857' },
   ];
 
   // Report breakdown data for charts
@@ -947,42 +947,10 @@ function OverviewSection({ user, licenses, activeLicenses, subscription, onManag
       {/* Secondary Charts Row */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '1fr 1fr 1fr',
+        gridTemplateColumns: '1fr 1fr',
         gap: 20,
         marginBottom: 24,
       }}>
-        {/* Subscription Usage */}
-        <div style={styles.chartCard}>
-          <div style={styles.chartHeader}>
-            <div>
-              <h3 style={styles.chartTitle}>Subscription Usage</h3>
-              <p style={styles.chartSubtitle}>Licenses utilized</p>
-            </div>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px 0' }}>
-            <div style={{ position: 'relative', width: 120, height: 120 }}>
-              <svg width="120" height="120" style={{ transform: 'rotate(-90deg)' }}>
-                <circle cx="60" cy="60" r="50" fill="none" stroke="#E2E8F0" strokeWidth="12" />
-                <circle cx="60" cy="60" r="50" fill="none" stroke="#3B82F6" strokeWidth="12"
-                  strokeDasharray={2 * Math.PI * 50}
-                  strokeDashoffset={2 * Math.PI * 50 * (1 - (franchiseData.active / (subscription?.quantity || franchiseData.total || 1)))}
-                  strokeLinecap="round"
-                  style={{ transition: 'stroke-dashoffset 0.5s ease' }}
-                />
-              </svg>
-              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontSize: 24, fontWeight: 700, color: '#3B82F6' }}>{franchiseData.active}</span>
-                <span style={{ fontSize: 11, color: '#64748B' }}>of {subscription?.quantity || franchiseData.total}</span>
-              </div>
-            </div>
-            <div style={{ marginTop: 12, textAlign: 'center' }}>
-              <span style={{ fontSize: 12, color: '#64748B' }}>
-                {Math.round((franchiseData.active / (subscription?.quantity || franchiseData.total || 1)) * 100)}% capacity used
-              </span>
-            </div>
-          </div>
-        </div>
-
         {/* Monthly Comparison - Bar comparison */}
         <div style={styles.chartCard}>
           <div style={styles.chartHeader}>
