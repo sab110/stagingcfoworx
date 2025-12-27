@@ -205,6 +205,32 @@ export default function Dashboard() {
             </nav>
 
             <div style={styles.sidebarFooter}>
+              {/* Sidebar Toggle Button */}
+              <button
+                onClick={handleSidebarToggle}
+                style={{
+                  ...styles.sidebarToggleBtn,
+                  justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+                }}
+                title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              >
+                <svg 
+                  width="18" 
+                  height="18" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  strokeWidth="2"
+                  style={{
+                    transform: sidebarCollapsed ? 'rotate(180deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.3s ease',
+                  }}
+                >
+                  <path d="M11 19l-7-7 7-7M18 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                {!sidebarCollapsed && <span style={{ marginLeft: 12 }}>Collapse</span>}
+              </button>
+              
               <div style={{
                 ...styles.connectionStatus,
                 justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
@@ -225,28 +251,6 @@ export default function Dashboard() {
           {/* Top Bar */}
           <header style={styles.topBar}>
             <div style={styles.topBarLeft}>
-              {/* Hamburger Menu Button */}
-              <button 
-                onClick={handleSidebarToggle}
-                style={styles.hamburgerBtn}
-                title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  {sidebarCollapsed ? (
-                    <>
-                      <line x1="3" y1="6" x2="21" y2="6" />
-                      <line x1="3" y1="12" x2="21" y2="12" />
-                      <line x1="3" y1="18" x2="21" y2="18" />
-                    </>
-                  ) : (
-                    <>
-                      <line x1="3" y1="6" x2="21" y2="6" />
-                      <line x1="3" y1="12" x2="15" y2="12" />
-                      <line x1="3" y1="18" x2="21" y2="18" />
-                    </>
-                  )}
-                </svg>
-              </button>
               <h1 style={styles.pageTitle}>
                 {menuItems.find(item => item.id === activeSection)?.label || "Dashboard"}
               </h1>
@@ -2410,6 +2414,25 @@ const styles = {
   sidebarFooter: {
     padding: 16,
     borderTop: '1px solid #F1F5F9',
+  },
+  sidebarToggleBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    width: '100%',
+    padding: '12px 16px',
+    marginBottom: 12,
+    background: 'transparent',
+    border: '1px solid #E2E8F0',
+    borderRadius: 10,
+    cursor: 'pointer',
+    color: '#64748B',
+    fontSize: 13,
+    fontWeight: 500,
+    transition: 'all 0.15s ease',
+    ':hover': {
+      background: '#F1F5F9',
+      color: '#10B981',
+    },
   },
   connectionStatus: {
     display: 'flex',
