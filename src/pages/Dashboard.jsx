@@ -560,12 +560,19 @@ function OverviewSection({ user, licenses, activeLicenses, subscription, onManag
     const fetchAnalytics = async () => {
       try {
         setLoadingAnalytics(true);
+        console.log('[Dashboard Analytics] Fetching from:', `${backendURL}/api/subscriptions/dashboard-analytics/${realmId}`);
         const res = await fetch(`${backendURL}/api/subscriptions/dashboard-analytics/${realmId}`);
         if (res.ok) {
           const data = await res.json();
+          console.log('[Dashboard Analytics] API Response:', data);
           if (data.success) {
+            console.log('[Dashboard Analytics] Setting analytics data:', data.data);
+            console.log('[Dashboard Analytics] Reports:', data.data?.reports);
+            console.log('[Dashboard Analytics] Subscription:', data.data?.subscription);
             setAnalytics(data.data);
           }
+        } else {
+          console.error('[Dashboard Analytics] API returned error status:', res.status);
         }
       } catch (err) {
         console.error('Error fetching dashboard analytics:', err);
@@ -1039,15 +1046,15 @@ function OverviewSection({ user, licenses, activeLicenses, subscription, onManag
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '10px 0' }}>
             <div style={{ padding: 16, background: '#ECFDF5', borderRadius: 12, textAlign: 'center' }}>
               <div style={{ fontSize: 24, fontWeight: 700, color: '#059669' }}>
-                {loadingAnalytics ? '...' : reportData.total}
+                {loadingAnalytics ? '...' : (analytics?.reports?.total || 0)}
               </div>
               <div style={{ fontSize: 11, color: '#065F46', marginTop: 4 }}>Total Reports</div>
             </div>
             <div style={{ padding: 16, background: '#EFF6FF', borderRadius: 12, textAlign: 'center' }}>
               <div style={{ fontSize: 24, fontWeight: 700, color: '#3B82F6' }}>
-                {loadingAnalytics ? '...' : (analytics?.subscription?.quantity || subscription?.quantity || 0)}
+                {loadingAnalytics ? '...' : (analytics?.franchises?.active || 0)}
               </div>
-              <div style={{ fontSize: 11, color: '#1E40AF', marginTop: 4 }}>Licensed Seats</div>
+              <div style={{ fontSize: 11, color: '#1E40AF', marginTop: 4 }}>Active Franchises</div>
             </div>
             <div style={{ padding: 16, background: '#F5F3FF', borderRadius: 12, textAlign: 'center' }}>
               <div style={{ fontSize: 16, fontWeight: 700, color: '#8B5CF6' }}>
