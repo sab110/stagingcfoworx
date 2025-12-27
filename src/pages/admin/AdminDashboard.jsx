@@ -671,14 +671,11 @@ function DashboardSection({ dashboard, onViewFailedPayments, onViewClients, onTr
     { label: 'Canceled', value: (overview.total_companies || 0) - (overview.active_subscriptions || 0) - (overview.past_due_subscriptions || 0), color: '#94A3B8' },
   ].filter(item => item.value > 0);
 
-  const monthlyData = [
-    { label: 'Jul', value: Math.floor(Math.random() * 5) + 1 },
-    { label: 'Aug', value: Math.floor(Math.random() * 5) + 1 },
-    { label: 'Sep', value: Math.floor(Math.random() * 5) + 1 },
-    { label: 'Oct', value: Math.floor(Math.random() * 5) + 1 },
-    { label: 'Nov', value: Math.floor(Math.random() * 5) + 1 },
-    { label: 'Dec', value: overview.new_companies_this_month || 0 },
-  ];
+  // Use real monthly signup data from backend
+  const monthlyData = (dashboard?.monthly_signups || []).map(item => ({
+    label: item.month,
+    value: item.count ?? 0,
+  }));
   
   return (
     <div>
