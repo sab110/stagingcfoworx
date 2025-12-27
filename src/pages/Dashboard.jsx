@@ -1024,27 +1024,48 @@ function OverviewSection({ user, licenses, activeLicenses, subscription, onManag
           <div style={styles.chartHeader}>
             <div>
               <h3 style={styles.chartTitle}>Quick Stats</h3>
-              <p style={styles.chartSubtitle}>At a glance</p>
+              <p style={styles.chartSubtitle}>At a glance • Updates every 30s</p>
             </div>
+            {loadingAnalytics && (
+              <div style={{ 
+                width: 8, 
+                height: 8, 
+                borderRadius: '50%', 
+                background: '#10B981',
+                animation: 'pulse 1.5s infinite',
+              }} title="Syncing..." />
+            )}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '10px 0' }}>
             <div style={{ padding: 16, background: '#ECFDF5', borderRadius: 12, textAlign: 'center' }}>
-              <div style={{ fontSize: 24, fontWeight: 700, color: '#059669' }}>{reportData.total}</div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: '#059669' }}>
+                {loadingAnalytics ? '...' : reportData.total}
+              </div>
               <div style={{ fontSize: 11, color: '#065F46', marginTop: 4 }}>Total Reports</div>
             </div>
             <div style={{ padding: 16, background: '#EFF6FF', borderRadius: 12, textAlign: 'center' }}>
-              <div style={{ fontSize: 24, fontWeight: 700, color: '#3B82F6' }}>{subscription?.quantity || 0}</div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: '#3B82F6' }}>
+                {loadingAnalytics ? '...' : (analytics?.subscription?.quantity || subscription?.quantity || 0)}
+              </div>
               <div style={{ fontSize: 11, color: '#1E40AF', marginTop: 4 }}>Licensed Seats</div>
             </div>
             <div style={{ padding: 16, background: '#F5F3FF', borderRadius: 12, textAlign: 'center' }}>
               <div style={{ fontSize: 16, fontWeight: 700, color: '#8B5CF6' }}>
-                {subscription?.end_date ? new Date(subscription.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A'}
+                {loadingAnalytics ? '...' : (
+                  (analytics?.subscription?.end_date || subscription?.end_date) 
+                    ? new Date(analytics?.subscription?.end_date || subscription?.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) 
+                    : 'N/A'
+                )}
               </div>
               <div style={{ fontSize: 11, color: '#5B21B6', marginTop: 4 }}>Next Billing</div>
             </div>
             <div style={{ padding: 16, background: '#FEF3C7', borderRadius: 12, textAlign: 'center' }}>
               <div style={{ fontSize: 16, fontWeight: 700, color: '#F59E0B' }}>
-                {reportData.last_generated ? new Date(reportData.last_generated).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A'}
+                {loadingAnalytics ? '...' : (
+                  reportData.last_generated 
+                    ? new Date(reportData.last_generated).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) 
+                    : 'N/A'
+                )}
               </div>
               <div style={{ fontSize: 11, color: '#92400E', marginTop: 4 }}>Last Report</div>
             </div>
