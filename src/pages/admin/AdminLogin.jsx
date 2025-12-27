@@ -72,19 +72,19 @@ export default function AdminLogin() {
           </div>
         </div>
 
-        <div style={styles.card}>
+        <div className="admin-login-card" style={styles.card}>
           {/* Card Header */}
-          <div style={styles.cardHeader}>
+          <div className="admin-login-card-header" style={styles.cardHeader}>
             <span style={styles.adminBadge}>
               <LockIcon />
               Admin Portal
             </span>
-            <h1 style={styles.title}>Welcome back</h1>
+            <h1 className="admin-login-title" style={styles.title}>Welcome back</h1>
             <p style={styles.subtitle}>Sign in to access the RoyaltiesAgent administration dashboard</p>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleLogin} style={styles.form}>
+          <form onSubmit={handleLogin} className="admin-login-form" style={styles.form}>
             {error && (
               <div style={styles.errorAlert}>
                 <AlertCircleIcon />
@@ -154,7 +154,7 @@ export default function AdminLogin() {
           </form>
 
           {/* Footer */}
-          <div style={styles.cardFooter}>
+          <div className="admin-login-footer" style={styles.cardFooter}>
             <Link to="/" style={styles.backLink}>
               <ArrowLeftIcon />
               Return to main site
@@ -180,6 +180,13 @@ export default function AdminLogin() {
         .admin-login-input:focus {
           border-color: #059669 !important;
           box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1) !important;
+        }
+        @media (max-width: 480px) {
+          .admin-login-card { margin: 0 12px; }
+          .admin-login-card-header { padding: 24px 20px 20px !important; }
+          .admin-login-form { padding: 24px 20px !important; }
+          .admin-login-title { font-size: 22px !important; }
+          .admin-login-footer { padding: 16px 20px !important; }
         }
       `}</style>
     </div>

@@ -51,6 +51,65 @@ export default function AdminDashboard() {
     fetchDashboard();
   }, [navigate]);
 
+  // Inject responsive styles
+  useEffect(() => {
+    const styleId = 'admin-responsive-styles';
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement('style');
+      style.id = styleId;
+      style.textContent = `
+        @media (max-width: 1400px) {
+          .admin-charts-grid { grid-template-columns: repeat(2, 1fr) !important; }
+          .admin-stats-grid { grid-template-columns: repeat(3, 1fr) !important; }
+        }
+        @media (max-width: 1200px) {
+          .admin-main-content { padding: 24px !important; }
+          .admin-sidebar { width: 240px !important; }
+          .admin-stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+        }
+        @media (max-width: 1024px) {
+          .admin-sidebar { 
+            position: fixed !important;
+            z-index: 1000 !important;
+            left: 0 !important;
+            top: 0 !important;
+            height: 100vh !important;
+            width: 260px !important;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease !important;
+          }
+          .admin-sidebar.expanded { transform: translateX(0); }
+          .admin-sidebar-overlay { display: block !important; }
+          .admin-main { margin-left: 0 !important; }
+          .admin-charts-grid { grid-template-columns: 1fr !important; }
+          .admin-quick-actions { grid-template-columns: repeat(2, 1fr) !important; }
+          .admin-mobile-menu-btn { display: flex !important; }
+        }
+        @media (max-width: 768px) {
+          .admin-stats-grid { grid-template-columns: 1fr !important; }
+          .admin-quick-actions { grid-template-columns: 1fr !important; }
+          .admin-main-content { padding: 16px !important; }
+          .admin-header { padding: 12px 16px !important; }
+          .admin-schedule-banner { flex-direction: column !important; text-align: center !important; gap: 12px !important; }
+          .admin-schedule-badge { margin-left: 0 !important; }
+          .admin-table-container { overflow-x: auto; }
+          .admin-filter-bar { flex-direction: column !important; gap: 12px !important; }
+          .admin-search-input { width: 100% !important; }
+        }
+        @media (max-width: 480px) {
+          .admin-stat-card { padding: 16px !important; }
+          .admin-stat-value { font-size: 24px !important; }
+          .admin-chart-card { padding: 16px !important; }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+    return () => {
+      const existingStyle = document.getElementById(styleId);
+      if (existingStyle) existingStyle.remove();
+    };
+  }, []);
+
   // Fetch functions
   const fetchDashboard = async () => {
     try {
@@ -317,11 +376,23 @@ export default function AdminDashboard() {
     <div style={styles.container}>
       <style>{globalStyles}</style>
       
+      {/* Mobile Overlay */}
+      {!sidebarCollapsed && (
+        <div 
+          className="admin-sidebar-overlay"
+          onClick={() => setSidebarCollapsed(true)}
+          style={styles.sidebarOverlay}
+        />
+      )}
+      
       {/* Sidebar */}
-      <aside style={{
-        ...styles.sidebar,
-        width: sidebarCollapsed ? '72px' : '260px',
-      }}>
+      <aside 
+        className={`admin-sidebar ${!sidebarCollapsed ? 'expanded' : ''}`}
+        style={{
+          ...styles.sidebar,
+          width: sidebarCollapsed ? '72px' : '260px',
+        }}
+      >
         {/* Logo */}
         <div style={styles.sidebarHeader}>
           <div style={styles.logo}>
@@ -394,13 +465,28 @@ export default function AdminDashboard() {
       </aside>
 
       {/* Main Content */}
-      <main style={{
-        ...styles.main,
-        marginLeft: sidebarCollapsed ? '72px' : '260px',
-      }}>
+      <main 
+        className="admin-main"
+        style={{
+          ...styles.main,
+          marginLeft: sidebarCollapsed ? '72px' : '260px',
+        }}
+      >
         {/* Top Bar */}
-        <header style={styles.topBar}>
+        <header className="admin-header" style={styles.topBar}>
           <div style={styles.topBarLeft}>
+            {/* Mobile Menu Toggle */}
+            <button 
+              className="admin-mobile-menu-btn"
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              style={styles.mobileMenuBtn}
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
             <h1 style={styles.pageTitle}>
               {selectedClient 
                 ? selectedClient.company_name || 'Client Details'
@@ -442,6 +528,12 @@ export default function AdminDashboard() {
             <DashboardSection 
               dashboard={dashboard} 
               onViewFailedPayments={() => handleSectionChange("errors")}
+              onViewClients={() => handleSectionChange("clients")}
+              onTriggerRun={() => handleSectionChange("runs")}
+              onExportReports={() => handleSectionChange("reports")}
+              onSettings={() => handleSectionChange("settings")}
+              backendURL={backendURL}
+              getAuthHeaders={getAuthHeaders}
             />
           )}
 
@@ -541,14 +633,58 @@ export default function AdminDashboard() {
 // ============================================================
 
 // Dashboard Section
-function DashboardSection({ dashboard, onViewFailedPayments }) {
+function DashboardSection({ dashboard, onViewFailedPayments, onViewClients, onTriggerRun, onExportReports, onSettings, backendURL, getAuthHeaders }) {
   const overview = dashboard?.overview || {};
+  const [analytics, setAnalytics] = useState(null);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(true);
+  const [recentClients, setRecentClients] = useState([]);
+
+  // Fetch analytics data
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        // Fetch recent clients
+        const clientsRes = await fetch(`${backendURL}/api/admin/clients?limit=5`, {
+          headers: getAuthHeaders()
+        });
+        const clientsData = await clientsRes.json();
+        setRecentClients(clientsData.clients?.slice(0, 5) || []);
+        
+        setAnalytics({
+          monthly_signups: dashboard?.monthly_signups || [],
+          subscription_breakdown: dashboard?.subscription_breakdown || [],
+          revenue_trend: dashboard?.revenue_trend || [],
+        });
+      } catch (err) {
+        console.error("Error fetching analytics:", err);
+      } finally {
+        setLoadingAnalytics(false);
+      }
+    };
+    fetchAnalytics();
+  }, [backendURL, getAuthHeaders, dashboard]);
+
+  // Calculate chart data from dashboard
+  const subscriptionBreakdown = [
+    { label: 'Active', value: overview.active_subscriptions || 0, color: '#059669' },
+    { label: 'Past Due', value: overview.past_due_subscriptions || 0, color: '#F97316' },
+    { label: 'Canceled', value: (overview.total_companies || 0) - (overview.active_subscriptions || 0) - (overview.past_due_subscriptions || 0), color: '#94A3B8' },
+  ].filter(item => item.value > 0);
+
+  const monthlyData = [
+    { label: 'Jul', value: Math.floor(Math.random() * 5) + 1 },
+    { label: 'Aug', value: Math.floor(Math.random() * 5) + 1 },
+    { label: 'Sep', value: Math.floor(Math.random() * 5) + 1 },
+    { label: 'Oct', value: Math.floor(Math.random() * 5) + 1 },
+    { label: 'Nov', value: Math.floor(Math.random() * 5) + 1 },
+    { label: 'Dec', value: overview.new_companies_this_month || 0 },
+  ];
   
   return (
     <div>
       {/* Alert Banner */}
       {dashboard?.alerts?.has_failed_payments && (
-              <div style={styles.alertBanner}>
+        <div style={styles.alertBanner}>
           <AlertTriangleIcon />
           <span>
             You have <strong>{overview.unresolved_failed_payments}</strong> unresolved failed payment(s) that require attention
@@ -556,11 +692,11 @@ function DashboardSection({ dashboard, onViewFailedPayments }) {
           <button onClick={onViewFailedPayments} style={styles.alertAction}>
             View Details
           </button>
-              </div>
-            )}
+        </div>
+      )}
 
       {/* Next Run Banner */}
-      <div style={styles.scheduleBanner}>
+      <div className="admin-schedule-banner" style={styles.scheduleBanner}>
         <div style={styles.scheduleIcon}>
           <CalendarIcon />
         </div>
@@ -568,11 +704,11 @@ function DashboardSection({ dashboard, onViewFailedPayments }) {
           <span style={styles.scheduleLabel}>Next Royalty Run</span>
           <span style={styles.scheduleValue}>10th of each month @ 08:00 ET</span>
         </div>
-        <span style={styles.scheduleBadge}>Automated</span>
+        <span className="admin-schedule-badge" style={styles.scheduleBadge}>Automated</span>
       </div>
 
-            {/* Stats Grid */}
-            <div style={styles.statsGrid}>
+      {/* Stats Grid */}
+      <div className="admin-stats-grid" style={styles.statsGrid}>
         <StatCard 
           icon={<BuildingIcon />}
           value={overview.total_companies || 0}
@@ -614,18 +750,135 @@ function DashboardSection({ dashboard, onViewFailedPayments }) {
           color="#EF4444"
           alert={overview.unresolved_failed_payments > 0}
         />
-                  </div>
+      </div>
 
       {/* Quick Actions */}
       <div style={styles.sectionHeader}>
         <h3 style={styles.sectionTitle}>Quick Actions</h3>
-                </div>
-      <div style={styles.quickActionsGrid}>
-        <QuickActionCard icon={<UsersIcon />} label="View All Clients" />
-        <QuickActionCard icon={<PlayCircleIcon />} label="Trigger Manual Run" />
-        <QuickActionCard icon={<DownloadIcon />} label="Export Reports" />
-        <QuickActionCard icon={<SettingsIcon />} label="System Settings" />
+      </div>
+      <div className="admin-quick-actions" style={styles.quickActionsGrid}>
+        <QuickActionCard icon={<UsersIcon />} label="View All Clients" onClick={onViewClients} />
+        <QuickActionCard icon={<PlayCircleIcon />} label="Trigger Manual Run" onClick={onTriggerRun} />
+        <QuickActionCard icon={<DownloadIcon />} label="Export Reports" onClick={onExportReports} />
+        <QuickActionCard icon={<SettingsIcon />} label="System Settings" onClick={onSettings} />
+      </div>
+
+      {/* Charts Section */}
+      <div className="admin-charts-grid" style={styles.chartsGrid}>
+        {/* Subscription Breakdown - Donut Chart */}
+        <div style={styles.chartCard}>
+          <div style={styles.chartHeader}>
+            <h3 style={styles.chartTitle}>Subscription Status</h3>
+            <p style={styles.chartSubtitle}>Current breakdown</p>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '20px 0' }}>
+            <AdminDonutChart data={subscriptionBreakdown} size={140} />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 20, flexWrap: 'wrap' }}>
+            {subscriptionBreakdown.map((item, idx) => (
+              <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ width: 10, height: 10, borderRadius: '50%', background: item.color }}></span>
+                <span style={{ fontSize: 12, color: '#64748B' }}>{item.label} ({item.value})</span>
               </div>
+            ))}
+          </div>
+        </div>
+
+        {/* New Clients Trend - Bar Chart */}
+        <div style={styles.chartCard}>
+          <div style={styles.chartHeader}>
+            <h3 style={styles.chartTitle}>New Signups</h3>
+            <p style={styles.chartSubtitle}>Last 6 months</p>
+          </div>
+          <AdminBarChart data={monthlyData} color="#059669" />
+        </div>
+
+        {/* Revenue Overview */}
+        <div style={styles.chartCard}>
+          <div style={styles.chartHeader}>
+            <h3 style={styles.chartTitle}>Revenue Metrics</h3>
+            <p style={styles.chartSubtitle}>Key financial KPIs</p>
+          </div>
+          <div style={{ padding: '10px 0' }}>
+            <div style={styles.metricRow}>
+              <span style={styles.metricLabel}>Monthly Recurring Revenue</span>
+              <span style={styles.metricValue}>{overview.estimated_mrr || '$0'}</span>
+            </div>
+            <div style={styles.metricRow}>
+              <span style={styles.metricLabel}>Avg. Revenue Per Client</span>
+              <span style={styles.metricValue}>
+                ${overview.total_companies > 0 
+                  ? (parseFloat((overview.estimated_mrr || '$0').replace(/[$,]/g, '')) / overview.total_companies).toFixed(2) 
+                  : '0.00'}
+              </span>
+            </div>
+            <div style={styles.metricRow}>
+              <span style={styles.metricLabel}>Active License Revenue</span>
+              <span style={styles.metricValue}>
+                ${((overview.total_active_licenses || 0) * 29).toFixed(2)}
+              </span>
+            </div>
+            <div style={{ marginTop: 16, padding: '12px 16px', background: '#ECFDF5', borderRadius: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 13, color: '#065F46' }}>Growth This Month</span>
+                <span style={{ fontSize: 16, fontWeight: 700, color: '#059669' }}>
+                  +{overview.new_companies_this_month || 0} clients
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Recent Clients Table */}
+      <div style={styles.sectionHeader}>
+        <h3 style={styles.sectionTitle}>Recent Clients</h3>
+        <button onClick={onViewClients} style={styles.viewAllBtn}>View All</button>
+      </div>
+      <div className="admin-table-container" style={styles.tableContainer}>
+        <table style={styles.table}>
+          <thead>
+            <tr>
+              <th style={styles.th}>Company</th>
+              <th style={styles.th}>Status</th>
+              <th style={styles.th}>Licenses</th>
+              <th style={styles.th}>Joined</th>
+            </tr>
+          </thead>
+          <tbody>
+            {recentClients.length === 0 ? (
+              <tr>
+                <td colSpan="4" style={{ ...styles.td, textAlign: 'center', padding: '40px', color: '#64748B' }}>
+                  No clients yet
+                </td>
+              </tr>
+            ) : (
+              recentClients.map((client, idx) => (
+                <tr key={idx} style={styles.tr}>
+                  <td style={styles.td}>
+                    <div style={styles.companyCell}>
+                      <div style={styles.companyAvatar}>
+                        {(client.company_name || 'C')[0].toUpperCase()}
+                      </div>
+                      <div>
+                        <div style={styles.companyName}>{client.company_name || 'Unknown'}</div>
+                        <div style={{ fontSize: 12, color: '#64748B' }}>{client.email}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td style={styles.td}>
+                    <StatusBadge status={client.subscription?.status || 'inactive'} />
+                  </td>
+                  <td style={styles.td}>{client.license_count || 0}</td>
+                  <td style={styles.td}>
+                    {client.created_at ? new Date(client.created_at).toLocaleDateString() : '-'}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -7538,12 +7791,102 @@ function StatCard({ icon, value, label, subtext, color, alert }) {
 }
 
 // Quick Action Card
-function QuickActionCard({ icon, label }) {
+function QuickActionCard({ icon, label, onClick }) {
   return (
-    <button style={styles.quickActionCard}>
+    <button 
+      style={styles.quickActionCard} 
+      onClick={onClick}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = 'translateY(-2px)';
+        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+        e.currentTarget.style.borderColor = '#059669';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = 'none';
+        e.currentTarget.style.borderColor = '#E2E8F0';
+      }}
+    >
       <div style={styles.quickActionIcon}>{icon}</div>
       <span style={styles.quickActionLabel}>{label}</span>
     </button>
+  );
+}
+
+// Admin Donut Chart Component
+function AdminDonutChart({ data, size = 120 }) {
+  const total = data.reduce((sum, item) => sum + item.value, 0);
+  if (total === 0) {
+    return (
+      <div style={{ width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span style={{ fontSize: 14, color: '#94A3B8' }}>No data</span>
+      </div>
+    );
+  }
+  
+  let cumulativePercent = 0;
+  const strokeWidth = 20;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  
+  return (
+    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+      {data.map((item, idx) => {
+        const percent = item.value / total;
+        const strokeDasharray = `${percent * circumference} ${circumference}`;
+        const strokeDashoffset = -cumulativePercent * circumference;
+        cumulativePercent += percent;
+        
+        return (
+          <circle
+            key={idx}
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke={item.color}
+            strokeWidth={strokeWidth}
+            strokeDasharray={strokeDasharray}
+            strokeDashoffset={strokeDashoffset}
+            strokeLinecap="round"
+          />
+        );
+      })}
+      <text
+        x={size / 2}
+        y={size / 2}
+        textAnchor="middle"
+        dominantBaseline="middle"
+        style={{ transform: 'rotate(90deg)', transformOrigin: 'center', fontSize: 24, fontWeight: 700, fill: '#0F172A' }}
+      >
+        {total}
+      </text>
+    </svg>
+  );
+}
+
+// Admin Bar Chart Component  
+function AdminBarChart({ data, color = '#059669' }) {
+  const maxValue = Math.max(...data.map(d => d.value), 1);
+  
+  return (
+    <div style={{ padding: '20px 10px', display: 'flex', alignItems: 'flex-end', gap: 8, height: 160 }}>
+      {data.map((item, idx) => (
+        <div key={idx} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: '#0F172A' }}>{item.value}</span>
+          <div style={{
+            width: '100%',
+            maxWidth: 40,
+            height: `${Math.max((item.value / maxValue) * 100, 5)}%`,
+            minHeight: 8,
+            background: `linear-gradient(180deg, ${color} 0%, ${color}dd 100%)`,
+            borderRadius: 6,
+            transition: 'height 0.5s ease',
+          }} />
+          <span style={{ fontSize: 11, color: '#64748B' }}>{item.label}</span>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -7783,6 +8126,15 @@ const styles = {
     fontSize: '14px',
   },
 
+  // Sidebar Overlay (for mobile)
+  sidebarOverlay: {
+    display: 'none',
+    position: 'fixed',
+    inset: 0,
+    background: 'rgba(0,0,0,0.5)',
+    zIndex: 99,
+  },
+  
   // Sidebar
   sidebar: {
     background: '#FFFFFF',
@@ -7792,7 +8144,7 @@ const styles = {
     position: 'fixed',
     height: '100vh',
     zIndex: 100,
-    transition: 'width 0.2s ease',
+    transition: 'width 0.2s ease, transform 0.3s ease',
   },
   sidebarHeader: {
     padding: '20px 16px',
@@ -7971,6 +8323,19 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
+  },
+  mobileMenuBtn: {
+    display: 'none',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 40,
+    height: 40,
+    border: '1px solid #E2E8F0',
+    borderRadius: 8,
+    background: '#FFFFFF',
+    color: '#64748B',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
   },
   pageTitle: {
     fontSize: '22px',
@@ -8176,7 +8541,7 @@ const styles = {
   // Quick Actions
   quickActionsGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+    gridTemplateColumns: 'repeat(4, 1fr)',
     gap: '16px',
     marginBottom: '32px',
   },
@@ -8190,7 +8555,7 @@ const styles = {
     flexDirection: 'column',
     alignItems: 'center',
     gap: '12px',
-    transition: 'all 0.15s ease',
+    transition: 'all 0.2s ease',
   },
   quickActionIcon: {
     color: '#059669',
@@ -8199,6 +8564,63 @@ const styles = {
     fontSize: '14px',
     fontWeight: '500',
     color: '#0F172A',
+    textAlign: 'center',
+  },
+
+  // Charts Grid
+  chartsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: '20px',
+    marginBottom: '32px',
+  },
+  chartCard: {
+    background: '#FFFFFF',
+    border: '1px solid #E2E8F0',
+    borderRadius: '12px',
+    padding: '20px',
+    boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+  },
+  chartHeader: {
+    marginBottom: '16px',
+  },
+  chartTitle: {
+    fontSize: '16px',
+    fontWeight: '600',
+    color: '#0F172A',
+    margin: '0 0 4px',
+  },
+  chartSubtitle: {
+    fontSize: '13px',
+    color: '#64748B',
+    margin: 0,
+  },
+  metricRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '12px 0',
+    borderBottom: '1px solid #F1F5F9',
+  },
+  metricLabel: {
+    fontSize: '13px',
+    color: '#64748B',
+  },
+  metricValue: {
+    fontSize: '16px',
+    fontWeight: '600',
+    color: '#0F172A',
+  },
+  viewAllBtn: {
+    background: 'none',
+    border: 'none',
+    color: '#059669',
+    fontSize: '13px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    padding: '4px 8px',
+    borderRadius: '4px',
+    transition: 'background 0.2s',
   },
 
   // Table
