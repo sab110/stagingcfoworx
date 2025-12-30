@@ -117,9 +117,6 @@ export default function HomePage() {
           </nav>
 
           <div className="nav-actions">
-            <button onClick={() => navigate("/login")} className="btn-secondary">
-              Sign In
-            </button>
             <button onClick={() => navigate("/login")} className="btn-primary">
               Get Started
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -148,7 +145,6 @@ export default function HomePage() {
           <Link to="/pricing" className="mobile-nav-link">Pricing</Link>
           <Link to="/contact" className="mobile-nav-link">Contact</Link>
           <div className="mobile-menu-actions">
-            <button onClick={() => navigate("/login")} className="btn-secondary w-full">Sign In</button>
             <button onClick={() => navigate("/login")} className="btn-primary w-full">Get Started</button>
           </div>
         </div>

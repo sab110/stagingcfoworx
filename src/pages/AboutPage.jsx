@@ -100,7 +100,6 @@ export default function AboutPage() {
           </nav>
 
           <div className="nav-actions">
-            <button onClick={() => navigate("/login")} className="btn-secondary">Sign In</button>
             <button onClick={() => navigate("/login")} className="btn-primary">Get Started</button>
           </div>
 
@@ -124,7 +123,6 @@ export default function AboutPage() {
             <Link to="/pricing" className="mobile-nav-link">Pricing</Link>
             <Link to="/contact" className="mobile-nav-link">Contact</Link>
             <div className="mobile-menu-actions">
-              <button onClick={() => navigate("/login")} className="btn-secondary w-full">Sign In</button>
               <button onClick={() => navigate("/login")} className="btn-primary w-full">Get Started</button>
             </div>
           </div>

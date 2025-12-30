@@ -127,17 +127,12 @@ export default function Pricing() {
                 Dashboard
               </button>
             ) : (
-              <>
-                <button onClick={() => navigate("/login")} style={styles.navButtonSecondary}>
-                  Sign In
-                </button>
-                <button onClick={() => navigate("/login")} style={styles.navButtonPrimary}>
-                  Get Started
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <path d="M5 12h14M12 5l7 7-7 7"/>
-                  </svg>
-                </button>
-              </>
+              <button onClick={() => navigate("/login")} style={styles.navButtonPrimary}>
+                Get Started
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
+              </button>
             )}
           </div>
           
@@ -170,10 +165,7 @@ export default function Pricing() {
                   Dashboard
                 </button>
               ) : (
-                <>
-                  <button onClick={() => navigate("/login")} style={styles.mobileNavButtonSecondary}>Sign In</button>
-                  <button onClick={() => navigate("/login")} style={styles.mobileNavButtonPrimary}>Get Started</button>
-                </>
+                <button onClick={() => navigate("/login")} style={styles.mobileNavButtonPrimary}>Get Started</button>
               )}
             </div>
           </div>
